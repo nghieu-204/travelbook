@@ -1,0 +1,14 @@
+{
+  "project_name": "travel-booking-website",
+  "project_type": "fullstack",
+  "attributes": {},
+  "agent_language": "vi",
+  "ai_agent": "antigravity",
+  "asf_version": "3.3",
+  "bro_skills_version": "1.5.8",
+  "created_at": "2026-07-22T11:26:08.919019",
+  "skills_count": 33,
+  "workflows_count": 35,
+  "multi_agent": true,
+  "agent_registry": ".agent/agents/registry.json"
+}
