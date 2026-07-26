@@ -11,6 +11,17 @@ import SearchableAdminDropdown from '@/components/ui/SearchableAdminDropdown'
 import MultiSelectDropdown from '@/components/ui/MultiSelectDropdown'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 
+const destinationMap: Record<string, string[]> = {
+  'Miền Bắc': ['Hà Nội', 'Sapa', 'Hạ Long', 'Ninh Bình', 'Hà Giang', 'Mộc Châu', 'Hải Phòng'],
+  'Miền Trung': ['Đà Nẵng', 'Huế', 'Hội An', 'Nha Trang', 'Đà Lạt', 'Quy Nhơn', 'Phú Yên', 'Phong Nha'],
+  'Miền Nam': ['TP. Hồ Chí Minh', 'Phú Quốc', 'Cần Thơ', 'Vũng Tàu', 'Tây Ninh', 'Côn Đảo'],
+  'Châu Á': ['Nhật Bản', 'Hàn Quốc', 'Thái Lan', 'Singapore', 'Bali', 'Đài Loan', 'Trung Quốc', 'Malaysia', 'Indonesia'],
+  'Châu Âu': ['Pháp', 'Ý', 'Thụy Sĩ', 'Hà Lan', 'Đức', 'Anh'],
+  'Châu Mỹ': ['Mỹ', 'Canada', 'Brazil', 'Mexico'],
+  'Châu Úc': ['Úc', 'New Zealand'],
+  'Châu Phi': ['Nam Phi', 'Ai Cập', 'Kenya']
+};
+
 interface Metadata {
   tourTypes: any[];
   occasions: any[];
@@ -58,8 +69,8 @@ export default function EditTour() {
         if (data) {
           setTitle(data.name || '')
           setDescription(data.description || '')
-          setCategory(data.category || 'Trong nước')
-          setRegion(data.region || 'Miền Bắc')
+          setCategory(data.category || '')
+          setRegion(data.region || '')
           setLocation(data.location || '')
           
           setPriceAdult(data.price ? String(data.price) : '')
@@ -289,28 +300,36 @@ export default function EditTour() {
                   onChange={e => {
                     const newCategory = e.target.value;
                     setCategory(newCategory);
-                    if (newCategory === 'Trong nước') {
-                      setRegion('Miền Bắc');
-                    } else {
-                      setRegion('Châu Á');
-                    }
+                    setRegion('');
+                    setLocation('');
                   }} 
                   className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 >
+                  <option value="" disabled>Chọn loại tour...</option>
                   <option value="Trong nước">Trong nước</option>
                   <option value="Quốc tế">Quốc tế</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Vùng miền</label>
-                <select value={region} onChange={e => setRegion(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                  {category === 'Trong nước' ? (
+                <select 
+                  value={region} 
+                  onChange={e => {
+                    setRegion(e.target.value);
+                    setLocation('');
+                  }} 
+                  disabled={!category}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="" disabled>Chọn vùng miền...</option>
+                  {category === 'Trong nước' && (
                     <>
                       <option value="Miền Bắc">Miền Bắc</option>
                       <option value="Miền Trung">Miền Trung</option>
                       <option value="Miền Nam">Miền Nam</option>
                     </>
-                  ) : (
+                  )}
+                  {category === 'Quốc tế' && (
                     <>
                       <option value="Châu Á">Châu Á</option>
                       <option value="Châu Âu">Châu Âu</option>
@@ -323,7 +342,17 @@ export default function EditTour() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Điểm đến (Tỉnh/Thành)</label>
-                <input value={location} onChange={e => setLocation(e.target.value)} placeholder="VD: Đà Nẵng" className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                <select 
+                  value={location} 
+                  onChange={e => setLocation(e.target.value)} 
+                  disabled={!region}
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="" disabled>Chọn điểm đến...</option>
+                  {region && destinationMap[region]?.map(dest => (
+                    <option key={dest} value={dest}>{dest}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </section>
