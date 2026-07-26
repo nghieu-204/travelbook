@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: travel_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: travel_booking
+      # Khởi tạo db name rỗng để tương thích nếu script tự động tạo schema
+    ports:
+      - "3308:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: travel_phpmyadmin
+    environment:
+      - PMA_HOST=db
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: travel_backend
+    environment:
+      - PORT=${API_PORT:-8902}
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_PORT=3306
+      - DB_NAME=travel_booking
+      - JWT_SECRET=travel_booking_secret_key_2026
+    ports:
+      - "${API_PORT:-8902}:${API_PORT:-8902}"
+    depends_on:
+      - db
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: travel_frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:${API_PORT:-8902}/api
+      - API_URL=http://backend:${API_PORT:-8902}/api
+      - PORT=${NEXT_PUBLIC_PORT_FE:-8900}
+    ports:
+      - "${NEXT_PUBLIC_PORT_FE:-8900}:${NEXT_PUBLIC_PORT_FE:-8900}"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db_data:

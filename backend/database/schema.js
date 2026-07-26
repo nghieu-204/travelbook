@@ -1,4 +1,5 @@
-const { pool, dbConfig } = require('../config/db');
+
+    const { pool, dbConfig } = require('../config/db');
 const mysql = require('mysql2/promise');
 
 async function initSchema() {
@@ -37,6 +38,7 @@ async function initSchema() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 location VARCHAR(100),
+                destination_id INT NULL,
                 region VARCHAR(50) DEFAULT 'Miền Nam',
                 price INT NOT NULL,
                 original_price INT,
@@ -108,7 +110,119 @@ async function initSchema() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
-        console.log('✅ Khởi tạo Database và Bảng thành công!');
+        
+        // ================= SCHEMA V2 (HIERARCHICAL & TAGGING) =================
+        // 1. Bảng TourCategory (Cấp 1 - Trong nước / Ngoài nước)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS TourCategory (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // 2. Bảng Region (Cấp 2 - Vùng miền)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS Region (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                category_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (category_id) REFERENCES TourCategory(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // 3. Bảng Destination (Cấp 3 - Điểm đến)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS Destination (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                region_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                image_url VARCHAR(500) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (region_id) REFERENCES Region(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // 4. Bảng TourType (Loại hình Tour: Khám phá, Nghỉ dưỡng...)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS TourType (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // 5. Bảng Occasion (Sự kiện/Dịp lễ: Lễ 30/4, Tết...)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS Occasion (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // 6. Bảng Tour_v2 (Bảng chính chứa thông tin Tour)
+        // Lưu ý: Đặt tên là Tour_v2 để không đụng chạm bảng tours cũ
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS Tour_v2 (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                destination_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                price_adult DECIMAL(10, 2) NOT NULL,
+                price_child DECIMAL(10, 2) NOT NULL,
+                start_date DATE NOT NULL,
+                max_seats INT DEFAULT 30,
+                status VARCHAR(50) DEFAULT 'Active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (destination_id) REFERENCES Destination(id) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // 7. Bảng trung gian Tour_TourType (Nhiều-Nhiều)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS Tour_TourType (
+                tour_id INT NOT NULL,
+                type_id INT NOT NULL,
+                PRIMARY KEY (tour_id, type_id),
+                FOREIGN KEY (tour_id) REFERENCES Tour_v2(id) ON DELETE CASCADE,
+                FOREIGN KEY (type_id) REFERENCES TourType(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // 8. Bảng trung gian Tour_Occasion (Nhiều-Nhiều)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS Tour_Occasion (
+                tour_id INT NOT NULL,
+                occasion_id INT NOT NULL,
+                PRIMARY KEY (tour_id, occasion_id),
+                FOREIGN KEY (tour_id) REFERENCES Tour_v2(id) ON DELETE CASCADE,
+                FOREIGN KEY (occasion_id) REFERENCES Occasion(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // 9. Bảng TourImages (Thư viện ảnh của tour)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS TourImages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                tour_id INT NOT NULL,
+                image_url VARCHAR(500) NOT NULL,
+                is_main BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (tour_id) REFERENCES Tour_v2(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        
+        try {
+            await pool.query('ALTER TABLE tours ADD CONSTRAINT fk_tours_destination FOREIGN KEY (destination_id) REFERENCES Destination(id) ON DELETE SET NULL');
+        } catch (e) {
+            if (!e.message.includes('Duplicate key name')) {
+                console.log('Constraint may already exist or error:', e.message);
+            }
+        }
+    console.log("✅ Khởi tạo các bảng thành công!");
     } catch (error) {
         console.error('❌ Lỗi khởi tạo schema:', error);
     }

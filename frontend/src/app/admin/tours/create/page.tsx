@@ -11,33 +11,42 @@ import SearchableAdminDropdown from '@/components/ui/SearchableAdminDropdown'
 import MultiSelectDropdown from '@/components/ui/MultiSelectDropdown'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 
-const destinationMap: Record<string, string[]> = {
-  'Miền Bắc': ['Hà Nội', 'Sapa', 'Hạ Long', 'Ninh Bình', 'Hà Giang', 'Mộc Châu', 'Hải Phòng'],
-  'Miền Trung': ['Đà Nẵng', 'Huế', 'Hội An', 'Nha Trang', 'Đà Lạt', 'Quy Nhơn', 'Phú Yên', 'Phong Nha'],
-  'Miền Nam': ['TP. Hồ Chí Minh', 'Phú Quốc', 'Cần Thơ', 'Vũng Tàu', 'Tây Ninh', 'Côn Đảo'],
-  'Châu Á': ['Nhật Bản', 'Hàn Quốc', 'Thái Lan', 'Singapore', 'Bali', 'Đài Loan', 'Trung Quốc', 'Malaysia', 'Indonesia'],
-  'Châu Âu': ['Pháp', 'Ý', 'Thụy Sĩ', 'Hà Lan', 'Đức', 'Anh'],
-  'Châu Mỹ': ['Mỹ', 'Canada', 'Brazil', 'Mexico'],
-  'Châu Úc': ['Úc', 'New Zealand'],
-  'Châu Phi': ['Nam Phi', 'Ai Cập', 'Kenya']
-};
 
 interface Metadata {
   tourTypes: any[];
   occasions: any[];
 }
 
-type Destination = { id: number; name: string; };
-type Region = { id: number; name: string; destinations: Destination[]; };
+type Destination = { id: number; name: string; region_id: number; };
+type Region = { id: number; name: string; category_id: number; destinations: Destination[]; };
 type Category = { id: number; name: string; regions: Region[]; };
 
 export default function CreateTourV2() {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  
+  useEffect(() => {
+    const fetchMeta = async () => {
+      try {
+        const data = await fetchApi('/metadata');
+        setCategories(data.categories || []);
+        setRegions(data.regions || []);
+        setDestinations(data.destinations || []);
+      } catch (err) {
+        console.error('Lỗi tải metadata', err);
+      }
+    };
+    fetchMeta();
+  }, []);
+
   const [category, setCategory] = useState('')
   const [region, setRegion] = useState('')
   const [location, setLocation] = useState('')
+  const [destinationId, setDestinationId] = useState<number | ''>('')
   
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -134,6 +143,7 @@ export default function CreateTourV2() {
         location: location,
         region: region,
         category: category,
+        destination_id: destinationId || null,
         price: Number(priceAdult),
         child_price: priceChild ? Number(priceChild) : 0,
         available_spots: maxSeats ? Number(maxSeats) : 30,
@@ -230,16 +240,17 @@ export default function CreateTourV2() {
                 <select 
                   value={category} 
                   onChange={e => {
-                    const newCategory = e.target.value;
-                    setCategory(newCategory);
+                    setCategory(e.target.value);
                     setRegion('');
                     setLocation('');
+                    setDestinationId('');
                   }} 
                   className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 >
                   <option value="" disabled>Chọn loại tour...</option>
-                  <option value="Trong nước">Trong nước</option>
-                  <option value="Quốc tế">Quốc tế</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -249,40 +260,31 @@ export default function CreateTourV2() {
                   onChange={e => {
                     setRegion(e.target.value);
                     setLocation('');
+                    setDestinationId('');
                   }} 
                   disabled={!category}
                   className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="" disabled>Chọn vùng miền...</option>
-                  {category === 'Trong nước' && (
-                    <>
-                      <option value="Miền Bắc">Miền Bắc</option>
-                      <option value="Miền Trung">Miền Trung</option>
-                      <option value="Miền Nam">Miền Nam</option>
-                    </>
-                  )}
-                  {category === 'Quốc tế' && (
-                    <>
-                      <option value="Châu Á">Châu Á</option>
-                      <option value="Châu Âu">Châu Âu</option>
-                      <option value="Châu Mỹ">Châu Mỹ</option>
-                      <option value="Châu Úc">Châu Úc</option>
-                      <option value="Châu Phi">Châu Phi</option>
-                    </>
-                  )}
+                  {regions.filter(r => r.category_id === categories.find(c => c.name === category)?.id).map(r => (
+                    <option key={r.id} value={r.name}>{r.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Điểm đến (Tỉnh/Thành)</label>
                 <select 
-                  value={location} 
-                  onChange={e => setLocation(e.target.value)} 
+                  value={destinationId} 
+                  onChange={e => {
+                    setDestinationId(parseInt(e.target.value));
+                    setLocation(e.target.options[e.target.selectedIndex].text);
+                  }} 
                   disabled={!region}
                   className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="" disabled>Chọn điểm đến...</option>
-                  {region && destinationMap[region]?.map(dest => (
-                    <option key={dest} value={dest}>{dest}</option>
+                  {destinations.filter(d => d.region_id === regions.find(r => r.name === region)?.id).map(dest => (
+                    <option key={dest.id} value={dest.id}>{dest.name}</option>
                   ))}
                 </select>
               </div>

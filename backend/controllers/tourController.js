@@ -101,7 +101,7 @@ const seedData = async (req, res) => {
 // Admin: Thêm tour mới
 const createTour = async (req, res) => {
     try {
-        const { name, location, region, price, original_price, child_price, available_spots, departure_date, duration, category, image, gallery, badge, description, itinerary, included, excluded } = req.body;
+        const { name, location, region, price, original_price, child_price, available_spots, departure_date, duration, category, image, gallery, badge, description, itinerary, included, excluded, destination_id } = req.body;
         
         const galleryJson = typeof gallery === 'string' ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' ? itinerary : JSON.stringify(itinerary || []);
@@ -109,9 +109,9 @@ const createTour = async (req, res) => {
         const excludedJson = typeof excluded === 'string' ? excluded : JSON.stringify(excluded || []);
 
         const [result] = await pool.query(
-            `INSERT INTO tours (name, location, region, price, original_price, child_price, available_spots, departure_date, duration, category, image, gallery, badge, description, itinerary, included, excluded)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name, location, region || 'Miền Nam', price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, category, image, galleryJson, badge || 'Mới', description, itineraryJson, includedJson, excludedJson]
+            `INSERT INTO tours (name, location, region, price, original_price, child_price, available_spots, departure_date, duration, category, image, gallery, badge, description, itinerary, included, excluded, destination_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, location, region || 'Miền Nam', price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, category, image, galleryJson, badge || 'Mới', description, itineraryJson, includedJson, excludedJson, destination_id || null]
         );
 
         res.status(201).json({ message: "🎉 Thêm tour mới thành công!", tourId: result.insertId });
@@ -125,7 +125,7 @@ const createTour = async (req, res) => {
 const updateTour = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, location, region, price, original_price, child_price, available_spots, departure_date, duration, category, image, gallery, badge, description, itinerary, included, excluded } = req.body;
+        const { name, location, region, price, original_price, child_price, available_spots, departure_date, duration, category, image, gallery, badge, description, itinerary, included, excluded, destination_id } = req.body;
 
         const galleryJson = typeof gallery === 'string' ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' ? itinerary : JSON.stringify(itinerary || []);
@@ -133,9 +133,9 @@ const updateTour = async (req, res) => {
         const excludedJson = typeof excluded === 'string' ? excluded : JSON.stringify(excluded || []);
 
         await pool.query(
-            `UPDATE tours SET name=?, location=?, region=?, price=?, original_price=?, child_price=?, available_spots=?, departure_date=?, duration=?, category=?, image=?, gallery=?, badge=?, description=?, itinerary=?, included=?, excluded=?
+            `UPDATE tours SET name=?, location=?, region=?, price=?, original_price=?, child_price=?, available_spots=?, departure_date=?, duration=?, category=?, image=?, gallery=?, badge=?, description=?, itinerary=?, included=?, excluded=?, destination_id=?
              WHERE id=?`,
-            [name, location, region || 'Miền Nam', price, original_price, child_price, available_spots, departure_date || '2026-08-15', duration, category, image, galleryJson, badge, description, itineraryJson, includedJson, excludedJson, id]
+            [name, location, region || 'Miền Nam', price, original_price, child_price, available_spots, departure_date || '2026-08-15', duration, category, image, galleryJson, badge, description, itineraryJson, includedJson, excludedJson, destination_id || null, id]
         );
 
         res.json({ message: "🎉 Cập nhật thông tin tour thành công!" });

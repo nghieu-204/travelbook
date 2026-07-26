@@ -219,6 +219,118 @@ const sampleTours = [
         ]),
         included: JSON.stringify(['Khách sạn 4 sao tại Hà Nội và Ninh Bình', 'Thuyền nan tham quan Tràng An (4 người/thuyền)', 'Xe du lịch đời mới suốt hành trình', 'Các bữa ăn đặc sản dê núi Ninh Bình']),
         excluded: JSON.stringify(['Vé máy bay đến Hà Nội', 'Đồ uống gọi thêm và chi phí cá nhân'])
+    },
+    {
+        name: 'Khám Phá Tây Bắc - Mộc Châu Mùa Hoa Cải',
+        location: 'Mộc Châu',
+        region: 'Miền Bắc',
+        price: 2500000,
+        original_price: 3000000,
+        departure_date: '2026-11-10',
+        duration: '2 Ngày 1 Đêm',
+        category: 'Núi rừng',
+        image: 'https://images.unsplash.com/photo-1596710104495-9786a3b2b406?auto=format&fit=crop&w=1000&q=80',
+        rating: 4.6,
+        reviews_count: 120,
+        badge: '🌸 Mùa Hoa',
+        description: 'Tận hưởng không khí trong lành của cao nguyên Mộc Châu, chiêm ngưỡng những đồi chè xanh mướt và những cánh đồng hoa cải trắng muốt tinh khôi trải dài tít tắp.',
+        itinerary: JSON.stringify([
+            { day: 'Ngày 1', title: 'Hà Nội - Mộc Châu - Đồi Chè Trái Tim', content: 'Khởi hành từ Hà Nội. Trưa đến Mộc Châu nhận phòng. Chiều tham quan Đồi chè trái tim, Rừng thông Bản Áng.' },
+            { day: 'Ngày 2', title: 'Thác Dải Yếm - Thung lũng mận Nà Ka - Trở về', content: 'Thăm Thác Dải Yếm, khám phá Thung lũng mận Nà Ka (tuỳ mùa). Chiều lên xe về lại Hà Nội.' }
+        ]),
+        included: JSON.stringify(['Xe du lịch đời mới', 'Khách sạn/Homestay cao cấp', 'Các bữa ăn trong chương trình']),
+        excluded: JSON.stringify(['Chi phí cá nhân', 'Đồ uống gọi thêm'])
+    },
+    {
+        name: 'Vi vu Côn Đảo - Huyền Thoại Biển Xanh',
+        location: 'Côn Đảo',
+        region: 'Miền Nam',
+        price: 5800000,
+        original_price: 6500000,
+        departure_date: '2026-12-05',
+        duration: '3 Ngày 2 Đêm',
+        category: 'Biển đảo',
+        image: 'https://images.unsplash.com/photo-1590483864197-e21820bcf5ba?auto=format&fit=crop&w=1000&q=80',
+        rating: 4.8,
+        reviews_count: 215,
+        badge: '🕊️ Tâm Linh',
+        description: 'Đến với Côn Đảo - một trong những hòn đảo bí ẩn và đẹp nhất thế giới, kết hợp du lịch tâm linh viếng mộ cô Sáu và nghỉ dưỡng tại bãi biển hoang sơ tuyệt đẹp.',
+        itinerary: JSON.stringify([
+            { day: 'Ngày 1', title: 'Bay đến Côn Đảo - Khám phá Nam Đảo', content: 'Đón sân bay, nhận phòng. Chiều thăm Cảng Bến Đầm, Bãi Nhát, Đỉnh Tình Yêu.' },
+            { day: 'Ngày 2', title: 'Di tích Lịch sử - Viếng nghĩa trang Hàng Dương', content: 'Thăm nhà tù Côn Đảo, chuồng cọp Pháp - Mỹ. Tối viếng nghĩa trang Hàng Dương, mộ nữ anh hùng Võ Thị Sáu.' },
+            { day: 'Ngày 3', title: 'Tự do tắm biển - Tiễn sân bay', content: 'Tự do tắm biển, mua sắm hải sản ở chợ Côn Đảo trước khi ra sân bay về đất liền.' }
+        ]),
+        included: JSON.stringify(['Vé máy bay khứ hồi', 'Resort 3 sao', 'Xe đưa đón tham quan']),
+        excluded: JSON.stringify(['Chi phí lễ viếng', 'Chi phí cá nhân ngoài lịch trình'])
+    },
+    {
+        name: 'Khám Phá Hà Giang - Cao Nguyên Đá Đồng Văn - Sông Nho Quế',
+        location: 'Hà Giang',
+        region: 'Miền Bắc',
+        price: 3500000,
+        original_price: 4200000,
+        departure_date: '2026-11-20',
+        duration: '3 Ngày 2 Đêm',
+        category: 'Núi rừng',
+        image: 'https://images.unsplash.com/photo-1616781432422-77764f1d4323?auto=format&fit=crop&w=1000&q=80',
+        rating: 4.9,
+        reviews_count: 320,
+        badge: '⛰️ Hùng Vĩ',
+        description: 'Hành trình chinh phục cực Bắc Tổ Quốc: Check-in đèo Mã Pí Lèng huyền thoại, đi thuyền trên dòng sông Nho Quế xanh ngắt và ngắm hoa tam giác mạch bung nở giữa núi rừng.',
+        itinerary: JSON.stringify([
+            { day: 'Ngày 1', title: 'Hà Nội - Hà Giang - Quản Bạ', content: 'Sáng khởi hành đi Hà Giang. Check-in Cổng trời Quản Bạ, núi Đôi Cô Tiên. Tối nghỉ đêm tại Yên Minh.' },
+            { day: 'Ngày 2', title: 'Đồng Văn - Mã Pí Lèng - Sông Nho Quế', content: 'Thăm Dinh Vua Mèo, Cột cờ Lũng Cú. Chinh phục đèo Mã Pí Lèng, đi thuyền trên sông Nho Quế qua hẻm Tu Sản.' },
+            { day: 'Ngày 3', title: 'Chợ Phiên Đồng Văn - Trở về Hà Nội', content: 'Dạo chợ phiên Đồng Văn thưởng thức phở tráng kìm, mua đặc sản địa phương trước khi khởi hành về Hà Nội.' }
+        ]),
+        included: JSON.stringify(['Xe giường nằm/Limousine khứ hồi', 'Khách sạn/Homestay cao cấp', 'Vé đi thuyền Sông Nho Quế']),
+        excluded: JSON.stringify(['Đồ uống trong bữa ăn', 'Tiền bồi dưỡng HDV'])
+    },
+    {
+        name: 'Kỳ Nghỉ Dưỡng Quy Nhơn - Phú Yên - Xứ Nấu Xanh Trong',
+        location: 'Quy Nhơn',
+        region: 'Miền Trung',
+        price: 4500000,
+        original_price: 5200000,
+        departure_date: '2026-12-15',
+        duration: '4 Ngày 3 Đêm',
+        category: 'Biển đảo',
+        image: 'https://images.unsplash.com/photo-1628185859152-be16259ce366?auto=format&fit=crop&w=1000&q=80',
+        rating: 4.7,
+        reviews_count: 198,
+        badge: '🌊 Xứ Nẫu',
+        description: 'Khám phá miền đất "Hoa vàng trên cỏ xanh" Phú Yên và Maldives thu nhỏ Kỳ Co - Eo Gió của Quy Nhơn với biển xanh, cát trắng và nắng vàng tuyệt đẹp.',
+        itinerary: JSON.stringify([
+            { day: 'Ngày 1', title: 'Bay đến Quy Nhơn - Tháp Đôi - KDL Ghềnh Ráng', content: 'Đón sân bay Phù Cát. Thăm Tháp Đôi kiến trúc Chăm pa, KDL Ghềnh Ráng Tiên Sa, viếng mộ thi sĩ Hàn Mặc Tử.' },
+            { day: 'Ngày 2', title: 'Khám phá Kỳ Co - Eo Gió - Lặn ngắm san hô', content: 'Cano đưa đoàn ra đảo Kỳ Co lặn ngắm san hô, tắm biển trong vắt. Chiều check-in Eo Gió - nơi ngắm hoàng hôn đẹp nhất Việt Nam.' },
+            { day: 'Ngày 3', title: 'Quy Nhơn - Phú Yên - Gành Đá Đĩa', content: 'Di chuyển sang Phú Yên. Thăm Gành Đá Đĩa - tuyệt tác của thiên nhiên, Nhà thờ Mằng Lăng, Đầm Ô Loan thưởng thức hải sản.' },
+            { day: 'Ngày 4', title: 'Bãi Xép (Hoa Vàng Cỏ Xanh) - Tiễn bay', content: 'Check-in Bãi Xép đẹp như tranh vẽ, mua sắm đặc sản bánh ít lá gai, nem chợ Huyện trước khi ra sân bay Tuy Hòa.' }
+        ]),
+        included: JSON.stringify(['Vé máy bay khứ hồi (SGN/HAN - UIH/TBB)', 'Khách sạn 4 sao sát biển', 'Cano lặn san hô Kỳ Co']),
+        excluded: JSON.stringify(['Chi phí cá nhân', 'Vé vui chơi các điểm không có trong lịch trình'])
+    },
+    {
+        name: 'Tour Quốc Tế: Thái Lan - Bangkok - Pattaya',
+        location: 'Bangkok',
+        region: 'Quốc tế',
+        price: 6990000,
+        original_price: 8500000,
+        departure_date: '2026-11-25',
+        duration: '5 Ngày 4 Đêm',
+        category: 'Quốc tế',
+        image: 'https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?auto=format&fit=crop&w=1000&q=80',
+        rating: 4.8,
+        reviews_count: 450,
+        badge: '🌐 Quốc Tế',
+        description: 'Đến với Xứ sở Chùa Vàng Thái Lan nhộn nhịp: Vui chơi tại thành phố không ngủ Pattaya, viếng chùa Phật Vàng linh thiêng và thỏa sức mua sắm tại thủ đô Bangkok sầm uất.',
+        itinerary: JSON.stringify([
+            { day: 'Ngày 1', title: 'TP.HCM - Bangkok - Pattaya', content: 'Bay tới sân bay Suvarnabhumi (Bangkok). Khởi hành đi Pattaya. Ăn tối BBQ Hải Sản, tự do khám phá Walking Street.' },
+            { day: 'Ngày 2', title: 'Đảo Coral - Nong Nooch - Alcazar Show', content: 'Đi cano ra đảo San Hô (Coral Island) tắm biển. Thăm vườn nhiệt đới Nong Nooch. Tối xem show chuyển giới Alcazar hoành tráng.' },
+            { day: 'Ngày 3', title: 'Pattaya - Bangkok - Chùa Phật Vàng', content: 'Trở về Bangkok, ghé Trân Bảo Phật Sơn (Khao Chee Chan). Viếng Chùa Phật Vàng Wat Traimit (nơi có tượng Phật Vàng 5,5 tấn).' },
+            { day: 'Ngày 4', title: 'Dạo thuyền sông Chao Phraya - Shopping', content: 'Dạo thuyền trên sông Chao Phraya, xem hiện tượng cá nổi. Tự do mua sắm tại Big C, Central World, Pratunam.' },
+            { day: 'Ngày 5', title: 'Chùa Thuyền - Tiễn sân bay', content: 'Viếng Chùa Thuyền Wat Yannawa. Di chuyển ra sân bay làm thủ tục về Việt Nam.' }
+        ]),
+        included: JSON.stringify(['Vé máy bay khứ hồi Vietjet/AirAsia', 'Khách sạn 4 sao (Pattaya + Bangkok)', 'Vé xem Alcazar Show', 'Buffet tại Baiyoke Sky 86 tầng']),
+        excluded: JSON.stringify(['Tiền tip HDV 5 USD/ngày', 'Phí làm hộ chiếu', 'Chi phí trò chơi trên đảo Coral'])
     }
 ];
 
