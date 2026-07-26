@@ -20,21 +20,17 @@ type Destination = { id: number; name: string; };
 type Region = { id: number; name: string; destinations: Destination[]; };
 type Category = { id: number; name: string; regions: Region[]; };
 
-export default function EditTourV2() {
-  const router = useRouter()
+export default function EditTour() {
   const params = useParams()
-  const tourId = params.id as string
+  const tourId = params.id
+  const [isLoading, setIsLoading] = useState(true)
 
+  const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   
-  // Metadata state
-  const [metadata, setMetadata] = useState<Metadata>({ tourTypes: [], occasions: [] })
-  const [hierarchy, setHierarchy] = useState<Category[]>([])
-
-  // Form states
-  const [categoryId, setCategoryId] = useState<string>('')
-  const [regionId, setRegionId] = useState<string>('')
-  const [destinationId, setDestinationId] = useState<string>('')
+  const [category, setCategory] = useState('Trong nước')
+  const [region, setRegion] = useState('Miền Bắc')
+  const [location, setLocation] = useState('')
   
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -49,142 +45,72 @@ export default function EditTourV2() {
   const [priceChildStr, setPriceChildStr] = useState('')
   const [maxSeats, setMaxSeats] = useState('1')
 
-  const [selectedTypes, setSelectedTypes] = useState<number[]>([])
-  const [selectedOccasions, setSelectedOccasions] = useState<number[]>([])
-
   const [mainImage, setMainImage] = useState<{preview: string, file?: any} | null>(null)
   const [galleryImages, setGalleryImages] = useState<Array<{preview: string, file?: any}>>([])
 
   const [itinerary, setItinerary] = useState([{ id: 1, title: '', description: '', meals: [] as string[] }])
 
-  const loadMetadataAndTour = async () => {
-    try {
-      const [metaData, hierarchyData, tourData] = await Promise.all([
-        fetchApi('/metadata'),
-        fetchApi('/locations/hierarchy'),
-        fetchApi(`/tours/v2/${tourId}`)
-      ]);
-      
-      if (metaData) setMetadata(metaData);
-      
-      let currentHierarchy = [];
-      if (hierarchyData && hierarchyData.success) {
-          currentHierarchy = hierarchyData.data;
-          setHierarchy(currentHierarchy);
-      }
-      
-      if (tourData) {
-        setTitle(tourData.title || '');
-        setDescription(tourData.description || '');
-        setStatus(tourData.status || 'Active');
-        
-        if (tourData.start_date) {
-            setStartDate(new Date(tourData.start_date).toISOString().split('T')[0]);
-        }
-        
-        const price = tourData.price_adult || 0;
-        setPriceAdult(price.toString());
-        setPriceAdultStr(price.toLocaleString('vi-VN'));
-        
-        const cPrice = tourData.price_child || 0;
-        setPriceChild(cPrice.toString());
-        setPriceChildStr(cPrice.toLocaleString('vi-VN'));
-        
-        setMaxSeats((tourData.max_seats || 30).toString());
-        
-        const durStr = tourData.duration || '3 Ngày 2 Đêm';
-        const dMatch = durStr.match(/(\d+)\s*Ngày/i);
-        const nMatch = durStr.match(/(\d+)\s*Đêm/i);
-        if (dMatch) setDays(dMatch[1]);
-        if (nMatch) setNights(nMatch[1]);
-
-        if (tourData.images && Array.isArray(tourData.images)) {
-            const mImg = tourData.images.find((img: any) => img.isMain);
-            if (mImg) setMainImage({ preview: mImg.url });
-            
-            const gImgs = tourData.images.filter((img: any) => !img.isMain);
-            setGalleryImages(gImgs.map((img: any) => ({ preview: img.url })));
-        }
-        
-        if (tourData.itinerary && Array.isArray(tourData.itinerary) && tourData.itinerary.length > 0) {
-             setItinerary(tourData.itinerary.map((item: any, idx: number) => ({
-                 id: item.id || idx,
-                 title: item.title || '',
-                 description: item.description || '',
-                 meals: Array.isArray(item.meals) ? item.meals : []
-             })));
-        }
-        
-        if (tourData.tour_types) setSelectedTypes(tourData.tour_types);
-        if (tourData.occasions) setSelectedOccasions(tourData.occasions);
-        
-        if (tourData.destination_id) {
-            setDestinationId(tourData.destination_id.toString());
-            // Traverse hierarchy to find category and region
-            for (const cat of currentHierarchy) {
-              for (const reg of cat.regions) {
-                if (reg.destinations.some((d: any) => d.id.toString() === tourData.destination_id.toString())) {
-                  setCategoryId(cat.id.toString());
-                  setRegionId(reg.id.toString());
-                  break;
-                }
-              }
-            }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load tour data", error)
-    }
-  }
-
   useEffect(() => {
-    if (tourId) loadMetadataAndTour()
-  }, [tourId])
-
-  // Khối 1: Logic Cascading
-  const activeCategory = hierarchy.find(c => c.id.toString() === categoryId)
-  const activeRegion = activeCategory?.regions.find(r => r.id.toString() === regionId)
-
-  const handleCategoryChange = (e: any) => {
-    setCategoryId(e.target.value)
-    setRegionId('')
-    setDestinationId('')
-  }
-
-  const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRegionId(e.target.value)
-    setDestinationId('')
-  }
-
-  const handleQuickAddDestination = async (name: string) => {
-    if (!regionId) return;
-    try {
-      const res = await fetchApi('/destinations', {
-        method: 'POST',
-        data: { name, region_id: parseInt(regionId) }
-      });
-      if (res && res.destination) {
-        setHierarchy(prev => prev.map(cat => {
-          if (cat.id.toString() === categoryId) {
-            return {
-              ...cat,
-              regions: cat.regions.map(reg => {
-                if (reg.id.toString() === regionId) {
-                  return { ...reg, destinations: [...reg.destinations, res.destination] }
-                }
-                return reg;
-              })
+    const loadTour = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/tours/${tourId}`)
+        const data = await res.json()
+        if (data) {
+          setTitle(data.name || '')
+          setDescription(data.description || '')
+          setCategory(data.category || 'Trong nước')
+          setRegion(data.region || 'Miền Bắc')
+          setLocation(data.location || '')
+          
+          setPriceAdult(data.price ? String(data.price) : '')
+          setPriceAdultStr(data.price ? Number(data.price).toLocaleString('vi-VN') : '')
+          setPriceChild(data.child_price ? String(data.child_price) : '')
+          setPriceChildStr(data.child_price ? Number(data.child_price).toLocaleString('vi-VN') : '')
+          
+          setMaxSeats(data.available_spots ? String(data.available_spots) : '30')
+          
+          if (data.departure_date) {
+            try {
+              setStartDate(new Date(data.departure_date).toISOString().split('T')[0])
+            } catch (e) { setStartDate(data.departure_date) }
+          }
+          
+          if (data.duration) {
+            const match = data.duration.match(/(\d+)\s*Ngày\s*(\d+)\s*Đêm/i)
+            if (match) {
+              setDays(match[1])
+              setNights(match[2])
             }
           }
-          return cat;
-        }));
-        setDestinationId(String(res.destination.id));
+          
+          if (data.image) {
+            setMainImage({ preview: `${data.image.startsWith('http') ? '' : 'http://localhost:5000'}${data.image}` })
+          }
+          
+          if (data.gallery) {
+            try {
+              const gallery = typeof data.gallery === 'string' ? JSON.parse(data.gallery) : data.gallery
+              setGalleryImages(gallery.map(img => ({ preview: `${img.startsWith('http') ? '' : 'http://localhost:5000'}${img}` })))
+            } catch(e) {}
+          }
+          
+          if (data.itinerary) {
+            try {
+              const itin = typeof data.itinerary === 'string' ? JSON.parse(data.itinerary) : data.itinerary
+              if (Array.isArray(itin) && itin.length > 0) {
+                setItinerary(itin)
+              }
+            } catch(e) {}
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load tour', error)
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      alert("Lỗi khi thêm điểm đến mới");
-      throw error;
     }
-  }
+    if (tourId) loadTour()
+  }, [tourId])
 
   // Khối 5: Upload Ảnh
   const handleMainImageDrop = (e: any) => {
@@ -251,49 +177,50 @@ export default function EditTourV2() {
     }))
   }
 
-  // Khối 4: Logic Tags
-  const toggleTag = (id: number, type: 'type' | 'occasion') => {
-    if (type === 'type') {
-      setSelectedTypes(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
-    } else {
-      setSelectedOccasions(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
-    }
-  }
-
   const handleSave = async () => {
-    if (!categoryId) { alert("Vui lòng chọn Loại Tour!"); return; }
-    if (!regionId) { alert("Vui lòng chọn Vùng miền!"); return; }
-    if (!destinationId) { alert("Vui lòng chọn Điểm đến chính!"); return; }
     if (!title.trim()) { alert("Vui lòng nhập Tên Tour!"); return; }
     if (!priceAdult) { alert("Vui lòng nhập Giá người lớn!"); return; }
     if (!mainImage) { alert("Vui lòng tải lên Ảnh đại diện!"); return; }
-    if (itinerary.some(day => !day.title.trim())) {
-      alert("Vui lòng nhập đầy đủ Tiêu đề cho các ngày trong lịch trình!"); return;
-    }
-
+    
     setIsSaving(true)
     try {
-      await fetchApi(`/tours/v2/${tourId}`, {
-        method: 'PUT',
-        data: {
-          destination_id: parseInt(destinationId),
-          title, description, status,
-          start_date: startDate,
-          duration: `${days} Ngày ${nights} Đêm`,
-          price_adult: Number(priceAdult),
-          price_child: Number(priceChild),
-          max_seats: Number(maxSeats),
-          tour_types: selectedTypes,
-          occasions: selectedOccasions,
-          images: [
-            ...(mainImage ? [{ url: mainImage.preview, isMain: true }] : []),
-            ...galleryImages.map(img => ({ url: img.preview, isMain: false }))
-          ],
-          itinerary
-        }
+      const formData = new FormData()
+      formData.append('name', title)
+      formData.append('location', location)
+      formData.append('region', region)
+      formData.append('category', category)
+      formData.append('price', priceAdult)
+      formData.append('child_price', priceChild || '0')
+      formData.append('available_spots', maxSeats || '30')
+      formData.append('departure_date', startDate)
+      formData.append('duration', `${days} Ngày ${nights} Đêm`)
+      formData.append('description', description)
+      formData.append('badge', 'Mới')
+      formData.append('itinerary', JSON.stringify(itinerary))
+
+      if (mainImage?.file) {
+        formData.append('image', mainImage.file)
+      }
+      
+      galleryImages.forEach((img) => {
+        if (img.file) formData.append('gallery', img.file)
       })
-      alert("Cập nhật Tour thành công!")
-      router.push('/admin/tours')
+
+      const token = localStorage.getItem('token')
+      const res = await fetch(`http://localhost:5000/api/tours/${tourId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+      
+      if (res.ok) {
+        alert("Cập nhật Tour thành công!")
+        router.push('/admin/tours')
+      } else {
+        alert("Có lỗi xảy ra khi lưu Tour")
+      }
     } catch (error) {
       console.error(error)
       alert("Có lỗi xảy ra khi lưu Tour")
@@ -323,6 +250,8 @@ export default function EditTourV2() {
 
   const isDurationError = parseInt(nights) > parseInt(days);
 
+  if (isLoading) return <div className="p-8 text-white">Đang tải dữ liệu tour...</div>
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[#0f172a]">
       {/* Topbar */}
@@ -331,7 +260,7 @@ export default function EditTourV2() {
           <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="text-xl font-bold text-white tracking-tight">Cập nhật Tour (#{tourId})</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight">Sửa Tour</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-800 transition-colors text-sm">
@@ -342,7 +271,7 @@ export default function EditTourV2() {
             className={`px-6 py-2 rounded-lg font-bold text-white transition-colors text-sm flex items-center gap-2 ${isSaving || isDurationError ? 'bg-slate-600 cursor-not-allowed opacity-70' : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/20'}`}
           >
             {isSaving ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            {isSaving ? 'Đang lưu...' : 'Hoàn thành & Lưu'}
+            {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
           </button>
         </div>
       </div>
@@ -359,28 +288,25 @@ export default function EditTourV2() {
             <div className="p-6 grid grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Loại Tour</label>
-                <select value={categoryId} onChange={handleCategoryChange} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                  <option value="">-- Chọn Loại Tour --</option>
-                  {hierarchy.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="Trong nước">Trong nước</option>
+                  <option value="Quốc tế">Quốc tế</option>
+                  <option value="Trải nghiệm">Trải nghiệm</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Vùng miền</label>
-                <select value={regionId} onChange={handleRegionChange} disabled={!categoryId} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                  <option value="">-- Chọn Vùng miền --</option>
-                  {activeCategory?.regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                <select value={region} onChange={e => setRegion(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="Miền Bắc">Miền Bắc</option>
+                  <option value="Miền Trung">Miền Trung</option>
+                  <option value="Miền Nam">Miền Nam</option>
+                  <option value="Châu Á">Châu Á</option>
+                  <option value="Châu Âu">Châu Âu</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Điểm đến chính</label>
-                <SearchableAdminDropdown 
-                  options={activeRegion?.destinations.map(d => ({ id: String(d.id), name: d.name })) || []}
-                  value={destinationId}
-                  onChange={(val) => setDestinationId(String(val))}
-                  placeholder="-- Chọn Điểm đến --"
-                  disabled={!regionId}
-                  onQuickAdd={handleQuickAddDestination}
-                />
+                <label className="block text-sm font-medium text-slate-400 mb-2">Điểm đến (Tỉnh/Thành)</label>
+                <input value={location} onChange={e => setLocation(e.target.value)} placeholder="VD: Đà Nẵng" className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
             </div>
           </section>
@@ -501,7 +427,7 @@ export default function EditTourV2() {
               <button 
                 onClick={(e) => {
                   e.preventDefault();
-                  loadMetadataAndTour();
+                  loadMetadata();
                 }}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f172a] border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white transition-colors text-sm"
               >

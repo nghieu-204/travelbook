@@ -24,14 +24,9 @@ export default function CreateTourV2() {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   
-  // Metadata state
-  const [metadata, setMetadata] = useState<Metadata>({ tourTypes: [], occasions: [] })
-  const [hierarchy, setHierarchy] = useState<Category[]>([])
-
-  // Form states
-  const [categoryId, setCategoryId] = useState<string>('')
-  const [regionId, setRegionId] = useState<string>('')
-  const [destinationId, setDestinationId] = useState<string>('')
+  const [category, setCategory] = useState('Trong nước')
+  const [region, setRegion] = useState('Miền Bắc')
+  const [location, setLocation] = useState('')
   
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -46,76 +41,10 @@ export default function CreateTourV2() {
   const [priceChildStr, setPriceChildStr] = useState('')
   const [maxSeats, setMaxSeats] = useState('1')
 
-  const [selectedTypes, setSelectedTypes] = useState<number[]>([])
-  const [selectedOccasions, setSelectedOccasions] = useState<number[]>([])
-
   const [mainImage, setMainImage] = useState<{preview: string, file?: any} | null>(null)
   const [galleryImages, setGalleryImages] = useState<Array<{preview: string, file?: any}>>([])
 
   const [itinerary, setItinerary] = useState([{ id: 1, title: '', description: '', meals: [] as string[] }])
-
-  const loadMetadata = async () => {
-    try {
-      const [metaData, hierarchyData] = await Promise.all([
-        fetchApi('/metadata'),
-        fetchApi('/locations/hierarchy')
-      ])
-      if (metaData) setMetadata(metaData)
-      if (hierarchyData && hierarchyData.success) setHierarchy(hierarchyData.data)
-    } catch (error) {
-      console.error("Failed to load metadata", error)
-    }
-  }
-
-  useEffect(() => {
-    loadMetadata()
-  }, [])
-
-  // Khối 1: Logic Cascading
-  const activeCategory = hierarchy.find(c => c.id.toString() === categoryId)
-  const activeRegion = activeCategory?.regions.find(r => r.id.toString() === regionId)
-
-  const handleCategoryChange = (e: any) => {
-    setCategoryId(e.target.value)
-    setRegionId('')
-    setDestinationId('')
-  }
-
-  const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRegionId(e.target.value)
-    setDestinationId('')
-  }
-
-  const handleQuickAddDestination = async (name: string) => {
-    if (!regionId) return;
-    try {
-      const res = await fetchApi('/destinations', {
-        method: 'POST',
-        data: { name, region_id: parseInt(regionId) }
-      });
-      if (res && res.destination) {
-        // Cập nhật lại cây hierarchy với điểm đến mới
-        setHierarchy(prev => prev.map(cat => {
-          if (cat.id.toString() === categoryId) {
-            return {
-              ...cat,
-              regions: cat.regions.map(reg => {
-                if (reg.id.toString() === regionId) {
-                  return { ...reg, destinations: [...reg.destinations, res.destination] }
-                }
-                return reg;
-              })
-            }
-          }
-          return cat;
-        }));
-        setDestinationId(String(res.destination.id));
-      }
-    } catch (error) {
-      alert("Lỗi khi thêm điểm đến mới");
-      throw error;
-    }
-  }
 
   // Khối 5: Upload Ảnh
   const handleMainImageDrop = (e: any) => {
@@ -182,49 +111,50 @@ export default function CreateTourV2() {
     }))
   }
 
-  // Khối 4: Logic Tags
-  const toggleTag = (id: number, type: 'type' | 'occasion') => {
-    if (type === 'type') {
-      setSelectedTypes(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
-    } else {
-      setSelectedOccasions(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
-    }
-  }
-
   const handleSave = async () => {
-    if (!categoryId) { alert("Vui lòng chọn Loại Tour!"); return; }
-    if (!regionId) { alert("Vui lòng chọn Vùng miền!"); return; }
-    if (!destinationId) { alert("Vui lòng chọn Điểm đến chính!"); return; }
     if (!title.trim()) { alert("Vui lòng nhập Tên Tour!"); return; }
     if (!priceAdult) { alert("Vui lòng nhập Giá người lớn!"); return; }
     if (!mainImage) { alert("Vui lòng tải lên Ảnh đại diện!"); return; }
-    if (itinerary.some(day => !day.title.trim())) {
-      alert("Vui lòng nhập đầy đủ Tiêu đề cho các ngày trong lịch trình!"); return;
-    }
-
+    
     setIsSaving(true)
     try {
-      await fetchApi('/tours/v2', {
-        method: 'POST',
-        data: {
-          destination_id: destinationId,
-          title, description, status,
-          start_date: startDate,
-          duration: `${days} Ngày ${nights} Đêm`,
-          price_adult: Number(priceAdult),
-          price_child: Number(priceChild),
-          max_seats: Number(maxSeats),
-          tour_types: selectedTypes,
-          occasions: selectedOccasions,
-          images: [
-            ...(mainImage ? [{ url: mainImage.preview, isMain: true }] : []),
-            ...galleryImages.map(img => ({ url: img.preview, isMain: false }))
-          ],
-          itinerary
-        }
+      const formData = new FormData()
+      formData.append('name', title)
+      formData.append('location', location)
+      formData.append('region', region)
+      formData.append('category', category)
+      formData.append('price', priceAdult)
+      formData.append('child_price', priceChild || '0')
+      formData.append('available_spots', maxSeats || '30')
+      formData.append('departure_date', startDate)
+      formData.append('duration', `${days} Ngày ${nights} Đêm`)
+      formData.append('description', description)
+      formData.append('badge', 'Mới')
+      formData.append('itinerary', JSON.stringify(itinerary))
+
+      if (mainImage?.file) {
+        formData.append('image', mainImage.file)
+      }
+      
+      galleryImages.forEach((img) => {
+        if (img.file) formData.append('gallery', img.file)
       })
-      alert("Tạo Tour thành công!")
-      router.push('/admin/tours')
+
+      const token = localStorage.getItem('token')
+      const res = await fetch('http://localhost:5000/api/tours', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+      
+      if (res.ok) {
+        alert("Tạo Tour thành công!")
+        router.push('/admin/tours')
+      } else {
+        alert("Có lỗi xảy ra khi lưu Tour")
+      }
     } catch (error) {
       console.error(error)
       alert("Có lỗi xảy ra khi lưu Tour")
@@ -290,28 +220,25 @@ export default function CreateTourV2() {
             <div className="p-6 grid grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Loại Tour</label>
-                <select value={categoryId} onChange={handleCategoryChange} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
-                  <option value="">-- Chọn Loại Tour --</option>
-                  {hierarchy.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="Trong nước">Trong nước</option>
+                  <option value="Quốc tế">Quốc tế</option>
+                  <option value="Trải nghiệm">Trải nghiệm</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Vùng miền</label>
-                <select value={regionId} onChange={handleRegionChange} disabled={!categoryId} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                  <option value="">-- Chọn Vùng miền --</option>
-                  {activeCategory?.regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                <select value={region} onChange={e => setRegion(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="Miền Bắc">Miền Bắc</option>
+                  <option value="Miền Trung">Miền Trung</option>
+                  <option value="Miền Nam">Miền Nam</option>
+                  <option value="Châu Á">Châu Á</option>
+                  <option value="Châu Âu">Châu Âu</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Điểm đến chính</label>
-                <SearchableAdminDropdown 
-                  options={activeRegion?.destinations.map(d => ({ id: String(d.id), name: d.name })) || []}
-                  value={destinationId}
-                  onChange={(val) => setDestinationId(String(val))}
-                  placeholder="-- Chọn Điểm đến --"
-                  disabled={!regionId}
-                  onQuickAdd={handleQuickAddDestination}
-                />
+                <label className="block text-sm font-medium text-slate-400 mb-2">Điểm đến (Tỉnh/Thành)</label>
+                <input value={location} onChange={e => setLocation(e.target.value)} placeholder="VD: Đà Nẵng" className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
             </div>
           </section>
