@@ -216,20 +216,41 @@ export default function CreateTourV2() {
             <div className="p-6 grid grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Loại Tour</label>
-                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                <select 
+                  value={category} 
+                  onChange={e => {
+                    const newCategory = e.target.value;
+                    setCategory(newCategory);
+                    if (newCategory === 'Trong nước') {
+                      setRegion('Miền Bắc');
+                    } else {
+                      setRegion('Châu Á');
+                    }
+                  }} 
+                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                >
                   <option value="Trong nước">Trong nước</option>
                   <option value="Quốc tế">Quốc tế</option>
-                  <option value="Trải nghiệm">Trải nghiệm</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Vùng miền</label>
                 <select value={region} onChange={e => setRegion(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                  <option value="Miền Bắc">Miền Bắc</option>
-                  <option value="Miền Trung">Miền Trung</option>
-                  <option value="Miền Nam">Miền Nam</option>
-                  <option value="Châu Á">Châu Á</option>
-                  <option value="Châu Âu">Châu Âu</option>
+                  {category === 'Trong nước' ? (
+                    <>
+                      <option value="Miền Bắc">Miền Bắc</option>
+                      <option value="Miền Trung">Miền Trung</option>
+                      <option value="Miền Nam">Miền Nam</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Châu Á">Châu Á</option>
+                      <option value="Châu Âu">Châu Âu</option>
+                      <option value="Châu Mỹ">Châu Mỹ</option>
+                      <option value="Châu Úc">Châu Úc</option>
+                      <option value="Châu Phi">Châu Phi</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div>
