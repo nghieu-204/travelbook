@@ -90,7 +90,7 @@ export default function EditTour() {
           if (data.gallery) {
             try {
               const gallery = typeof data.gallery === 'string' ? JSON.parse(data.gallery) : data.gallery
-              setGalleryImages(gallery.map(img => ({ preview: `${img.startsWith('http') ? '' : 'http://localhost:5000'}${img}` })))
+              setGalleryImages(gallery.map((img: any) => ({ preview: `${img.startsWith('http') ? '' : 'http://localhost:5000'}${img}` })))
             } catch(e) {}
           }
           
@@ -184,35 +184,31 @@ export default function EditTour() {
     
     setIsSaving(true)
     try {
-      const formData = new FormData()
-      formData.append('name', title)
-      formData.append('location', location)
-      formData.append('region', region)
-      formData.append('category', category)
-      formData.append('price', priceAdult)
-      formData.append('child_price', priceChild || '0')
-      formData.append('available_spots', maxSeats || '30')
-      formData.append('departure_date', startDate)
-      formData.append('duration', `${days} Ngày ${nights} Đêm`)
-      formData.append('description', description)
-      formData.append('badge', 'Mới')
-      formData.append('itinerary', JSON.stringify(itinerary))
-
-      if (mainImage?.file) {
-        formData.append('image', mainImage.file)
-      }
-      
-      galleryImages.forEach((img) => {
-        if (img.file) formData.append('gallery', img.file)
-      })
+      const payload = {
+        name: title,
+        location: location,
+        region: region,
+        category: category,
+        price: Number(priceAdult),
+        child_price: priceChild ? Number(priceChild) : 0,
+        available_spots: maxSeats ? Number(maxSeats) : 30,
+        departure_date: startDate,
+        duration: `${days} Ngày ${nights} Đêm`,
+        description: description,
+        badge: 'Mới',
+        itinerary: itinerary,
+        image: mainImage?.preview || "https://images.unsplash.com/photo-1528127269322-539801943592?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
+        gallery: galleryImages.map(img => img.preview)
+      };
 
       const token = localStorage.getItem('token')
       const res = await fetch(`http://localhost:5000/api/tours/${tourId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify(payload)
       })
       
       if (res.ok) {
@@ -411,51 +407,7 @@ export default function EditTour() {
             </div>
           </section>
 
-          {/* KHỐI 4: Gắn nhãn (Tagging) */}
-          <section className="bg-[#1e293b] rounded-2xl border border-slate-800 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-800 bg-[#1e293b]/50 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Tag className="w-5 h-5 text-purple-500" />
-                <h2 className="text-lg font-bold text-white flex items-center gap-3">
-                  Khối 4: Gắn nhãn (Tagging)
-                  <a href="/admin/tags" target="_blank" rel="noopener noreferrer" className="text-sm font-normal text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors">
-                    <Settings className="w-4 h-4" />
-                    Quản lý nhãn
-                  </a>
-                </h2>
-              </div>
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  loadMetadata();
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f172a] border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white transition-colors text-sm"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Làm mới dữ liệu
-              </button>
-            </div>
-            <div className="p-6 grid grid-cols-2 gap-8">
-              <div>
-                <MultiSelectDropdown
-                  label="Loại hình Du lịch"
-                  placeholder="Tìm và chọn loại hình..."
-                  options={metadata.tourTypes.map(t => ({ id: t.id, label: t.name }))}
-                  selectedIds={selectedTypes}
-                  onChange={(ids) => setSelectedTypes(ids as number[])}
-                />
-              </div>
-              <div>
-                <MultiSelectDropdown
-                  label="Dịp lễ / Sự kiện"
-                  placeholder="Tìm và chọn dịp lễ..."
-                  options={metadata.occasions.map(o => ({ id: o.id, label: o.name }))}
-                  selectedIds={selectedOccasions}
-                  onChange={(ids) => setSelectedOccasions(ids as number[])}
-                />
-              </div>
-            </div>
-          </section>
+
 
           {/* KHỐI 5: Quản lý Hình ảnh (Media) */}
           <section className="bg-[#1e293b] rounded-2xl border border-slate-800 overflow-hidden">
