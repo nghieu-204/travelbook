@@ -102,7 +102,7 @@ const seedData = async (req, res) => {
 const createTour = async (req, res) => {
     try {
         const { name, location, region, price, original_price, child_price, available_spots, departure_date, duration, category, image, gallery, badge, description, itinerary, included, excluded } = req.body;
-        
+
         const galleryJson = typeof gallery === 'string' ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' ? itinerary : JSON.stringify(itinerary || []);
         const includedJson = typeof included === 'string' ? included : JSON.stringify(included || []);
@@ -174,45 +174,8 @@ const getMetadata = async (req, res) => {
             occasions
         });
     } catch (error) {
-        console.error('Lỗi lấy metadata:', error.message);
-        // Fallback data khi DB chưa chạy hoặc lỗi kết nối
-        res.json({
-            categories: [
-                { id: 1, name: 'Trong nước' },
-                { id: 2, name: 'Ngoài nước' }
-            ],
-            regions: [
-                { id: 1, category_id: 1, name: 'Miền Bắc' },
-                { id: 2, category_id: 1, name: 'Miền Trung' },
-                { id: 3, category_id: 1, name: 'Miền Nam' },
-                { id: 4, category_id: 2, name: 'Quốc tế' }
-            ],
-            destinations: [
-                { id: 1, region_id: 1, name: 'Sapa' },
-                { id: 2, region_id: 1, name: 'Hạ Long' },
-                { id: 3, region_id: 1, name: 'Hà Giang' },
-                { id: 4, region_id: 2, name: 'Đà Nẵng' },
-                { id: 5, region_id: 2, name: 'Quy Nhơn' },
-                { id: 6, region_id: 3, name: 'Phú Quốc' },
-                { id: 7, region_id: 3, name: 'Vũng Tàu' },
-                { id: 8, region_id: 3, name: 'Côn Đảo' },
-                { id: 9, region_id: 4, name: 'Bangkok' },
-                { id: 10, region_id: 4, name: 'Tokyo' }
-            ],
-            tourTypes: [
-                { id: 1, name: 'Biển đảo' },
-                { id: 2, name: 'Văn hóa & Lịch sử' },
-                { id: 3, name: 'Nơi hoang dã' },
-                { id: 4, name: 'Núi rừng' },
-                { id: 5, name: 'Quốc tế' }
-            ],
-            occasions: [
-                { id: 1, name: 'Lễ 30/4' },
-                { id: 2, name: 'Tết Nguyên Đán' },
-                { id: 3, name: 'Mùa Hè' },
-                { id: 4, name: 'Giáng Sinh' }
-            ]
-        });
+        console.error('Lỗi lấy metadata:', error);
+        res.status(500).json({ message: 'Lỗi server khi lấy metadata' });
     }
 };
 
@@ -235,12 +198,12 @@ const createTourV2 = async (req, res) => {
             (destination_id, title, price_adult, price_child, start_date, max_seats, status) 
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `, [
-            destination_id || 1, 
-            title || 'Tour Không tên', 
-            price_adult || 0, 
-            price_child || 0, 
-            start_date || new Date().toISOString().split('T')[0], 
-            max_seats || 30, 
+            destination_id || 1,
+            title || 'Tour Không tên',
+            price_adult || 0,
+            price_child || 0,
+            start_date || new Date().toISOString().split('T')[0],
+            max_seats || 30,
             status || 'Active'
         ]);
 
@@ -278,8 +241,8 @@ const createTourV2 = async (req, res) => {
 
         // 5. Đồng bộ sang bảng tours cũ để hiển thị ở frontend danh sách
         try {
-            const mainImg = Array.isArray(images) && images.length > 0 
-                ? (images.find(img => img.isMain)?.url || images[0]?.url) 
+            const mainImg = Array.isArray(images) && images.length > 0
+                ? (images.find(img => img.isMain)?.url || images[0]?.url)
                 : '/images/destinations/danang.jpg';
 
             await connection.query(
@@ -295,7 +258,7 @@ const createTourV2 = async (req, res) => {
                     max_seats || 30,
                     start_date || new Date().toISOString().split('T')[0],
                     duration || '3 Ngày 2 Đêm',
-                    'Khám Phá', // Placeholder for legacy category
+                    'Trong nước', // Placeholder for legacy category
                     mainImg,
                     description,
                     JSON.stringify(itinerary || [])
@@ -305,7 +268,7 @@ const createTourV2 = async (req, res) => {
             console.error("Lỗi đồng bộ sang bảng tours cũ:", syncError);
             // Non-blocking error, allow transaction to commit for V2
         }
-        
+
         await connection.commit();
         res.json({ message: "✅ Tạo Tour V2 thành công!", tourId });
     } catch (error) {
@@ -324,12 +287,12 @@ const createDestination = async (req, res) => {
         if (!region_id || !name) {
             return res.status(400).json({ message: "Thiếu thông tin region_id hoặc name" });
         }
-        
+
         const [result] = await pool.query(
             'INSERT INTO Destination (region_id, name) VALUES (?, ?)',
             [region_id, name]
         );
-        
+
         res.status(201).json({
             message: "Tạo điểm đến thành công",
             destination: { id: result.insertId, region_id, name }
@@ -348,12 +311,12 @@ const updateDestination = async (req, res) => {
         if (!region_id || !name) {
             return res.status(400).json({ message: "Thiếu thông tin region_id hoặc name" });
         }
-        
+
         await pool.query(
             'UPDATE Destination SET region_id = ?, name = ? WHERE id = ?',
             [region_id, name, id]
         );
-        
+
         res.json({ message: "Cập nhật điểm đến thành công" });
     } catch (error) {
         console.error("Lỗi cập nhật điểm đến:", error);
@@ -365,7 +328,7 @@ const updateDestination = async (req, res) => {
 const deleteDestination = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         await pool.query('DELETE FROM Destination WHERE id = ?', [id]);
         res.json({ message: "Đã xóa điểm đến khỏi hệ thống!" });
     } catch (error) {
@@ -384,7 +347,7 @@ const createTag = async (req, res) => {
     try {
         const { category, name } = req.body;
         if (!name) return res.status(400).json({ message: "Thiếu tên nhãn" });
-        
+
         let result;
         if (category === 'type') {
             [result] = await pool.query('INSERT INTO TourType (name) VALUES (?)', [name]);
@@ -393,7 +356,7 @@ const createTag = async (req, res) => {
         } else {
             return res.status(400).json({ message: "Category không hợp lệ (type/occasion)" });
         }
-        
+
         res.status(201).json({ message: "Tạo nhãn thành công", tag: { id: result.insertId, name, category } });
     } catch (error) {
         console.error("Lỗi tạo tag:", error);
@@ -406,7 +369,7 @@ const updateTag = async (req, res) => {
     try {
         const { id } = req.params;
         const { category, name } = req.body;
-        
+
         if (category === 'type') {
             await pool.query('UPDATE TourType SET name = ? WHERE id = ?', [name, id]);
         } else if (category === 'occasion') {
@@ -414,7 +377,7 @@ const updateTag = async (req, res) => {
         } else {
             return res.status(400).json({ message: "Category không hợp lệ" });
         }
-        
+
         res.json({ message: "Cập nhật nhãn thành công" });
     } catch (error) {
         console.error("Lỗi cập nhật tag:", error);
@@ -427,7 +390,7 @@ const deleteTag = async (req, res) => {
     try {
         const { id } = req.params;
         const { category } = req.query; // Vì là DELETE, dùng query param
-        
+
         if (category === 'type') {
             await pool.query('DELETE FROM TourType WHERE id = ?', [id]);
         } else if (category === 'occasion') {
@@ -435,7 +398,7 @@ const deleteTag = async (req, res) => {
         } else {
             return res.status(400).json({ message: "Category không hợp lệ" });
         }
-        
+
         res.json({ message: "Xóa nhãn thành công" });
     } catch (error) {
         console.error("Lỗi xóa tag:", error);
