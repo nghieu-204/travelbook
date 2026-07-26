@@ -406,6 +406,118 @@ const deleteTag = async (req, res) => {
     }
 };
 
+// GET /api/tours/v2/:id
+const getTourV2ById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Lấy thông tin từ Tour_v2
+        const [tourRows] = await pool.query('SELECT * FROM Tour_v2 WHERE id = ?', [id]);
+        if (tourRows.length === 0) {
+            return res.status(404).json({ message: "Không tìm thấy Tour V2" });
+        }
+        const tour = tourRows[0];
+
+        // Lấy các trường bổ sung từ bảng tours cũ (nếu có)
+        const [legacyRows] = await pool.query('SELECT description, itinerary, duration FROM tours WHERE id = ?', [id]);
+        if (legacyRows.length > 0) {
+            tour.description = legacyRows[0].description;
+            tour.duration = legacyRows[0].duration;
+            try {
+                tour.itinerary = JSON.parse(legacyRows[0].itinerary || '[]');
+            } catch (e) { tour.itinerary = []; }
+        }
+
+        // Lấy tags và ảnh từ V2
+        const [types] = await pool.query('SELECT type_id FROM Tour_TourType WHERE tour_id = ?', [id]);
+        const [occasions] = await pool.query('SELECT occasion_id FROM Tour_Occasion WHERE tour_id = ?', [id]);
+        const [images] = await pool.query('SELECT image_url, is_main FROM TourImages WHERE tour_id = ?', [id]);
+
+        tour.tour_types = types.map(t => t.type_id);
+        tour.occasions = occasions.map(o => o.occasion_id);
+        tour.images = images.map(img => ({ url: img.image_url, isMain: img.is_main === 1 }));
+
+        res.json(tour);
+    } catch (error) {
+        console.error("Lỗi getTourV2ById:", error);
+        res.status(500).json({ message: "Lỗi server khi lấy tour V2" });
+    }
+};
+
+// PUT /api/tours/v2/:id
+const updateTourV2 = async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        const { id } = req.params;
+        await connection.beginTransaction();
+
+        const {
+            title, description, status,
+            start_date, duration, price_adult, price_child, max_seats,
+            destination_id, tour_types, occasions,
+            images, itinerary
+        } = req.body;
+
+        // 1. Update bảng Tour_v2
+        await connection.query(`
+            UPDATE Tour_v2 
+            SET destination_id=?, title=?, price_adult=?, price_child=?, start_date=?, max_seats=?, status=?
+            WHERE id=?
+        `, [
+            destination_id || 1, title || 'Tour Không tên', price_adult || 0, price_child || 0, 
+            start_date || new Date().toISOString().split('T')[0], max_seats || 30, status || 'Active', id
+        ]);
+
+        // 2. Xóa và Insert bảng Pivot
+        await connection.query('DELETE FROM Tour_TourType WHERE tour_id = ?', [id]);
+        if (Array.isArray(tour_types) && tour_types.length > 0) {
+            for (const typeId of tour_types) {
+                await connection.query('INSERT INTO Tour_TourType (tour_id, type_id) VALUES (?, ?)', [id, typeId]);
+            }
+        }
+
+        await connection.query('DELETE FROM Tour_Occasion WHERE tour_id = ?', [id]);
+        if (Array.isArray(occasions) && occasions.length > 0) {
+            for (const occId of occasions) {
+                await connection.query('INSERT INTO Tour_Occasion (tour_id, occasion_id) VALUES (?, ?)', [id, occId]);
+            }
+        }
+
+        await connection.query('DELETE FROM TourImages WHERE tour_id = ?', [id]);
+        if (Array.isArray(images) && images.length > 0) {
+            for (const img of images) {
+                await connection.query('INSERT INTO TourImages (tour_id, image_url, is_main) VALUES (?, ?, ?)', [id, img.url, img.isMain ? 1 : 0]);
+            }
+        }
+
+        // 3. Đồng bộ sang bảng tours cũ
+        try {
+            const mainImg = Array.isArray(images) && images.length > 0
+                ? (images.find(img => img.isMain)?.url || images[0]?.url)
+                : '/images/destinations/danang.jpg';
+
+            await connection.query(`
+                UPDATE tours 
+                SET destination_id=?, name=?, price=?, child_price=?, available_spots=?, departure_date=?, duration=?, image=?, description=?, itinerary=?
+                WHERE id=?
+            `, [
+                destination_id, title || 'Tour Không tên', price_adult || 0, price_child || 0, max_seats || 30,
+                start_date || new Date().toISOString().split('T')[0], duration || '3 Ngày 2 Đêm', mainImg, description, JSON.stringify(itinerary || []), id
+            ]);
+        } catch (syncError) {
+            console.error("Lỗi đồng bộ sang bảng tours cũ:", syncError);
+        }
+
+        await connection.commit();
+        res.json({ message: "✅ Cập nhật Tour V2 thành công!" });
+    } catch (error) {
+        await connection.rollback();
+        console.error("Lỗi khi cập nhật tour V2:", error);
+        res.status(500).json({ message: "Lỗi cập nhật tour V2" });
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     getTours,
     getTourById,
@@ -420,5 +532,7 @@ module.exports = {
     deleteDestination,
     createTag,
     updateTag,
-    deleteTag
+    deleteTag,
+    getTourV2ById,
+    updateTourV2
 };

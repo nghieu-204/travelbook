@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft, CheckCircle2, Plus, Trash2,
   Map, Tag, Image as ImageIcon, FileText, Settings, Calendar, RefreshCw
@@ -20,11 +20,8 @@ type Destination = { id: number; name: string; };
 type Region = { id: number; name: string; destinations: Destination[]; };
 type Category = { id: number; name: string; regions: Region[]; };
 
-export default function EditTourV2() {
+export default function CreateTourV2() {
   const router = useRouter()
-  const params = useParams()
-  const tourId = params.id as string
-
   const [isSaving, setIsSaving] = useState(false)
   
   // Metadata state
@@ -57,89 +54,22 @@ export default function EditTourV2() {
 
   const [itinerary, setItinerary] = useState([{ id: 1, title: '', description: '', meals: [] as string[] }])
 
-  const loadMetadataAndTour = async () => {
+  const loadMetadata = async () => {
     try {
-      const [metaData, hierarchyData, tourData] = await Promise.all([
+      const [metaData, hierarchyData] = await Promise.all([
         fetchApi('/metadata'),
-        fetchApi('/locations/hierarchy'),
-        fetchApi(`/tours/v2/${tourId}`)
-      ]);
-      
-      if (metaData) setMetadata(metaData);
-      
-      let currentHierarchy = [];
-      if (hierarchyData && hierarchyData.success) {
-          currentHierarchy = hierarchyData.data;
-          setHierarchy(currentHierarchy);
-      }
-      
-      if (tourData) {
-        setTitle(tourData.title || '');
-        setDescription(tourData.description || '');
-        setStatus(tourData.status || 'Active');
-        
-        if (tourData.start_date) {
-            setStartDate(new Date(tourData.start_date).toISOString().split('T')[0]);
-        }
-        
-        const price = tourData.price_adult || 0;
-        setPriceAdult(price.toString());
-        setPriceAdultStr(price.toLocaleString('vi-VN'));
-        
-        const cPrice = tourData.price_child || 0;
-        setPriceChild(cPrice.toString());
-        setPriceChildStr(cPrice.toLocaleString('vi-VN'));
-        
-        setMaxSeats((tourData.max_seats || 30).toString());
-        
-        const durStr = tourData.duration || '3 Ngày 2 Đêm';
-        const dMatch = durStr.match(/(\d+)\s*Ngày/i);
-        const nMatch = durStr.match(/(\d+)\s*Đêm/i);
-        if (dMatch) setDays(dMatch[1]);
-        if (nMatch) setNights(nMatch[1]);
-
-        if (tourData.images && Array.isArray(tourData.images)) {
-            const mImg = tourData.images.find((img: any) => img.isMain);
-            if (mImg) setMainImage({ preview: mImg.url });
-            
-            const gImgs = tourData.images.filter((img: any) => !img.isMain);
-            setGalleryImages(gImgs.map((img: any) => ({ preview: img.url })));
-        }
-        
-        if (tourData.itinerary && Array.isArray(tourData.itinerary) && tourData.itinerary.length > 0) {
-             setItinerary(tourData.itinerary.map((item: any, idx: number) => ({
-                 id: item.id || idx,
-                 title: item.title || '',
-                 description: item.description || '',
-                 meals: Array.isArray(item.meals) ? item.meals : []
-             })));
-        }
-        
-        if (tourData.tour_types) setSelectedTypes(tourData.tour_types);
-        if (tourData.occasions) setSelectedOccasions(tourData.occasions);
-        
-        if (tourData.destination_id) {
-            setDestinationId(tourData.destination_id.toString());
-            // Traverse hierarchy to find category and region
-            for (const cat of currentHierarchy) {
-              for (const reg of cat.regions) {
-                if (reg.destinations.some((d: any) => d.id.toString() === tourData.destination_id.toString())) {
-                  setCategoryId(cat.id.toString());
-                  setRegionId(reg.id.toString());
-                  break;
-                }
-              }
-            }
-        }
-      }
+        fetchApi('/locations/hierarchy')
+      ])
+      if (metaData) setMetadata(metaData)
+      if (hierarchyData && hierarchyData.success) setHierarchy(hierarchyData.data)
     } catch (error) {
-      console.error("Failed to load tour data", error)
+      console.error("Failed to load metadata", error)
     }
   }
 
   useEffect(() => {
-    if (tourId) loadMetadataAndTour()
-  }, [tourId])
+    loadMetadata()
+  }, [])
 
   // Khối 1: Logic Cascading
   const activeCategory = hierarchy.find(c => c.id.toString() === categoryId)
@@ -164,6 +94,7 @@ export default function EditTourV2() {
         data: { name, region_id: parseInt(regionId) }
       });
       if (res && res.destination) {
+        // Cập nhật lại cây hierarchy với điểm đến mới
         setHierarchy(prev => prev.map(cat => {
           if (cat.id.toString() === categoryId) {
             return {
@@ -273,10 +204,10 @@ export default function EditTourV2() {
 
     setIsSaving(true)
     try {
-      await fetchApi(`/tours/v2/${tourId}`, {
-        method: 'PUT',
+      await fetchApi('/tours/v2', {
+        method: 'POST',
         data: {
-          destination_id: parseInt(destinationId),
+          destination_id: destinationId,
           title, description, status,
           start_date: startDate,
           duration: `${days} Ngày ${nights} Đêm`,
@@ -292,7 +223,7 @@ export default function EditTourV2() {
           itinerary
         }
       })
-      alert("Cập nhật Tour thành công!")
+      alert("Tạo Tour thành công!")
       router.push('/admin/tours')
     } catch (error) {
       console.error(error)
@@ -331,7 +262,7 @@ export default function EditTourV2() {
           <button onClick={() => router.back()} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="text-xl font-bold text-white tracking-tight">Cập nhật Tour (#{tourId})</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight">Thêm Tour Mới (V2)</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-800 transition-colors text-sm">
@@ -501,7 +432,7 @@ export default function EditTourV2() {
               <button 
                 onClick={(e) => {
                   e.preventDefault();
-                  loadMetadataAndTour();
+                  loadMetadata();
                 }}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0f172a] border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white transition-colors text-sm"
               >
