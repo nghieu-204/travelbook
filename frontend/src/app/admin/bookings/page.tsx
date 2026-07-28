@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, ChevronDown, ArrowUpDown, Copy, FileText, FileSpreadsheet, FileIcon, Printer, Eye, CheckCircle2, XCircle, Phone, Mail, Filter, CalendarDays } from 'lucide-react'
+import { Search, ChevronDown, ArrowUpDown, Copy, FileText, FileSpreadsheet, FileIcon, Printer, Eye, CheckCircle2, XCircle, Phone, Mail, Filter, CalendarDays, Banknote } from 'lucide-react'
 
 // Mock Data
 const mockBookings = [
   {
     id: 'BK101',
+    tourCode: 'T-HL01',
     tourName: 'Khám phá Vịnh Hạ Long 2N1Đ - Ngủ đêm trên du thuyền',
     customerName: 'Nguyễn Văn A',
     email: 'nguyenvana@gmail.com',
@@ -22,6 +23,7 @@ const mockBookings = [
   },
   {
     id: 'BK102',
+    tourCode: 'T-DN02',
     tourName: 'Đà Nẵng - Hội An - Bà Nà Hills 4N3Đ',
     customerName: 'Trần Thị B',
     email: 'tranthib@gmail.com',
@@ -37,6 +39,7 @@ const mockBookings = [
   },
   {
     id: 'BK103',
+    tourCode: 'T-SM03',
     tourName: 'Săn mây Tà Xùa - Mộc Châu 3N2Đ',
     customerName: 'Lê Hoàng C',
     email: 'lehoangc@gmail.com',
@@ -52,6 +55,7 @@ const mockBookings = [
   },
   {
     id: 'BK104',
+    tourCode: 'T-PQ04',
     tourName: 'Nghỉ dưỡng Vinpearl Phú Quốc 3N2Đ',
     customerName: 'Phạm Văn D',
     email: 'phamvand@gmail.com',
@@ -67,6 +71,7 @@ const mockBookings = [
   },
   {
     id: 'BK105',
+    tourCode: 'T-SP05',
     tourName: 'Khám phá Sapa - Đỉnh Fansipan 3N2Đ',
     customerName: 'Hoàng Thị E',
     email: 'hoangthie@gmail.com',
@@ -85,7 +90,7 @@ const mockBookings = [
 export default function BookingsPage() {
   const [bookings, setBookings] = useState(mockBookings)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -99,8 +104,9 @@ export default function BookingsPage() {
     // 1. Search filter
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase()
-      filtered = filtered.filter(b => 
-        b.tourName.toLowerCase().includes(lowerSearch) || 
+      filtered = filtered.filter(b =>
+        (b.tourCode && b.tourCode.toLowerCase().includes(lowerSearch)) ||
+        b.tourName.toLowerCase().includes(lowerSearch) ||
         b.customerName.toLowerCase().includes(lowerSearch) ||
         b.email.toLowerCase().includes(lowerSearch) ||
         b.phone.includes(searchTerm)
@@ -132,14 +138,19 @@ export default function BookingsPage() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => setOpenDropdownId(null)
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.action-dropdown-container')) {
+        setOpenDropdownId(null);
+      }
+    }
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
 
   const handleActionClick = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    setOpenDropdownId(openDropdownId === id ? null : id)
+    e.preventDefault();
+    setOpenDropdownId(prev => prev === id ? null : id)
   }
 
   const formatCurrency = (amount: number) => {
@@ -179,7 +190,7 @@ export default function BookingsPage() {
 
   return (
     <div className="p-8 pb-20 max-w-full mx-auto space-y-6 animate-in fade-in duration-500">
-      
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-black text-white mb-2 tracking-tight">Booking</h1>
@@ -188,10 +199,10 @@ export default function BookingsPage() {
 
       {/* Main Container */}
       <div className="bg-[#1e293b] rounded-xl border border-slate-800 shadow-sm overflow-hidden flex flex-col">
-        
+
         {/* Toolbar */}
         <div className="p-5 border-b border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          
+
           {/* Left: Export Buttons & Length Menu */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -211,9 +222,9 @@ export default function BookingsPage() {
                 <Printer className="w-4 h-4" /> Print
               </button>
             </div>
-            
+
             <div className="flex items-center gap-2 text-sm text-slate-400">
-              Show 
+              Show
               <select className="bg-slate-800 border border-slate-700 text-white px-2 py-1 rounded-md focus:outline-none focus:border-blue-500">
                 <option value="10">10</option>
                 <option value="25">25</option>
@@ -228,8 +239,8 @@ export default function BookingsPage() {
           <div className="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3">
             {/* Filter Date */}
             <div className="relative w-full sm:w-auto">
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="bg-[#0f172a] border border-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors shadow-inner"
@@ -237,18 +248,18 @@ export default function BookingsPage() {
               />
             </div>
             <div className="relative w-full sm:w-auto">
-              <input 
-                type="date" 
+              <input
+                type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="bg-[#0f172a] border border-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors shadow-inner"
                 title="Đến ngày"
               />
             </div>
-            
+
             {/* Filter Status */}
             <div className="relative w-full sm:w-auto min-w-[140px]">
-              <select 
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="appearance-none bg-[#0f172a] border border-slate-700 text-slate-300 pl-9 pr-8 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors shadow-inner cursor-pointer"
@@ -264,8 +275,8 @@ export default function BookingsPage() {
 
             {/* Search Input */}
             <div className="relative w-full sm:w-64">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="bg-[#0f172a] border border-slate-700 text-slate-200 pl-9 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors shadow-inner"
@@ -281,6 +292,7 @@ export default function BookingsPage() {
           <table className="w-full text-sm text-left text-slate-300 border-collapse">
             <thead className="text-[11px] text-slate-400 uppercase bg-[#0f172a] border-b border-slate-800">
               <tr>
+                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[100px]">Mã Tour <SortIcon /></th>
                 <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[180px]">Tên Tours <SortIcon /></th>
                 <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[200px]">Khách hàng <SortIcon /></th>
                 <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50">Ngày đặt <SortIcon /></th>
@@ -296,10 +308,13 @@ export default function BookingsPage() {
               {bookings.map((booking, index) => {
                 const isEven = index % 2 === 0;
                 return (
-                  <tr 
-                    key={booking.id} 
+                  <tr
+                    key={booking.id}
                     className={`border-b border-slate-800/50 hover:bg-slate-700/50 transition-colors ${isEven ? 'bg-transparent' : 'bg-[#0f172a]/40'}`}
                   >
+                    <td className="px-2 py-3 font-medium text-blue-400 border-r border-slate-800/50 text-[13px] whitespace-nowrap">
+                      {booking.tourCode}
+                    </td>
                     <td className="px-2 py-3 font-medium text-white max-w-[220px] border-r border-slate-800/50 text-[13px]" title={booking.tourName}>
                       <div className="line-clamp-2">{booking.tourName}</div>
                     </td>
@@ -316,13 +331,13 @@ export default function BookingsPage() {
                     <td className="px-2 py-3 text-center border-r border-slate-800/50">{getBookingStatusBadge(booking.bookingStatus)}</td>
                     <td className="px-2 py-3 text-center border-r border-slate-800/50 text-xs">{getPaymentMethodText(booking.paymentMethod)}</td>
                     <td className="px-2 py-3 text-center border-r border-slate-800/50">{getPaymentStatusBadge(booking.paymentStatus)}</td>
-                    
+
                     {/* Action Column - Sticky Right */}
-                    <td 
-                      className={`px-2 py-3 text-center sticky right-0 z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.3)] transition-colors ${openDropdownId === booking.id ? 'bg-slate-700/50' : isEven ? 'bg-[#1e293b]' : 'bg-[#182132]'}`}
+                    <td
+                      className={`px-2 py-3 text-center sticky right-0 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.3)] transition-colors ${openDropdownId === booking.id ? 'bg-slate-700/50 z-50' : isEven ? 'bg-[#1e293b] z-10' : 'bg-[#182132] z-10'}`}
                     >
-                      <div className="relative inline-block text-left">
-                        <button 
+                      <div className="relative inline-block text-left action-dropdown-container">
+                        <button
                           onClick={(e) => handleActionClick(e, booking.id)}
                           className="bg-slate-700 hover:bg-slate-600 w-8 h-8 rounded flex items-center justify-center transition-colors group shadow-sm mx-auto"
                           title="Thao tác"
@@ -332,16 +347,19 @@ export default function BookingsPage() {
 
                         {/* Dropdown Menu */}
                         {openDropdownId === booking.id && (
-                          <div className="absolute right-full mr-2 top-0 w-48 rounded-md shadow-xl bg-slate-800 ring-1 ring-black ring-opacity-5 z-50 animate-in fade-in zoom-in-95 duration-200">
+                          <div className="absolute right-full mr-2 top-0 w-56 rounded-md shadow-xl bg-slate-800 ring-1 ring-black ring-opacity-5 z-50 animate-in fade-in zoom-in-95 duration-200">
                             <div className="py-1" role="menu" aria-orientation="vertical">
                               <button className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors">
                                 <Eye className="w-4 h-4" /> Xem chi tiết
                               </button>
+                              <button className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-blue-400 hover:bg-slate-700 transition-colors">
+                                <CheckCircle2 className="w-4 h-4" /> Xác nhận giữ chỗ
+                              </button>
                               <button className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-emerald-400 hover:bg-slate-700 transition-colors">
-                                <CheckCircle2 className="w-4 h-4" /> Xác nhận Booking
+                                <Banknote className="w-4 h-4" /> Xác nhận đã thu tiền
                               </button>
                               <button className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
-                                <XCircle className="w-4 h-4" /> Hủy Booking
+                                <XCircle className="w-4 h-4" /> Hủy đơn
                               </button>
                             </div>
                           </div>
@@ -354,7 +372,7 @@ export default function BookingsPage() {
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination Info */}
         <div className="p-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-400">
           <div>Showing 1 to 5 of 5 entries</div>
