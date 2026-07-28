@@ -105,11 +105,12 @@ export default function BookingsPage() {
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase()
       filtered = filtered.filter(b =>
+        (b.id && b.id.toLowerCase().includes(lowerSearch)) ||
         (b.tourCode && b.tourCode.toLowerCase().includes(lowerSearch)) ||
-        b.tourName.toLowerCase().includes(lowerSearch) ||
-        b.customerName.toLowerCase().includes(lowerSearch) ||
-        b.email.toLowerCase().includes(lowerSearch) ||
-        b.phone.includes(searchTerm)
+        (b.tourName && b.tourName.toLowerCase().includes(lowerSearch)) ||
+        (b.customerName && b.customerName.toLowerCase().includes(lowerSearch)) ||
+        (b.email && b.email.toLowerCase().includes(lowerSearch)) ||
+        (b.phone && b.phone.includes(searchTerm))
       )
     }
 
