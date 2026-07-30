@@ -17,7 +17,7 @@ export default function AdminTours() {
   useEffect(() => {
     const loadTours = async () => {
       try {
-        const data = await fetchApi('/tours')
+        const data = await fetchApi('/tours?isAdmin=true')
         setTours(data || [])
       } catch (error) {
         console.error("Failed to load tours", error)
@@ -44,7 +44,7 @@ export default function AdminTours() {
     // Optimistic update
     setTours(tours.map(t => t.id === tourId ? { ...t, status: newStatus } : t));
     try {
-      await fetchApi(`/tours/${tourId}`, { 
+      await fetchApi(`/tours/${tourId}/status`, { 
         method: 'PUT', 
         body: JSON.stringify({ status: newStatus }) 
       });
@@ -62,7 +62,9 @@ export default function AdminTours() {
   const filteredTours = tours.filter(tour => {
     const tourName = (tour.name || tour.title || '').toLowerCase()
     const tourId = String(tour.id)
-    const matchesSearch = tourName.includes(searchTerm.toLowerCase()) || tourId.includes(searchTerm)
+    const tourCode = (tour.tour_code || '').toLowerCase()
+    const searchLower = searchTerm.toLowerCase()
+    const matchesSearch = tourName.includes(searchLower) || tourId.includes(searchTerm) || tourCode.includes(searchLower)
     
     const location = tour.location || 'Chưa cập nhật'
     const matchesLocation = filterLocation === 'All' || location === filterLocation
@@ -129,7 +131,7 @@ export default function AdminTours() {
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-[#0f172a] text-slate-400 border-b border-slate-800 uppercase text-xs">
-                <th className="p-4 font-semibold w-16">ID</th>
+                <th className="p-4 font-semibold min-w-[120px]">Mã Tour</th>
                 <th className="p-4 font-semibold min-w-[250px] max-w-[300px]">Tên Tour</th>
                 <th className="p-4 font-semibold">Địa điểm</th>
                 <th className="p-4 font-semibold">Lịch trình</th>
@@ -178,7 +180,7 @@ export default function AdminTours() {
                 
                 return (
                   <tr key={tour.id} className={`border-b border-slate-800/50 hover:bg-slate-700/50 transition-colors ${index % 2 === 0 ? 'bg-transparent' : 'bg-[#0f172a]/40'}`}>
-                    <td className="p-4 text-slate-500 font-medium">#{tour.id}</td>
+                    <td className="p-4 text-blue-400 font-medium whitespace-nowrap">{tour.tour_code || `#${tour.id}`}</td>
                     <td className="p-4 font-medium text-white max-w-[300px] truncate" title={tour.name || tour.title}>
                       {tour.name || tour.title}
                     </td>

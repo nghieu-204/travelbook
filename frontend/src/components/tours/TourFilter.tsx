@@ -44,7 +44,7 @@ const Accordion = ({ title, isOpenDefault = false, children }: { title: string, 
 // 2. Dual Range Slider
 const DualRangeSlider = ({ value, onChange }: { value: [number, number], onChange: (val: [number, number]) => void }) => {
   const min = 0;
-  const max = 20000000;
+  const max = 99990000;
   
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newMin = Math.min(Number(e.target.value), value[1] - 500000);
@@ -79,7 +79,7 @@ const DualRangeSlider = ({ value, onChange }: { value: [number, number], onChang
       <div className="flex justify-between items-center mt-5 text-sm font-semibold text-blue-700 bg-blue-50 py-2 px-3 rounded-lg">
         <span>{value[0].toLocaleString('vi-VN')}đ</span>
         <span>-</span>
-        <span>{value[1] >= max ? '20tr+ VNĐ' : `${value[1].toLocaleString('vi-VN')}đ`}</span>
+        <span>{value[1].toLocaleString('vi-VN')}đ</span>
       </div>
     </div>
   )
@@ -158,23 +158,26 @@ export default function TourFilter() {
   
   // STATE MANAGEMENT
   const [filterParams, setFilterParams] = useState({
-    category: (searchParams.get('category') as 'Trong nước' | 'Ngoài nước') || 'Trong nước',
-    priceRange: [0, 20000000] as [number, number],
-    regions: [] as string[],
-    destinations: searchParams.get('destination') ? [searchParams.get('destination') as string] : [] as string[],
+    category: (searchParams.get('category') as 'Trong nước' | 'Quốc tế' | '') || '',
+    priceRange: [
+      searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : 0,
+      searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : 99990000
+    ] as [number, number],
+    regions: searchParams.getAll('region'),
+    destinations: searchParams.getAll('destination'),
     startDate: { from: '', to: '' },
     tourTypes: [] as string[],
     occasions: [] as string[],
-    duration: '',
-    rating: 0
+    duration: searchParams.get('duration') || '',
+    rating: searchParams.get('rating') ? Number(searchParams.get('rating')) : 0
   })
 
-  // Cập nhật state nếu URL thay đổi (VD: User bấm từ trang chủ sang)
+  // Cập nhật state nếu URL thay đổi từ bên ngoài
   useEffect(() => {
-    const cat = searchParams.get('category') as 'Trong nước' | 'Ngoài nước';
+    const cat = searchParams.get('category') as 'Trong nước' | 'Quốc tế' | '';
     const dest = searchParams.get('destination');
-    if (cat && (cat === 'Trong nước' || cat === 'Ngoài nước') && cat !== filterParams.category) {
-       setFilterParams(prev => ({ ...prev, category: cat, destinations: dest ? [dest] : [] }));
+    if (cat !== null && cat !== filterParams.category) {
+       setFilterParams(prev => ({ ...prev, category: cat || '', destinations: dest ? [dest] : [] }));
     }
   }, [searchParams])
 
@@ -183,7 +186,7 @@ export default function TourFilter() {
 
   // Xử lý hiệu ứng chuyển tab
   const [isFading, setIsFading] = useState(false)
-  const handleCategoryChange = (cat: 'Trong nước' | 'Ngoài nước') => {
+  const handleCategoryChange = (cat: 'Trong nước' | 'Quốc tế') => {
     if (cat === filterParams.category) return;
     setIsFading(true)
     setTimeout(() => {
@@ -211,8 +214,8 @@ export default function TourFilter() {
 
   const clearAll = () => {
     setFilterParams({
-      category: 'Trong nước',
-      priceRange: [0, 20000000],
+      category: '',
+      priceRange: [0, 99990000],
       regions: [], destinations: [],
       startDate: { from: '', to: '' },
       tourTypes: [], occasions: [],
@@ -220,11 +223,47 @@ export default function TourFilter() {
     })
   }
 
-  // Trigger API Update (Tương lai có thể gắn vào useEffect)
+  const isInitialMount = useRef(true);
+  const searchParamsRef = useRef(searchParams);
+
   useEffect(() => {
-    console.log("Filters Updated:", filterParams);
-    // router.push(`?category=${filterParams.category}&...`)
-  }, [filterParams])
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
+
+  // Trigger API Update
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams()
+      if (filterParams.category) params.set('category', filterParams.category)
+      
+      if (filterParams.priceRange[0] > 0) params.set('minPrice', filterParams.priceRange[0].toString())
+      if (filterParams.priceRange[1] < 99990000) params.set('maxPrice', filterParams.priceRange[1].toString())
+      
+      if (filterParams.regions.length > 0) {
+         filterParams.regions.forEach(r => params.append('region', r))
+      }
+      if (filterParams.destinations.length > 0) {
+         filterParams.destinations.forEach(d => params.append('destination', d))
+      }
+      
+      if (filterParams.duration) params.set('duration', filterParams.duration)
+      if (filterParams.rating > 0) params.set('rating', filterParams.rating.toString())
+      
+      const q = searchParamsRef.current.get('q')
+      if (q) params.set('q', q)
+      const sort = searchParamsRef.current.get('sort')
+      if (sort) params.set('sort', sort)
+
+      router.push(`/tours?${params.toString()}`, { scroll: false })
+    }, 500)
+    
+    return () => clearTimeout(timer)
+  }, [filterParams, router])
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-24">

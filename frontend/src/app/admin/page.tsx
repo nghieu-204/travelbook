@@ -19,7 +19,7 @@ const revenueData = [
 
 const allTourData = [
   { name: 'Trong nước', value: 65 },
-  { name: 'Ngoài nước', value: 35 },
+  { name: 'Quốc tế', value: 35 },
 ]
 
 const domesticTourData = [
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
               >
                 <option value="all">Phân loại: Tất cả</option>
                 <option value="domestic">Phân loại: Trong nước</option>
-                <option value="international">Phân loại: Ngoài nước</option>
+                <option value="international">Phân loại: Quốc tế</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>

@@ -4,7 +4,7 @@ import TourCard, { Tour } from '@/components/tours/TourCard'
 
 interface TourSectionProps {
   title: string
-  category: 'Trong nước' | 'Ngoài nước'
+  category: 'Trong nước' | 'Quốc tế'
   pills: string[]
   tours: Tour[]
 }
@@ -16,7 +16,7 @@ export default function TourSection({ title, category, pills, tours }: TourSecti
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">{title}</h2>
-          <Link 
+          <a 
             href={`/tours?category=${encodeURIComponent(category)}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-blue-600 text-blue-600 font-bold hover:bg-blue-600 hover:text-white transition-colors group self-start md:self-auto"
           >
@@ -24,7 +24,7 @@ export default function TourSection({ title, category, pills, tours }: TourSecti
             <div className="w-6 h-6 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center transition-colors">
               <ArrowRight className="w-4 h-4 text-blue-600" />
             </div>
-          </Link>
+          </a>
         </div>
 
         {/* Filter Pills */}

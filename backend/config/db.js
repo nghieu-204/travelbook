@@ -1,4 +1,5 @@
 require('dotenv').config();
+// Thư viện MySQL
 const mysql = require('mysql2/promise');
 
 const dbConfig = {
@@ -12,6 +13,12 @@ const dbConfig = {
     queueLimit: 0
 };
 
+// DB Connection pool
 const pool = mysql.createPool(dbConfig);
+
+// Tự động tăng max_allowed_packet để cho phép lưu ảnh dung lượng lớn
+pool.query('SET GLOBAL max_allowed_packet=52428800').catch(err => {
+    console.error("Lỗi khi thiết lập max_allowed_packet:", err.message);
+});
 
 module.exports = { pool, dbConfig };

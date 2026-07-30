@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/useAuthStore'
 import { MapPin, Users, Calendar, ShieldCheck, CheckCircle2, CreditCard, Wallet, Banknote, ChevronLeft, Minus, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { fetchApi } from '@/lib/api'
 
 export default function CheckoutClient({ tour }: { tour: any }) {
   const router = useRouter()
@@ -43,14 +44,41 @@ export default function CheckoutClient({ tour }: { tour: any }) {
   const total = (adults * priceAdult) + (children * priceChild)
   const totalUSD = (total / 25000).toFixed(2)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     
-    // Simulate booking process
-    setTimeout(() => {
+    try {
+      let paymentLabel = 'Thanh toán trực tiếp';
+      if (paymentMethod === 'paypal') paymentLabel = 'PayPal';
+      if (paymentMethod === 'momo') paymentLabel = 'MoMo';
+
+      const bookingData = {
+        user_id: user?.id || null,
+        tour_id: tour.id,
+        tour_name: tour.name,
+        user_name: formData.fullName,
+        user_email: formData.email,
+        user_phone: formData.phone,
+        departure_date: tour.departure_date,
+        adults,
+        children,
+        total_price: total,
+        payment_method: paymentLabel
+      }
+
+      await fetchApi('/bookings', {
+        method: 'POST',
+        data: bookingData
+      })
+      
       router.push('/bookings')
-    }, 1500)
+    } catch (error) {
+      console.error("Lỗi đặt tour:", error);
+      alert("Đã xảy ra lỗi khi đặt tour. Vui lòng thử lại!");
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const departureDate = tour.departure_date ? new Date(tour.departure_date).toLocaleDateString('vi-VN') : '23/07/2026'
@@ -207,7 +235,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
               
               <div className="flex gap-4 mb-6 pb-6 border-b border-slate-100">
                 <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
-                  <img src={tour.image} alt={tour.name} className="w-full h-full object-cover" />
+                  <img src={tour.image || "https://images.unsplash.com/photo-1596422846543-74c6e271abb1?auto=format&fit=crop&w=600&q=80"} alt={tour.name} className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 line-clamp-2 text-sm leading-snug">{tour.name}</h3>

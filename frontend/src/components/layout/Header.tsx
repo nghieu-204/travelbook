@@ -16,7 +16,7 @@ export default function Header() {
   const handleSearch = () => {
     if (searchQuery.trim()) {
       setIsSearchOpen(false)
-      router.push(`/tours?search=${encodeURIComponent(searchQuery.trim())}`)
+      router.push(`/tours?q=${encodeURIComponent(searchQuery.trim())}`)
       setSearchQuery('')
     }
   }
@@ -32,7 +32,7 @@ export default function Header() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex gap-8 items-center font-medium text-slate-600">
           <Link href="/" className="hover:text-blue-600 transition-colors">Trang chủ</Link>
-          <Link href="/tours" className="hover:text-blue-600 transition-colors">Danh sách Tour</Link>
+          <a href="/tours" className="hover:text-blue-600 transition-colors">Danh sách Tour</a>
           <Link href="/about" className="hover:text-blue-600 transition-colors">Giới thiệu</Link>
           <Link href="/contact" className="hover:text-blue-600 transition-colors">Liên hệ</Link>
         </nav>

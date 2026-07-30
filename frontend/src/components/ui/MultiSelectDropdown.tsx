@@ -61,7 +61,7 @@ export default function MultiSelectDropdown({
   return (
     <div className="relative w-full" ref={dropdownRef}>
       {/* 1. Label ở trên */}
-      <label className="block text-sm font-semibold text-slate-700 mb-2">
+      <label className="block text-sm font-semibold text-slate-400 mb-2">
         {label}
       </label>
 
@@ -69,7 +69,7 @@ export default function MultiSelectDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between bg-gray-50 px-5 py-3 rounded-full transition-colors outline-none text-slate-700 hover:bg-gray-100"
+        className="w-full flex items-center justify-between bg-[#0f172a] border border-slate-700 px-5 py-3 rounded-xl transition-colors outline-none text-white focus:ring-2 focus:ring-blue-500 hover:bg-slate-800"
       >
         <span className="truncate mr-4 text-sm font-medium">
           {selectedIds.length > 0 
@@ -81,25 +81,25 @@ export default function MultiSelectDropdown({
 
       {/* 3. Menu xổ xuống (Dropdown Menu) */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100 z-50 overflow-hidden origin-top animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] rounded-xl shadow-xl border border-slate-700 z-50 overflow-hidden origin-top animate-in fade-in slide-in-from-top-2 duration-200">
           
           {/* Header: Search Input */}
-          <div className="p-3 border-b border-slate-100">
-            <div className="relative flex items-center bg-gray-50 rounded-full px-4 py-2.5 border border-slate-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+          <div className="p-3 border-b border-slate-700">
+            <div className="relative flex items-center bg-[#0f172a] rounded-lg px-4 py-2.5 border border-slate-700 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
               <Search className="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" />
               <input
                 type="text"
                 placeholder="Tìm kiếm..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-transparent outline-none text-sm text-slate-700 font-medium placeholder:text-slate-400 placeholder:font-normal"
+                className="w-full bg-transparent outline-none text-sm text-white font-medium placeholder:text-slate-500 placeholder:font-normal"
                 autoFocus
               />
             </div>
           </div>
 
           {/* Danh sách (List) với Custom Scrollbar bằng Tailwind */}
-          <div className="max-h-[250px] overflow-y-auto p-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-300">
+          <div className="max-h-[250px] overflow-y-auto p-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-500">
             {filteredOptions.length > 0 ? (
               filteredOptions.map(option => {
                 const isSelected = selectedIds.includes(option.id)
@@ -108,15 +108,15 @@ export default function MultiSelectDropdown({
                     key={option.id}
                     type="button"
                     onClick={() => toggleOption(option.id)}
-                    className="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left group"
+                    className="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-[#0f172a] transition-colors text-left group"
                   >
                     {/* Checkbox Hình vuông */}
-                    <div className={`w-5 h-5 flex-shrink-0 rounded-[4px] flex items-center justify-center mr-3 border transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white group-hover:border-blue-400'}`}>
+                    <div className={`w-5 h-5 flex-shrink-0 rounded-[4px] flex items-center justify-center mr-3 border transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-600 bg-[#0f172a] group-hover:border-blue-400'}`}>
                       {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
                     </div>
                     
                     {/* Tên địa điểm */}
-                    <span className={`flex-1 text-sm truncate transition-colors ${isSelected ? 'font-semibold text-blue-700' : 'font-medium text-slate-700'}`}>
+                    <span className={`flex-1 text-sm truncate transition-colors ${isSelected ? 'font-semibold text-blue-400' : 'font-medium text-slate-300'}`}>
                       {option.label}
                     </span>
                     

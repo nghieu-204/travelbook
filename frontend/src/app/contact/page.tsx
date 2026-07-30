@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { fetchApi } from '@/lib/api'
 
 export default function ContactPage() {
   const { user } = useAuthStore()
@@ -12,6 +13,7 @@ export default function ContactPage() {
     email: '',
     phone: '',
     date: '',
+    subject: '',
     message: ''
   })
   
@@ -33,19 +35,38 @@ export default function ContactPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert("Định dạng email không hợp lệ. Vui lòng kiểm tra lại!");
+      return;
+    }
+
     setIsSubmitting(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      await fetchApi('/contacts', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_name: formData.name,
+          user_email: formData.email,
+          user_phone: formData.phone,
+          contact_date: formData.date || null,
+          subject: formData.subject || 'Liên hệ từ khách hàng',
+          message: formData.message
+        })
+      })
       setShowToast(true)
-      setFormData({ name: user?.name || '', email: user?.email || '', phone: '', date: '', message: '' })
-      
-      // Hide toast after 3s
+      setFormData({ name: user?.name || '', email: user?.email || '', phone: '', date: '', subject: '', message: '' })
       setTimeout(() => setShowToast(false), 3000)
-    }, 1500)
+    } catch (err) {
+      alert("Có lỗi xảy ra khi gửi liên hệ, vui lòng thử lại sau.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -113,15 +134,29 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày dự kiến</label>
-                <input 
-                  type="date" 
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Chủ đề (Subject)</label>
+                  <input 
+                    type="text" 
+                    name="subject"
+                    required
+                    value={formData.subject}
+                    onChange={handleChange}
+                    placeholder="Vấn đề bạn quan tâm..." 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày dự kiến (nếu có)</label>
+                  <input 
+                    type="date" 
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
+                  />
+                </div>
               </div>
 
               <div>

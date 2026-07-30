@@ -42,6 +42,8 @@ services:
       - DB_PORT=3306
       - DB_NAME=travel_booking
       - JWT_SECRET=travel_booking_secret_key_2026
+      - EMAIL_USER=travelbook.cskh@gmail.com
+      - EMAIL_PASS=pihkhgjvfeswlmby
     ports:
       - "${API_PORT:-8902}:${API_PORT:-8902}"
     depends_on:

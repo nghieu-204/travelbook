@@ -4,7 +4,7 @@ import { Star, MapPin, Clock } from 'lucide-react'
 export default async function TrendingTours() {
   let tours = [];
   try {
-    const res = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=4`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=4`, { cache: 'no-store' });
     if (res.ok) {
       tours = await res.json();
       tours = tours.slice(0, 4); // Lấy 4 tour đầu tiên
@@ -27,7 +27,7 @@ export default async function TrendingTours() {
           {tours.map((tour: any) => (
             <Link href={`/tours/${tour.id}`} key={tour.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 flex flex-col">
               <div className="relative h-48 overflow-hidden">
-                <img src={tour.image} alt={tour.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                <img src={tour.image || 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80'} alt={tour.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-slate-700 flex items-center gap-1">
                   <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" /> {tour.rating || "5.0"} ({tour.reviews_count || 120})
                 </div>

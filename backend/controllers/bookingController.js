@@ -69,14 +69,14 @@ async function sendInvoiceEmail(booking) {
 const createBooking = async (req, res) => {
     try {
         const { user_id, tour_id, tour_name, user_name, user_email, user_phone, departure_date, adults, children, total_price, payment_method } = req.body;
-        
+
         const [result] = await pool.query(
             `INSERT INTO bookings (user_id, tour_id, tour_name, user_name, user_email, user_phone, departure_date, adults, children, total_price, payment_method, status)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Đang chờ xác nhận')`,
             [user_id || null, tour_id, tour_name, user_name, user_email, user_phone, departure_date, adults || 1, children || 0, total_price, payment_method || 'Chuyển khoản ngân hàng / QR Code']
         );
 
-        res.status(201).json({ 
+        res.status(201).json({
             message: "🎉 Đặt tour thành công! Chúng tôi sẽ liên hệ sớm nhất để xác nhận.",
             bookingId: result.insertId,
             booking: {
@@ -94,7 +94,13 @@ const createBooking = async (req, res) => {
 const getBookingsByUser = async (req, res) => {
     try {
         const { userId } = req.params;
-        const [rows] = await pool.query('SELECT * FROM bookings WHERE user_id = ? ORDER BY created_at DESC', [userId]);
+        const [rows] = await pool.query(`
+            SELECT b.*, t.image as tour_image 
+            FROM bookings b 
+            LEFT JOIN tours t ON b.tour_id = t.id 
+            WHERE b.user_id = ? 
+            ORDER BY b.created_at DESC
+        `, [userId]);
         res.json(rows);
     } catch (error) {
         console.error("Lỗi lấy lịch sử đặt tour:", error.message);
@@ -164,11 +170,44 @@ const sendInvoiceManual = async (req, res) => {
     }
 };
 
+// Admin: Cập nhật trạng thái thanh toán
+const updatePaymentStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { payment_status } = req.body;
+        await pool.query('UPDATE bookings SET payment_status = ? WHERE id = ?', [payment_status, id]);
+        res.json({ message: `✅ Cập nhật thanh toán đơn #SKY-${id} thành: ${payment_status}` });
+    } catch (error) {
+        console.error("Lỗi cập nhật thanh toán:", error.message);
+        res.status(500).json({ message: "Lỗi server" });
+    }
+};
+
+// Admin: Cập nhật chi tiết Booking
+const updateBookingDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { user_name, user_email, user_phone, adults, children, total_price } = req.body;
+        
+        await pool.query(
+            'UPDATE bookings SET user_name = ?, user_email = ?, user_phone = ?, adults = ?, children = ?, total_price = ? WHERE id = ?',
+            [user_name, user_email, user_phone, adults, children, total_price, id]
+        );
+        
+        res.json({ message: `✅ Cập nhật chi tiết đơn hàng #SKY-${id} thành công!` });
+    } catch (error) {
+        console.error("Lỗi cập nhật chi tiết booking:", error.message);
+        res.status(500).json({ message: "Lỗi server" });
+    }
+};
+
 module.exports = {
     createBooking,
     getBookingsByUser,
     getAllBookings,
     updateBookingStatus,
+    updatePaymentStatus,
+    updateBookingDetails,
     sendInvoiceEmail,
     sendInvoiceManual
 };

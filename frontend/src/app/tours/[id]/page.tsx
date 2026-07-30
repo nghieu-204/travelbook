@@ -40,7 +40,13 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
     )
   }
 
-  const galleryImages = typeof tour.gallery === 'string' ? JSON.parse(tour.gallery) : (tour.gallery || [tour.image]);
+  let parsedGallery = [];
+  if (typeof tour.gallery === 'string') {
+    try { parsedGallery = JSON.parse(tour.gallery) } catch (e) {}
+  } else if (Array.isArray(tour.gallery)) {
+    parsedGallery = tour.gallery;
+  }
+  const galleryImages = [tour.image, ...parsedGallery].filter(Boolean);
 
   return (
     <div className="bg-slate-50 pb-20">

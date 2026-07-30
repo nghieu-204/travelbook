@@ -1,4 +1,5 @@
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface FetchOptions extends RequestInit {
   data?: any;
@@ -33,6 +34,7 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
       ...defaultHeaders,
       ...headers,
     },
+    cache: 'no-store',
     ...customConfig,
   };
 
@@ -45,6 +47,16 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
     const result = await response.json();
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        if (typeof window !== 'undefined') {
+          useAuthStore.getState().logout();
+          if (window.location.pathname.startsWith('/admin')) {
+             window.location.href = '/';
+          } else {
+             useAuthStore.getState().setLoginModalOpen(true);
+          }
+        }
+      }
       throw new Error(result.message || 'Có lỗi xảy ra khi gọi API');
     }
 

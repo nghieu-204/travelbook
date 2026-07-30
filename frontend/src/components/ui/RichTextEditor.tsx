@@ -14,23 +14,31 @@ interface RichTextEditorProps {
   className?: string
 }
 
-export default function RichTextEditor({ value, onChange, placeholder, className = '' }: RichTextEditorProps) {
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, false] }],
-      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-      [{'list': 'ordered'}, {'list': 'bullet'}],
-      ['link'],
-      ['clean']
-    ],
-  }
+const modules = {
+  toolbar: [
+    [{ 'header': [1, 2, false] }],
+    ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+    [{'list': 'ordered'}, {'list': 'bullet'}],
+    ['link'],
+    ['clean']
+  ],
+}
 
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike', 'blockquote',
-    'list',
-    'link'
-  ]
+const formats = [
+  'header',
+  'bold', 'italic', 'underline', 'strike', 'blockquote',
+  'list',
+  'link'
+]
+
+export default function RichTextEditor({ value, onChange, placeholder, className = '' }: RichTextEditorProps) {
+
+  const handleChange = (content: string) => {
+    // Prevent infinite loops if ReactQuill fires onChange with the same content
+    if (content !== value && content !== value + '<p><br></p>') {
+      onChange(content)
+    }
+  }
 
   return (
     <div className={`rich-text-editor-wrapper bg-[#0f172a] border border-slate-700 rounded-xl overflow-hidden ${className}`}>
@@ -69,7 +77,7 @@ export default function RichTextEditor({ value, onChange, placeholder, className
       <ReactQuill 
         theme="snow"
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         modules={modules}
         formats={formats}
         placeholder={placeholder}

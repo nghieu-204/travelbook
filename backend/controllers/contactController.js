@@ -1,13 +1,7 @@
 const { pool } = require('../config/db');
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER || 'admin@skytravel.vn',
-        pass: process.env.EMAIL_PASS || 'abcdefghijklmnop'
-    }
-});
+// Transporter sẽ được khởi tạo bên trong function để lấy biến môi trường mới nhất
 
 // Gửi liên hệ từ Khách hàng (Public)
 const createContact = async (req, res) => {
@@ -79,6 +73,14 @@ const replyContact = async (req, res) => {
         // Gửi email qua Nodemailer
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.EMAIL_PASS !== 'abcdefghijklmnop') {
             try {
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASS
+                    }
+                });
+
                 await transporter.sendMail({
                     from: `"SkyTravel Customer Support" <${process.env.EMAIL_USER}>`,
                     to: contact.user_email,

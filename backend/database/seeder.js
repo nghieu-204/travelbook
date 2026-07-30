@@ -35,13 +35,22 @@ async function seedUsers() {
     }
 }
 
+
 async function seedTours() {
     try {
         const [rows] = await pool.query('SELECT COUNT(*) as count FROM tours');
         if (rows[0].count > 0) {
-            console.log(`ℹ️ Bảng tours đã có sẵn ${rows[0].count} tour. Bỏ qua nạp dữ liệu mẫu.`);
+            console.log('ℹ️ Bảng tours đã có sẵn dữ liệu. Bỏ qua nạp.');
             return;
         }
+
+        console.log('🌍 Đang nạp dữ liệu Địa lý (Categories, Regions, Destinations)...');
+        await pool.query("INSERT IGNORE INTO tourcategory (id, name) VALUES (1, 'Trong nước'), (2, 'Ngoài nước')");
+        await pool.query("INSERT IGNORE INTO region (id, category_id, name) VALUES (1, 1, 'Miền Bắc'), (2, 1, 'Miền Trung'), (3, 1, 'Miền Nam'), (4, 2, 'Châu Á')");
+        await pool.query(`INSERT IGNORE INTO destination (id, region_id, name) VALUES 
+            (1, 3, 'Phú Quốc'), (2, 2, 'Đà Nẵng'), (3, 1, 'Sapa'), (4, 1, 'Hạ Long'), (5, 4, 'Bali'),
+            (6, 2, 'Huế'), (7, 2, 'Đà Lạt'), (8, 2, 'Quảng Bình'), (9, 3, 'Nha Trang'), (10, 1, 'Ninh Bình'),
+            (11, 1, 'Mộc Châu'), (12, 3, 'Côn Đảo'), (13, 1, 'Hà Giang'), (14, 2, 'Quy Nhơn'), (15, 4, 'Bangkok')`);
 
         console.log('🌱 Đang nạp dữ liệu mẫu cho 10 tour du lịch...');
         for (const tour of sampleTours) {
@@ -54,12 +63,12 @@ async function seedTours() {
             ]);
 
             await pool.query(
-                `INSERT INTO tours (name, location, region, price, original_price, child_price, available_spots, departure_date, duration, category, image, gallery, rating, reviews_count, badge, description, itinerary, included, excluded)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, rating, reviews_count, badge, description, itinerary, included, excluded, destination_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    tour.name, tour.location, tour.region || 'Miền Nam', tour.price, tour.original_price, childPrice, spots,
-                    tour.departure_date || '2026-08-15', tour.duration, tour.category, tour.image, galleryJson,
-                    tour.rating, tour.reviews_count, tour.badge, tour.description, tour.itinerary, tour.included, tour.excluded
+                    tour.name, tour.price, tour.original_price, childPrice, spots,
+                    tour.departure_date || '2026-08-15', tour.duration, tour.image, galleryJson,
+                    tour.rating, tour.reviews_count, tour.badge, tour.description, tour.itinerary, tour.included, tour.excluded, tour.destination_id
                 ]
             );
         }
