@@ -132,7 +132,7 @@ export default function BookingsPage() {
                     <div className="flex flex-wrap items-center gap-6 w-full md:w-auto">
                       <div className="flex items-center gap-2 text-sm bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
                         <span className="text-slate-500 font-medium">Mã đặt chỗ:</span>
-                        <span className="text-slate-900 font-bold">SKY-{booking.id}</span>
+                        <span className="text-slate-900 font-bold">TB-{booking.id}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-slate-500 font-medium">Tổng tiền:</span>

@@ -19,8 +19,8 @@ exports.createMoMoPayment = async (req, res) => {
                 bookingId,
                 transactionId,
                 amount,
-                orderInfo: orderInfo || `Thanh toán đơn đặt tour #SKY-${bookingId}`,
-                qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=d82d8b&data=' + encodeURIComponent(`MOMO_PAYMENT_SKY_${bookingId}_AMOUNT_${amount}`),
+                orderInfo: orderInfo || `Thanh toán đơn đặt tour #TB-${bookingId}`,
+                qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&color=d82d8b&data=' + encodeURIComponent(`MOMO_PAYMENT_TB_${bookingId}_AMOUNT_${amount}`),
                 expiresInSeconds: 300,
                 provider: 'MoMo E-Wallet'
             }
@@ -60,7 +60,7 @@ exports.confirmOnlinePayment = async (req, res) => {
 
         res.json({
             status: 'Success',
-            message: `🎉 Đã thanh toán thành công đơn hàng #SKY-${bookingId} qua ${paymentMethod}!`,
+            message: `🎉 Đã thanh toán thành công đơn hàng #TB-${bookingId} qua ${paymentMethod}!`,
             updatedStatus: statusLabel,
             transactionId: transactionId || 'TRANS_' + Date.now()
         });

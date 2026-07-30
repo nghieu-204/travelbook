@@ -11,7 +11,7 @@ const createContact = async (req, res) => {
             `INSERT INTO contacts (user_name, user_email, user_phone, contact_date, subject, message, status) VALUES (?, ?, ?, ?, ?, ?, 'Chưa phản hồi')`,
             [user_name, user_email, user_phone || null, contact_date || null, subject, message]
         );
-        res.status(201).json({ message: "🎉 Đã gửi yêu cầu liên hệ thành công! Đội ngũ SkyTravel sẽ sớm phản hồi cho bạn." });
+        res.status(201).json({ message: "🎉 Đã gửi yêu cầu liên hệ thành công! Đội ngũ TravelBook sẽ sớm phản hồi cho bạn." });
     } catch (error) {
         console.error("Lỗi gửi contact:", error.message);
         res.status(500).json({ message: "Lỗi kết nối khi gửi liên hệ" });
@@ -44,19 +44,19 @@ const replyContact = async (req, res) => {
         const replyHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                 <div style="background: #0a66c2; color: white; padding: 24px; text-align: center;">
-                    <h1 style="margin: 0; font-size: 24px;">✈️ SKYTRAVEL - PHẢN HỒI YÊU CẦU</h1>
+                    <h1 style="margin: 0; font-size: 24px;">✈️ TRAVELBOOK - PHẢN HỒI YÊU CẦU</h1>
                     <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">V/v: ${contact.subject}</p>
                 </div>
                 <div style="padding: 24px; background: white; color: #334155;">
                     <p style="font-size: 16px;">Xin chào <strong>${contact.user_name}</strong>,</p>
-                    <p>Cảm ơn bạn đã liên hệ với Trung tâm Chăm sóc Khách hàng SkyTravel. Chúng tôi xin trân trọng gửi phản hồi cho thắc mắc của bạn như sau:</p>
+                    <p>Cảm ơn bạn đã liên hệ với Trung tâm Chăm sóc Khách hàng TravelBook. Chúng tôi xin trân trọng gửi phản hồi cho thắc mắc của bạn như sau:</p>
                     
                     <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin: 16px 0; border-left: 4px solid #cbd5e1; font-style: italic; color: #64748b;">
                         <strong>Nội dung bạn hỏi:</strong> "${contact.message}"
                     </div>
 
                     <div style="background: #ecfdf5; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #059669; color: #065f46;">
-                        <h4 style="margin: 0 0 10px; color: #047857;">🛡️ Phản hồi từ Quản trị viên SkyTravel:</h4>
+                        <h4 style="margin: 0 0 10px; color: #047857;">🛡️ Phản hồi từ Quản trị viên TravelBook:</h4>
                         <p style="margin: 0; line-height: 1.6;">${admin_reply}</p>
                     </div>
 
@@ -65,7 +65,7 @@ const replyContact = async (req, res) => {
                     </p>
                 </div>
                 <div style="background: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
-                    © 2026 SkyTravel Corporation. All rights reserved.
+                    © 2026 TravelBook Corporation. All rights reserved.
                 </div>
             </div>
         `;
@@ -82,9 +82,9 @@ const replyContact = async (req, res) => {
                 });
 
                 await transporter.sendMail({
-                    from: `"SkyTravel Customer Support" <${process.env.EMAIL_USER}>`,
+                    from: `"TravelBook Customer Support" <${process.env.EMAIL_USER}>`,
                     to: contact.user_email,
-                    subject: `[SKYTRAVEL PHẢN HỒI] ${contact.subject}`,
+                    subject: `[TRAVELBOOK PHẢN HỒI] ${contact.subject}`,
                     html: replyHtml
                 });
                 console.log(`📧 Đã gửi email phản hồi liên hệ qua Nodemailer cho: ${contact.user_email}`);

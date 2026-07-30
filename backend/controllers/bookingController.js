@@ -5,7 +5,7 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER || 'admin@skytravel.vn',
+        user: process.env.EMAIL_USER || 'admin@travelbook.vn',
         pass: process.env.EMAIL_PASS || 'abcdefghijklmnop'
     }
 });
@@ -14,12 +14,12 @@ async function sendInvoiceEmail(booking) {
     const invoiceHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="background: #0a66c2; color: white; padding: 24px; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px;">✈️ SKYTRAVEL - HÓA ĐƠN XÁC NHẬN</h1>
-                <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">Mã đặt chỗ: #SKY-${booking.id}</p>
+                <h1 style="margin: 0; font-size: 24px;">✈️ TRAVELBOOK - HÓA ĐƠN XÁC NHẬN</h1>
+                <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">Mã đặt chỗ: #TB-${booking.id}</p>
             </div>
             <div style="padding: 24px; background: white; color: #334155;">
                 <p style="font-size: 16px;">Xin chào <strong>${booking.user_name}</strong>,</p>
-                <p>Chúc mừng! Đơn đặt tour của bạn đã được Quản trị viên SkyTravel kiểm tra và <strong>XÁC NHẬN THÀNH CÔNG</strong>. Dưới đây là thông tin chi tiết hóa đơn chuyến đi của bạn:</p>
+                <p>Chúc mừng! Đơn đặt tour của bạn đã được Quản trị viên TravelBook kiểm tra và <strong>XÁC NHẬN THÀNH CÔNG</strong>. Dưới đây là thông tin chi tiết hóa đơn chuyến đi của bạn:</p>
                 
                 <div style="background: #f8fafc; padding: 18px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #00d4bd;">
                     <h3 style="margin: 0 0 10px; color: #0a66c2;">🌴 ${booking.tour_name}</h3>
@@ -42,7 +42,7 @@ async function sendInvoiceEmail(booking) {
                 </p>
             </div>
             <div style="background: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;">
-                © 2026 SkyTravel Corporation. All rights reserved.
+                © 2026 TravelBook Corporation. All rights reserved.
             </div>
         </div>
     `;
@@ -50,9 +50,9 @@ async function sendInvoiceEmail(booking) {
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.EMAIL_PASS !== 'abcdefghijklmnop') {
         try {
             await transporter.sendMail({
-                from: `"SkyTravel VIP Booking" <${process.env.EMAIL_USER}>`,
+                from: `"TravelBook VIP Booking" <${process.env.EMAIL_USER}>`,
                 to: booking.user_email,
-                subject: `[XÁC NHẬN ĐẶT TOUR #SKY-${booking.id}] ${booking.tour_name} - SkyTravel`,
+                subject: `[XÁC NHẬN ĐẶT TOUR #TB-${booking.id}] ${booking.tour_name} - TravelBook`,
                 html: invoiceHtml
             });
             console.log(`📧 Đã gửi hóa đơn email qua Nodemailer thành công cho: ${booking.user_email}`);
@@ -60,7 +60,7 @@ async function sendInvoiceEmail(booking) {
             console.error("❌ Lỗi khi gửi email Nodemailer:", mailErr.message);
         }
     } else {
-        console.log(`ℹ️ [Chế độ giả lập email] Hóa đơn #SKY-${booking.id} cho (${booking.user_email}) đã được sinh sẵn HTML trong hệ thống.`);
+        console.log(`ℹ️ [Chế độ giả lập email] Hóa đơn #TB-${booking.id} cho (${booking.user_email}) đã được sinh sẵn HTML trong hệ thống.`);
     }
     return invoiceHtml;
 }
@@ -139,7 +139,7 @@ const updateBookingStatus = async (req, res) => {
         }
 
         res.json({
-            message: status === 'Đã xác nhận' ? `🎉 Đã xác nhận đơn đặt tour #SKY-${id} và gửi hóa đơn Email!` : `✅ Cập nhật trạng thái đơn hàng #SKY-${id} thành: ${status}`,
+            message: status === 'Đã xác nhận' ? `🎉 Đã xác nhận đơn đặt tour #TB-${id} và gửi hóa đơn Email!` : `✅ Cập nhật trạng thái đơn hàng #TB-${id} thành: ${status}`,
             booking: booking,
             invoiceHtml: invoiceHtml
         });
@@ -176,7 +176,7 @@ const updatePaymentStatus = async (req, res) => {
         const { id } = req.params;
         const { payment_status } = req.body;
         await pool.query('UPDATE bookings SET payment_status = ? WHERE id = ?', [payment_status, id]);
-        res.json({ message: `✅ Cập nhật thanh toán đơn #SKY-${id} thành: ${payment_status}` });
+        res.json({ message: `✅ Cập nhật thanh toán đơn #TB-${id} thành: ${payment_status}` });
     } catch (error) {
         console.error("Lỗi cập nhật thanh toán:", error.message);
         res.status(500).json({ message: "Lỗi server" });
@@ -194,7 +194,7 @@ const updateBookingDetails = async (req, res) => {
             [user_name, user_email, user_phone, adults, children, total_price, id]
         );
         
-        res.json({ message: `✅ Cập nhật chi tiết đơn hàng #SKY-${id} thành công!` });
+        res.json({ message: `✅ Cập nhật chi tiết đơn hàng #TB-${id} thành công!` });
     } catch (error) {
         console.error("Lỗi cập nhật chi tiết booking:", error.message);
         res.status(500).json({ message: "Lỗi server" });

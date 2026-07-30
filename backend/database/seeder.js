@@ -14,7 +14,7 @@ async function seedUsers() {
         const hashedPass = await bcrypt.hash('admin123', 10);
         await pool.query(
             `INSERT INTO users (name, email, password, role, avatar, address, phone, status, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            ['Quản Trị Viên VIP', 'admin@skytravel.vn', hashedPass, 'admin', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', 'Tòa nhà SkyTravel Tower, Quận 1, TP. Hồ Chí Minh', '0988888888', 'Hoạt động', 1]
+            ['Quản Trị Viên VIP', 'admin@travelbook.vn', hashedPass, 'admin', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', 'Tòa nhà TravelBook Tower, Quận 1, TP. Hồ Chí Minh', '0988888888', 'Hoạt động', 1]
         );
         const hashedPassUser = await bcrypt.hash('user123', 10);
         await pool.query(
@@ -92,7 +92,7 @@ async function seedReviews() {
             const reviewData = [
                 { tour_id: tours[0].id, user_name: 'Nguyễn Văn Khách', user_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80', rating: 5, comment: 'Chuyến đi tuyệt vời! Lịch trình chuẩn 5 sao.' },
                 { tour_id: tours[0].id, user_name: 'Trần Thị Mai', user_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80', rating: 5, comment: 'Khách sạn view đẹp, ẩm thực phong phú.' },
-                { tour_id: tours[1] ? tours[1].id : tours[0].id, user_name: 'Lê Hoàng Nam', user_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80', rating: 5, comment: 'Thanh toán tiện lợi. Sẽ tiếp tục ủng hộ SkyTravel!' }
+                { tour_id: tours[1] ? tours[1].id : tours[0].id, user_name: 'Lê Hoàng Nam', user_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80', rating: 5, comment: 'Thanh toán tiện lợi. Sẽ tiếp tục ủng hộ TravelBook!' }
             ];
 
             for (const rev of reviewData) {

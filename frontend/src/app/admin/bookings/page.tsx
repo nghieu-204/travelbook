@@ -210,7 +210,7 @@ export default function BookingsPage() {
         <body>
           <div class="header">
             <div class="title">HÓA ĐƠN ĐẶT TOUR</div>
-            <div class="subtitle">Mã đơn: SKY-${booking.id} | Ngày in: ${new Date().toLocaleDateString('vi-VN')}</div>
+            <div class="subtitle">Mã đơn: TB-${booking.id} | Ngày in: ${new Date().toLocaleDateString('vi-VN')}</div>
           </div>
           <table class="info-table">
             <tr><th>Tên Tour</th><td>${booking.tourName}</td></tr>
@@ -224,7 +224,7 @@ export default function BookingsPage() {
             <tr><th>Tổng tiền</th><td><strong style="color: #0369a1; font-size: 18px;">${formatCurrency(booking.totalPrice)} VNĐ</strong></td></tr>
           </table>
           <div class="footer">
-            Cảm ơn quý khách đã sử dụng dịch vụ của SKY Travel!
+            Cảm ơn quý khách đã sử dụng dịch vụ của TravelBook!
           </div>
           <script>
             window.onload = () => { window.print(); window.close(); }
@@ -278,7 +278,7 @@ export default function BookingsPage() {
 
   const getExportData = () => {
     return bookings.map(b => [
-      `SKY-${b.id}`,
+      `TB-${b.id}`,
       b.tourCode,
       b.tourName,
       b.customerName,
@@ -521,7 +521,7 @@ export default function BookingsPage() {
                     className={`border-b border-slate-800/50 hover:bg-slate-700/50 transition-colors ${isEven ? 'bg-transparent' : 'bg-[#0f172a]/40'}`}
                   >
                     <td className="px-2 py-3 font-bold text-amber-500 border-r border-slate-800/50 text-[13px] whitespace-nowrap">
-                      SKY-{booking.id}
+                      TB-{booking.id}
                     </td>
                     <td className="px-2 py-3 font-medium max-w-[220px] border-r border-slate-800/50 text-[13px]" title={booking.tourName}>
                       <div className="inline-block px-1.5 py-0.5 bg-slate-700 text-slate-300 rounded text-[10px] font-bold mb-1.5 tracking-wide border border-slate-600 shadow-sm">{booking.tourCode}</div>
@@ -648,7 +648,7 @@ export default function BookingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-slate-900 rounded-xl w-full max-w-2xl border border-slate-700 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-6 border-b border-slate-700">
-              <h3 className="text-xl font-bold text-white">Chi tiết đơn hàng SKY-{selectedBooking.id}</h3>
+              <h3 className="text-xl font-bold text-white">Chi tiết đơn hàng TB-{selectedBooking.id}</h3>
               <button onClick={() => setViewModalOpen(false)} className="text-slate-400 hover:text-white"><XCircle className="w-6 h-6" /></button>
             </div>
             <div className="p-6 space-y-4 text-slate-300">
@@ -676,7 +676,7 @@ export default function BookingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-slate-900 rounded-xl w-full max-w-md border border-slate-700 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-6 border-b border-slate-700">
-              <h3 className="text-xl font-bold text-white">Chỉnh sửa SKY-{selectedBooking.id}</h3>
+              <h3 className="text-xl font-bold text-white">Chỉnh sửa TB-{selectedBooking.id}</h3>
               <button onClick={() => setEditModalOpen(false)} className="text-slate-400 hover:text-white"><XCircle className="w-6 h-6" /></button>
             </div>
             <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
