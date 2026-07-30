@@ -42,21 +42,27 @@ exports.checkEligibility = async (req, res) => {
             });
         }
 
-        // Kiểm tra xem có đơn hàng nào đủ điều kiện (chỉ cho phép đánh giá khi đã hoàn thành)
-        let eligible = false;
-        let latestBooking = bookings[0];
+        // Kiểm tra xem có đơn hàng nào đã hoàn thành
+        const completedBookings = bookings.filter(b => b.status === 'Đã hoàn thành').length;
 
-        for (const b of bookings) {
-            if (b.status === 'Đã hoàn thành') {
-                eligible = true;
-                break;
-            }
-        }
-
-        if (!eligible) {
+        if (completedBookings === 0) {
             return res.json({ 
                 canReview: false, 
                 reason: 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.' 
+            });
+        }
+
+        // Kiểm tra xem người dùng đã review bao nhiêu lần cho tour này
+        const [existingReviews] = await pool.query(
+            `SELECT id FROM reviews WHERE tour_id = ? AND (user_id = ? OR user_email = ?)`,
+            [tourId, userId || 0, email || '']
+        );
+
+        // Mỗi lần hoàn thành tour chỉ được đánh giá 1 lần
+        if (existingReviews.length >= completedBookings) {
+            return res.json({ 
+                canReview: false, 
+                reason: 'Bạn đã hoàn thành đánh giá cho chuyến đi này.' 
             });
         }
 
@@ -90,16 +96,20 @@ exports.createReview = async (req, res) => {
             return res.status(403).json({ message: 'Vui lòng đặt tour để có thể đánh giá' });
         }
 
-        let eligible = false;
-        for (const b of bookings) {
-            if (b.status === 'Đã hoàn thành') {
-                eligible = true;
-                break;
-            }
+        const completedBookings = bookings.filter(b => b.status === 'Đã hoàn thành').length;
+
+        if (completedBookings === 0) {
+            return res.status(403).json({ message: 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.' });
         }
 
-        if (!eligible) {
-            return res.status(403).json({ message: 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.' });
+        // Kiểm tra xem người dùng đã review bao nhiêu lần cho tour này
+        const [existingReviews] = await pool.query(
+            `SELECT id FROM reviews WHERE tour_id = ? AND (user_id = ? OR user_email = ?)`,
+            [tour_id, user_id || 0, user_email || '']
+        );
+
+        if (existingReviews.length >= completedBookings) {
+            return res.status(403).json({ message: 'Bạn đã hoàn thành đánh giá cho chuyến đi này.' });
         }
 
         const validRating = Number(rating) || 5;
