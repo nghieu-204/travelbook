@@ -54,8 +54,8 @@ exports.checkEligibility = async (req, res) => {
 
         // Kiểm tra xem người dùng đã review bao nhiêu lần cho tour này
         const [existingReviews] = await pool.query(
-            `SELECT id FROM reviews WHERE tour_id = ? AND (user_id = ? OR user_email = ?)`,
-            [tourId, userId || 0, email || '']
+            `SELECT id FROM reviews WHERE tour_id = ? AND user_id = ?`,
+            [tourId, userId || 0]
         );
 
         // Mỗi lần hoàn thành tour chỉ được đánh giá 1 lần
@@ -104,8 +104,8 @@ exports.createReview = async (req, res) => {
 
         // Kiểm tra xem người dùng đã review bao nhiêu lần cho tour này
         const [existingReviews] = await pool.query(
-            `SELECT id FROM reviews WHERE tour_id = ? AND (user_id = ? OR user_email = ?)`,
-            [tour_id, user_id || 0, user_email || '']
+            `SELECT id FROM reviews WHERE tour_id = ? AND user_id = ?`,
+            [tour_id, user_id || 0]
         );
 
         if (existingReviews.length >= completedBookings) {
