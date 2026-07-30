@@ -198,21 +198,22 @@ export default function UserBookingsPage() {
                 <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
                   <div className="font-black text-red-600 text-lg">{formatCurrency(booking.total_price)}</div>
                   <div className="flex flex-wrap justify-end gap-2">
-                    {booking.status === 'Đã hoàn thành' && !booking.is_reviewed && (
-                      <button 
-                        onClick={() => setReviewBooking(booking)}
-                        className="text-sm font-bold text-white bg-amber-500 px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-1.5 shadow-sm shadow-amber-200"
-                      >
-                        <MessageSquare className="w-4 h-4" /> Đánh giá
-                      </button>
-                    )}
-                    {booking.status === 'Đã hoàn thành' && booking.is_reviewed && (
-                      <Link 
-                        href={`/tours/${booking.tour_id}`}
-                        className="text-sm font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors flex items-center gap-1.5 border border-amber-200"
-                      >
-                        <Star className="w-4 h-4" /> Xem đánh giá của bạn
-                      </Link>
+                    {booking.status === 'Đã hoàn thành' && (
+                      booking.is_reviewed ? (
+                        <Link 
+                          href={`/tours/${booking.tour_id}`}
+                          className="text-sm font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-lg hover:bg-amber-100 transition-colors flex items-center gap-1.5 border border-amber-200"
+                        >
+                          <Star className="w-4 h-4" /> Xem đánh giá của bạn
+                        </Link>
+                      ) : (
+                        <button 
+                          onClick={() => setReviewBooking(booking)}
+                          className="text-sm font-bold text-white bg-amber-500 px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-1.5 shadow-sm shadow-amber-200"
+                        >
+                          <MessageSquare className="w-4 h-4" /> Đánh giá
+                        </button>
+                      )
                     )}
                     {(booking.status === 'Đã xác nhận' || booking.status === 'Đã hoàn thành' || booking.status === 'Đang thực hiện') && (
                       <button className="text-sm font-medium text-slate-600 bg-slate-100 px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1.5">

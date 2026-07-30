@@ -243,21 +243,22 @@ export default function BookingsPage() {
                       </div>
                     </div>
                     <div className="flex gap-3 w-full md:w-auto mt-2 md:mt-0 flex-wrap justify-end">
-                      {booking.status === 'Đã hoàn thành' && !booking.is_reviewed && (
-                        <button 
-                          onClick={() => setReviewBooking(booking)}
-                          className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-sm shadow-amber-200"
-                        >
-                          <MessageSquare className="w-4 h-4" /> Đánh giá
-                        </button>
-                      )}
-                      {booking.status === 'Đã hoàn thành' && booking.is_reviewed && (
-                        <Link 
-                          href={`/tours/${booking.tour_id}`}
-                          className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200 shadow-sm"
-                        >
-                          <Star className="w-4 h-4" /> Xem đánh giá của bạn
-                        </Link>
+                      {booking.status === 'Đã hoàn thành' && (
+                        booking.is_reviewed ? (
+                          <Link 
+                            href={`/tours/${booking.tour_id}`}
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200 shadow-sm"
+                          >
+                            <Star className="w-4 h-4" /> Xem đánh giá của bạn
+                          </Link>
+                        ) : (
+                          <button 
+                            onClick={() => setReviewBooking(booking)}
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-amber-50 hover:bg-amber-600 transition-colors shadow-sm shadow-amber-200"
+                          >
+                            <MessageSquare className="w-4 h-4" /> Đánh giá
+                          </button>
+                        )
                       )}
                       {(booking.status === 'Đã xác nhận' || booking.status === 'Đã hoàn thành' || booking.status === 'Đang thực hiện') && (
                         <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition-colors shadow-sm">
