@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Calendar, Users, Download, ChevronRight, Ticket, Loader2 } from 'lucide-react'
+import { Calendar, Users, Download, ChevronRight, Ticket, Loader2, MessageSquare, Star, X, CheckCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { fetchApi } from '@/lib/api'
 
@@ -10,6 +10,13 @@ export default function UserBookingsPage() {
   const { user } = useAuthStore()
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Review states
+  const [reviewBooking, setReviewBooking] = useState<any>(null)
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false)
+  const [showToast, setShowToast] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -30,6 +37,35 @@ export default function UserBookingsPage() {
 
     fetchBookings()
   }, [user])
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!reviewBooking) return
+    setIsSubmittingReview(true)
+    try {
+      await fetchApi('/reviews', {
+        method: 'POST',
+        body: JSON.stringify({
+          tour_id: reviewBooking.tour_id,
+          user_id: user?.id,
+          user_email: user?.email,
+          user_name: user?.name,
+          user_avatar: user?.avatar,
+          rating,
+          comment
+        })
+      })
+      setShowToast(true)
+      setReviewBooking(null)
+      setRating(5)
+      setComment('')
+      setTimeout(() => setShowToast(false), 3000)
+    } catch (err: any) {
+      alert(err.message || "Lỗi khi gửi đánh giá, vui lòng thử lại sau.")
+    } finally {
+      setIsSubmittingReview(false)
+    }
+  }
 
   const formatCurrency = (amount: number) => {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VNĐ"
@@ -61,7 +97,63 @@ export default function UserBookingsPage() {
   }
 
   return (
-    <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-sm animate-in fade-in duration-500">
+    <div className="bg-white p-6 md:p-8 rounded-2xl border border-slate-100 shadow-sm animate-in fade-in duration-500 relative">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-24 right-6 bg-emerald-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
+          <CheckCircle className="w-6 h-6" />
+          <span className="font-bold">Gửi đánh giá thành công!</span>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {reviewBooking && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="text-xl font-bold text-slate-900">Đánh giá chuyến đi</h3>
+              <button onClick={() => setReviewBooking(null)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <form onSubmit={submitReview} className="p-6 space-y-6">
+              <div>
+                <p className="font-semibold text-slate-800 mb-2">{reviewBooking.tour_name}</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className={`p-1 transition-all ${star <= rating ? 'text-amber-400 scale-110' : 'text-slate-200 hover:text-amber-200'}`}
+                    >
+                      <Star className="w-8 h-8 fill-current" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Chia sẻ trải nghiệm của bạn</label>
+                <textarea 
+                  required
+                  rows={4}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Chuyến đi rất tuyệt vời..."
+                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                ></textarea>
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setReviewBooking(null)} className="px-5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-colors">Hủy</button>
+                <button type="submit" disabled={isSubmittingReview} className="px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[120px] disabled:opacity-70">
+                  {isSubmittingReview ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Gửi Đánh Giá'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold text-slate-900 mb-8">Đơn đặt của tôi</h1>
       
       {bookings.length === 0 ? (
@@ -94,7 +186,15 @@ export default function UserBookingsPage() {
                 </div>
                 <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
                   <div className="font-black text-red-600 text-lg">{formatCurrency(booking.total_price)}</div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {booking.status === 'Đã hoàn thành' && (
+                      <button 
+                        onClick={() => setReviewBooking(booking)}
+                        className="text-sm font-bold text-white bg-amber-500 px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-1.5 shadow-sm shadow-amber-200"
+                      >
+                        <MessageSquare className="w-4 h-4" /> Đánh giá
+                      </button>
+                    )}
                     {(booking.status === 'Đã xác nhận' || booking.status === 'Đã hoàn thành' || booking.status === 'Đang thực hiện') && (
                       <button className="text-sm font-medium text-slate-600 bg-slate-100 px-4 py-2 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-1.5">
                         <Download className="w-4 h-4" /> Xem vé
