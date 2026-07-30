@@ -281,50 +281,52 @@ export default function TourInfo({ tour }: { tour?: any }) {
         </h2>
 
         {/* Review Form (Conditional) */}
-        <div className="mb-10 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-          {eligibility.canReview ? (
-            <form onSubmit={submitReview} className="space-y-4">
-              <h3 className="font-bold text-slate-800 text-lg">Viết đánh giá của bạn</h3>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-medium text-slate-600 mr-2">Chất lượng:</span>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    className={`p-1 transition-all ${star <= rating ? 'text-amber-400 scale-110' : 'text-slate-300 hover:text-amber-200'}`}
+        {(eligibility.canReview || (eligibility.reason !== 'Bạn đã hoàn thành đánh giá cho chuyến đi này.' && eligibility.reason !== 'Cảm ơn bạn đã gửi đánh giá!')) && (
+          <div className="mb-10 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            {eligibility.canReview ? (
+              <form onSubmit={submitReview} className="space-y-4">
+                <h3 className="font-bold text-slate-800 text-lg">Viết đánh giá của bạn</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-medium text-slate-600 mr-2">Chất lượng:</span>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className={`p-1 transition-all ${star <= rating ? 'text-amber-400 scale-110' : 'text-slate-300 hover:text-amber-200'}`}
+                    >
+                      <Star className="w-6 h-6 fill-current" />
+                    </button>
+                  ))}
+                </div>
+                <textarea 
+                  required
+                  rows={3}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Chia sẻ trải nghiệm tuyệt vời của bạn về chuyến đi này..."
+                  className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none bg-white"
+                ></textarea>
+                <div className="flex justify-end">
+                  <button 
+                    type="submit" 
+                    disabled={submittingReview} 
+                    className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 min-w-[140px] disabled:opacity-70 shadow-sm shadow-blue-200"
                   >
-                    <Star className="w-6 h-6 fill-current" />
+                    {submittingReview ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4" /> Gửi Đánh Giá</>}
                   </button>
-                ))}
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-4">
+                <div className="bg-white inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-200 text-amber-700 text-sm font-medium shadow-sm">
+                  <ShieldAlert className="w-4 h-4" />
+                  {eligibility.reason || 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.'}
+                </div>
               </div>
-              <textarea 
-                required
-                rows={3}
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Chia sẻ trải nghiệm tuyệt vời của bạn về chuyến đi này..."
-                className="w-full border border-slate-200 rounded-xl p-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none bg-white"
-              ></textarea>
-              <div className="flex justify-end">
-                <button 
-                  type="submit" 
-                  disabled={submittingReview} 
-                  className="px-6 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 min-w-[140px] disabled:opacity-70 shadow-sm shadow-blue-200"
-                >
-                  {submittingReview ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4" /> Gửi Đánh Giá</>}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="text-center py-4">
-              <div className="bg-white inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-200 text-amber-700 text-sm font-medium shadow-sm">
-                <ShieldAlert className="w-4 h-4" />
-                {eligibility.reason || 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.'}
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Reviews List */}
         {loadingReviews ? (
