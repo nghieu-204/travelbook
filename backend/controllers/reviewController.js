@@ -42,12 +42,12 @@ exports.checkEligibility = async (req, res) => {
             });
         }
 
-        // Kiểm tra xem có đơn hàng nào đủ điều kiện (tạm thời cho phép đánh giá ngay sau khi đặt tour thành công)
+        // Kiểm tra xem có đơn hàng nào đủ điều kiện (chỉ cho phép đánh giá khi đã hoàn thành)
         let eligible = false;
         let latestBooking = bookings[0];
 
         for (const b of bookings) {
-            if (b.status !== 'Hủy') {
+            if (b.status === 'Đã hoàn thành') {
                 eligible = true;
                 break;
             }
@@ -56,7 +56,7 @@ exports.checkEligibility = async (req, res) => {
         if (!eligible) {
             return res.json({ 
                 canReview: false, 
-                reason: 'Đơn đặt tour của bạn đã bị hủy. Vui lòng đặt tour để có thể đánh giá' 
+                reason: 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.' 
             });
         }
 
@@ -92,14 +92,14 @@ exports.createReview = async (req, res) => {
 
         let eligible = false;
         for (const b of bookings) {
-            if (b.status !== 'Hủy') {
+            if (b.status === 'Đã hoàn thành') {
                 eligible = true;
                 break;
             }
         }
 
         if (!eligible) {
-            return res.status(403).json({ message: 'Đơn đặt tour của bạn đã bị hủy. Vui lòng đặt tour để có thể đánh giá' });
+            return res.status(403).json({ message: 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.' });
         }
 
         const validRating = Number(rating) || 5;
