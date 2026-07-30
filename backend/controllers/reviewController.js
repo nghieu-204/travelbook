@@ -29,7 +29,7 @@ exports.checkEligibility = async (req, res) => {
 
         // Kiểm tra xem khách đã đặt tour này chưa
         const [bookings] = await pool.query(
-            `SELECT id, departure_date, status FROM bookings 
+            `SELECT id, departure_date, status, is_reviewed FROM bookings 
              WHERE tour_id = ? AND (user_id = ? OR user_email = ?) 
              ORDER BY id DESC`,
             [tourId, userId || 0, email || '']
@@ -87,7 +87,7 @@ exports.createReview = async (req, res) => {
 
         // Kiểm tra bảo mật phía backend: bắt buộc phải có đơn đặt tour (tạm thời cho phép ngay sau khi đặt, không bị hủy)
         const [bookings] = await pool.query(
-            `SELECT id, departure_date, status FROM bookings 
+            `SELECT id, departure_date, status, is_reviewed FROM bookings 
              WHERE tour_id = ? AND (user_id = ? OR user_email = ?)`,
             [tour_id, user_id || 0, user_email || '']
         );
@@ -141,6 +141,12 @@ exports.createReview = async (req, res) => {
             'UPDATE tours SET rating = ?, reviews_count = ? WHERE id = ?',
             [newAvgRating, newTotalReviews, tour_id]
         );
+
+        // Đánh dấu một đơn hàng Đã hoàn thành là đã được review
+        const unreviewedBooking = bookings.find(b => b.status === 'Đã hoàn thành' && !b.is_reviewed);
+        if (unreviewedBooking) {
+            await pool.query('UPDATE bookings SET is_reviewed = TRUE WHERE id = ?', [unreviewedBooking.id]);
+        }
 
         // Trả về nhận xét vừa tạo
         const [newReview] = await pool.query('SELECT * FROM reviews WHERE id = ?', [result.insertId]);

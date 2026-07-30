@@ -79,6 +79,7 @@ async function initSchema() {
                 payment_method VARCHAR(100) DEFAULT 'Chuyển khoản ngân hàng / QR Code',
                 payment_status VARCHAR(50) DEFAULT 'Chưa thanh toán',
                 status VARCHAR(50) DEFAULT 'Đang chờ xác nhận',
+                is_reviewed BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(tour_id) REFERENCES tours(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

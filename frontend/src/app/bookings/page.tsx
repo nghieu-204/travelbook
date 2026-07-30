@@ -16,7 +16,7 @@ export default function BookingsPage() {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
-  const [showToast, setShowToast] = useState(false)
+  const [showThanksModal, setShowThanksModal] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -55,11 +55,14 @@ export default function BookingsPage() {
           comment
         })
       })
-      setShowToast(true)
+      
+      // Update local state to hide the button immediately
+      setBookings(prev => prev.map(b => b.id === reviewBooking.id ? { ...b, is_reviewed: true } : b))
+      
+      setShowThanksModal(true)
       setReviewBooking(null)
       setRating(5)
       setComment('')
-      setTimeout(() => setShowToast(false), 3000)
     } catch (err: any) {
       alert(err.message || "Lỗi khi gửi đánh giá, vui lòng thử lại sau.")
     } finally {
@@ -113,11 +116,19 @@ export default function BookingsPage() {
 
   return (
     <div className="bg-slate-50 min-h-screen py-12 pb-32 relative">
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed top-24 right-6 bg-emerald-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
-          <CheckCircle className="w-6 h-6" />
-          <span className="font-bold">Gửi đánh giá thành công!</span>
+      {/* Thanks Modal */}
+      {showThanksModal && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 p-8 text-center">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Cảm ơn bạn!</h3>
+            <p className="text-slate-600 mb-6">Đánh giá của bạn đã được ghi nhận và sẽ giúp ích rất nhiều cho các du khách khác.</p>
+            <button onClick={() => setShowThanksModal(false)} className="w-full px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+              Đóng
+            </button>
+          </div>
         </div>
       )}
 
@@ -232,13 +243,21 @@ export default function BookingsPage() {
                       </div>
                     </div>
                     <div className="flex gap-3 w-full md:w-auto mt-2 md:mt-0 flex-wrap justify-end">
-                      {booking.status === 'Đã hoàn thành' && (
+                      {booking.status === 'Đã hoàn thành' && !booking.is_reviewed && (
                         <button 
                           onClick={() => setReviewBooking(booking)}
                           className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-sm shadow-amber-200"
                         >
                           <MessageSquare className="w-4 h-4" /> Đánh giá
                         </button>
+                      )}
+                      {booking.status === 'Đã hoàn thành' && booking.is_reviewed && (
+                        <Link 
+                          href={`/tours/${booking.tour_id}`}
+                          className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200 shadow-sm"
+                        >
+                          <Star className="w-4 h-4" /> Xem đánh giá của bạn
+                        </Link>
                       )}
                       {(booking.status === 'Đã xác nhận' || booking.status === 'Đã hoàn thành' || booking.status === 'Đang thực hiện') && (
                         <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition-colors shadow-sm">
