@@ -93,13 +93,13 @@ exports.createReview = async (req, res) => {
         );
 
         if (bookings.length === 0) {
-            return res.status(403).json({ message: 'Vui lòng đặt tour để có thể đánh giá' });
+            return res.status(400).json({ message: 'Vui lòng đặt tour để có thể đánh giá' });
         }
 
         const completedBookings = bookings.filter(b => b.status === 'Đã hoàn thành').length;
 
         if (completedBookings === 0) {
-            return res.status(403).json({ message: 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.' });
+            return res.status(400).json({ message: 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.' });
         }
 
         // Kiểm tra xem người dùng đã review bao nhiêu lần cho tour này
@@ -109,7 +109,7 @@ exports.createReview = async (req, res) => {
         );
 
         if (existingReviews.length >= completedBookings) {
-            return res.status(403).json({ message: 'Bạn đã hoàn thành đánh giá cho chuyến đi này.' });
+            return res.status(400).json({ message: 'Bạn đã hoàn thành đánh giá cho chuyến đi này.' });
         }
 
         const validRating = Number(rating) || 5;
