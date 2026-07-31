@@ -94,6 +94,35 @@ const createBooking = async (req, res) => {
 const getBookingsByUser = async (req, res) => {
     try {
         const { userId } = req.params;
+
+        // ------------- TỰ ĐỘNG SỬA DỮ LIỆU CŨ (SELF-HEALING) -------------
+        try {
+            const [reviews] = await pool.query('SELECT tour_id, COUNT(*) as count FROM reviews WHERE user_id = ? GROUP BY tour_id', [userId]);
+            for (const rev of reviews) {
+                const [reviewed] = await pool.query(`
+                    SELECT COUNT(*) as reviewed_count FROM bookings 
+                    WHERE user_id = ? AND tour_id = ? AND status = 'Đã hoàn thành' AND is_reviewed = TRUE
+                `, [userId, rev.tour_id]);
+                
+                const needed = rev.count - (reviewed[0].reviewed_count || 0);
+                if (needed > 0) {
+                    const [unreviewed] = await pool.query(`
+                        SELECT id FROM bookings 
+                        WHERE user_id = ? AND tour_id = ? AND status = 'Đã hoàn thành' AND is_reviewed = FALSE
+                        LIMIT ?
+                    `, [userId, rev.tour_id, needed]);
+                    
+                    if (unreviewed.length > 0) {
+                        const ids = unreviewed.map(b => b.id);
+                        await pool.query(`UPDATE bookings SET is_reviewed = TRUE WHERE id IN (?)`, [ids]);
+                    }
+                }
+            }
+        } catch (fixErr) {
+            console.error("Lỗi fix data:", fixErr.message);
+        }
+        // ---------------------------------------------------
+
         const [rows] = await pool.query(`
             SELECT b.*, t.image as tour_image 
             FROM bookings b 
