@@ -1,27 +1,43 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client'
-
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Map, ShoppingBag, Users, LogOut, MessageSquare, MapPin, Tag, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/store/useAuthStore'
+import { useAdminAuthStore } from '@/store/useAdminAuthStore'
 import { useEffect, useState } from 'react'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, logout } = useAuthStore()
+  const { user, logout } = useAdminAuthStore()
   const [isMounted, setIsMounted] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   useEffect(() => {
     setIsMounted(true)
     if (!user || user.role !== 'admin') {
-      router.push('/')
+      if (pathname !== '/admin/login') {
+        router.push('/admin/login')
+      }
+    } else if (pathname === '/admin/login') {
+      router.push('/admin')
     }
-  }, [user, router])
+  }, [user, router, pathname])
 
-  if (!isMounted || !user || user.role !== 'admin') {
+  if (!isMounted) {
+    return (
+      <div className="fixed inset-0 z-[100] flex bg-[#0f172a] items-center justify-center">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  if (!user || user.role !== 'admin') {
     return (
       <div className="fixed inset-0 z-[100] flex bg-[#0f172a] items-center justify-center">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -54,8 +70,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const Icon = link.icon
             const isActive = pathname === link.href
             return (
-              <Link 
-                key={link.href} 
+              <Link
+                key={link.href}
                 href={link.href}
                 className={cn("flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors", isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-400 hover:bg-[#334155] hover:text-white")}
               >
@@ -77,7 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         <header className="h-16 bg-[#1e293b] border-b border-slate-800 flex items-center justify-between px-8 shrink-0 transition-all duration-300">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 -ml-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
               title="Toggle Sidebar"

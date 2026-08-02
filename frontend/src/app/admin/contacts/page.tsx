@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/set-state-in-effect */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -18,7 +19,7 @@ export default function AdminContactsPage() {
   const fetchContacts = async () => {
     try {
       setLoading(true)
-      const data = await fetchApi('/contacts')
+      const data = await fetchApi('/admin/contacts')
       setContacts(data)
     } catch (err) {
       console.error(err)
@@ -51,7 +52,7 @@ export default function AdminContactsPage() {
     
     setIsSubmitting(true)
     try {
-      await fetchApi(`/contacts/${selectedContact.id}/reply`, {
+      await fetchApi(`/admin/contacts/${selectedContact.id}/reply`, {
         method: 'PUT',
         body: JSON.stringify({ admin_reply: replyText })
       })
@@ -172,7 +173,7 @@ export default function AdminContactsPage() {
                 <div>
                   <span className="text-slate-500 block mb-2 text-sm">Nội dung tin nhắn:</span>
                   <div className="bg-[#0f172a] p-4 rounded-lg text-slate-300 italic border-l-4 border-slate-600 leading-relaxed whitespace-pre-wrap">
-                    "{selectedContact.message}"
+                    &ldquo;{selectedContact.message}&rdquo;
                   </div>
                 </div>
               </div>

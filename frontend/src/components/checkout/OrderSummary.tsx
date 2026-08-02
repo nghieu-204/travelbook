@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ShieldCheck } from 'lucide-react'
 
 export default function OrderSummary() {

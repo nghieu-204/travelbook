@@ -1,8 +1,8 @@
 const API_URL = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api';
-import { useAuthStore } from '@/store/useAuthStore';
+
 
 interface FetchOptions extends RequestInit {
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
@@ -15,7 +15,9 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
 
   // Lấy token từ LocalStorage nếu ở môi trường client
   if (typeof window !== 'undefined') {
-    const authStorage = localStorage.getItem('auth-storage');
+    const isAdminRoute = window.location.pathname.startsWith('/admin');
+    const storageKey = isAdminRoute ? 'admin-auth-storage' : 'auth-storage';
+    const authStorage = localStorage.getItem(storageKey);
     if (authStorage) {
       try {
         const { state } = JSON.parse(authStorage);
@@ -23,7 +25,7 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
           defaultHeaders['Authorization'] = `Bearer ${state.token}`;
         }
       } catch (e) {
-        console.error('Lỗi khi parse auth-storage', e);
+        console.error(`Lỗi khi parse ${storageKey}`, e);
       }
     }
   }
@@ -49,10 +51,13 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
         if (typeof window !== 'undefined') {
-          useAuthStore.getState().logout();
           if (window.location.pathname.startsWith('/admin')) {
-             window.location.href = '/';
+             const { useAdminAuthStore } = await import('@/store/useAdminAuthStore');
+             useAdminAuthStore.getState().logout();
+             window.location.href = '/admin/login';
           } else {
+             const { useAuthStore } = await import('@/store/useAuthStore');
+             useAuthStore.getState().logout();
              useAuthStore.getState().setLoginModalOpen(true);
           }
         }
@@ -61,7 +66,7 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
     }
 
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     throw error;
   }
 }

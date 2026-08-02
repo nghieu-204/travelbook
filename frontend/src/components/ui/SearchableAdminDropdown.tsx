@@ -125,7 +125,7 @@ export default function SearchableAdminDropdown({
                 ) : (
                   <>
                     <Plus className="w-4 h-4" />
-                    Thêm điểm đến mới: <span className="text-white">"{search.trim()}"</span>
+                    Thêm điểm đến mới: <span className="text-white">&ldquo;{search.trim()}&rdquo;</span>
                   </>
                 )}
               </button>

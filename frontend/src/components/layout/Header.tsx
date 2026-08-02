@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import { useState } from 'react'
@@ -32,7 +33,7 @@ export default function Header() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex gap-8 items-center font-medium text-slate-600">
           <Link href="/" className="hover:text-blue-600 transition-colors">Trang chủ</Link>
-          <a href="/tours" className="hover:text-blue-600 transition-colors">Danh sách Tour</a>
+          <Link href="/tours" className="hover:text-blue-600 transition-colors">Danh sách Tour</Link>
           <Link href="/about" className="hover:text-blue-600 transition-colors">Giới thiệu</Link>
           <Link href="/contact" className="hover:text-blue-600 transition-colors">Liên hệ</Link>
         </nav>
@@ -80,8 +81,12 @@ export default function Header() {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-2 p-1 pr-3 rounded-full border border-slate-200 hover:bg-slate-50 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                  {user.name.charAt(0)}
+                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold overflow-hidden shrink-0">
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    user.name.charAt(0)
+                  )}
                 </div>
                 <span className="text-sm font-semibold hidden sm:block">{user.name}</span>
               </button>

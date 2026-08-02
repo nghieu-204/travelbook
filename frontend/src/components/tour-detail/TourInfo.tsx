@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @next/next/no-img-element */
 'use client'
 
 import { Check, X, MapPin, ChevronRight, ChevronDown, Info, ShieldAlert, Banknote, Utensils, Star, User, MessageSquare, Loader2, Send } from 'lucide-react'

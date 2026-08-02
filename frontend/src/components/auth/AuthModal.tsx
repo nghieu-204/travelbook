@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+// @ts-ignore
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { X, Mail, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { X, Mail, Lock, User as UserIcon, ShieldCheck, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
 import { cn } from '@/lib/utils'
@@ -20,41 +20,69 @@ const registerSchema = z.object({
   name: z.string().min(2, 'Tên phải từ 2 ký tự'),
   email: z.string().email('Email không hợp lệ'),
   password: z.string().min(6, 'Mật khẩu phải từ 6 ký tự'),
+  confirmPassword: z.string().min(6, 'Mật khẩu xác nhận phải từ 6 ký tự'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Mật khẩu xác nhận không khớp",
+  path: ["confirmPassword"],
 })
+
+type LoginFormData = z.infer<typeof loginSchema>
+type RegisterFormData = z.infer<typeof registerSchema>
 
 export default function AuthModal() {
   const { isLoginModalOpen, setLoginModalOpen, login } = useAuthStore()
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const router = useRouter()
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
 
-  const { register: registerLogin, handleSubmit: handleLoginSubmit, formState: { errors: loginErrors } } = useForm({
+  const { register: registerLogin, handleSubmit: handleLoginSubmit, formState: { errors: loginErrors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   })
 
-  const { register: registerReg, handleSubmit: handleRegSubmit, formState: { errors: regErrors } } = useForm({
+  const { register: registerReg, handleSubmit: handleRegSubmit, formState: { errors: regErrors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema)
   })
 
   if (!isLoginModalOpen) return null
 
-  const onLogin = async (data: any) => {
+  const onLogin = async (data: LoginFormData) => {
     try {
       const result = await fetchApi('/login', { data })
       login(result.user, result.token)
-      if (result.user.role === 'admin') {
-        router.push('/admin/tours')
-      }
-    } catch (error: any) {
-      alert(error.message || 'Đăng nhập thất bại')
+    } catch (error: unknown) {
+      alert((error as Error).message || 'Đăng nhập thất bại')
     }
   }
 
-  const onRegister = async (data: any) => {
+  const onRegister = async (data: RegisterFormData) => {
+    if (!otpSent) {
+      try {
+        setIsSendingOtp(true)
+        const result = await fetchApi('/send-otp', { data: { email: data.email } })
+        setOtpSent(true)
+        alert(result.message || 'Mã OTP đã được gửi đến email của bạn!')
+      } catch (error: unknown) {
+        alert((error as Error).message || 'Gửi mã OTP thất bại')
+      } finally {
+        setIsSendingOtp(false)
+      }
+      return
+    }
+
+    if (!otp) {
+      alert('Vui lòng nhập mã OTP!')
+      return
+    }
+
     try {
-      const result = await fetchApi('/register', { data })
-      login(result.user, result.token)
-    } catch (error: any) {
-      alert(error.message || 'Đăng ký thất bại')
+      const result = await fetchApi('/register', { data: { ...data, otp } })
+      alert(result.message || 'Đăng ký thành công! Bạn có thể đăng nhập ngay.')
+      setMode('login')
+      setOtpSent(false)
+      setOtp('')
+    } catch (error: unknown) {
+      alert((error as Error).message || 'Đăng ký thất bại')
     }
   }
 
@@ -123,7 +151,8 @@ export default function AuthModal() {
                     {...registerReg('name')}
                     type="text" 
                     placeholder="Họ và tên" 
-                    className={cn("w-full pl-10 pr-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-100", regErrors.name ? "border-red-500 focus:border-red-500" : "border-slate-200 focus:border-blue-500")}
+                    disabled={otpSent}
+                    className={cn("w-full pl-10 pr-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500", regErrors.name ? "border-red-500 focus:border-red-500" : "border-slate-200 focus:border-blue-500")}
                   />
                 </div>
                 {regErrors.name && <p className="text-red-500 text-xs mt-1 ml-1">{regErrors.name.message as string}</p>}
@@ -136,7 +165,8 @@ export default function AuthModal() {
                     {...registerReg('email')}
                     type="email" 
                     placeholder="Email của bạn" 
-                    className={cn("w-full pl-10 pr-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-100", regErrors.email ? "border-red-500 focus:border-red-500" : "border-slate-200 focus:border-blue-500")}
+                    disabled={otpSent}
+                    className={cn("w-full pl-10 pr-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500", regErrors.email ? "border-red-500 focus:border-red-500" : "border-slate-200 focus:border-blue-500")}
                   />
                 </div>
                 {regErrors.email && <p className="text-red-500 text-xs mt-1 ml-1">{regErrors.email.message as string}</p>}
@@ -149,14 +179,50 @@ export default function AuthModal() {
                     {...registerReg('password')}
                     type="password" 
                     placeholder="Tạo mật khẩu" 
-                    className={cn("w-full pl-10 pr-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-100", regErrors.password ? "border-red-500 focus:border-red-500" : "border-slate-200 focus:border-blue-500")}
+                    disabled={otpSent}
+                    className={cn("w-full pl-10 pr-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500", regErrors.password ? "border-red-500 focus:border-red-500" : "border-slate-200 focus:border-blue-500")}
                   />
                 </div>
                 {regErrors.password && <p className="text-red-500 text-xs mt-1 ml-1">{regErrors.password.message as string}</p>}
               </div>
 
-              <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
-                Đăng ký
+              <div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input 
+                    {...registerReg('confirmPassword')}
+                    type="password" 
+                    placeholder="Xác nhận mật khẩu" 
+                    disabled={otpSent}
+                    className={cn("w-full pl-10 pr-4 py-3 rounded-xl border outline-none transition-all focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500", regErrors.confirmPassword ? "border-red-500 focus:border-red-500" : "border-slate-200 focus:border-blue-500")}
+                  />
+                </div>
+                {regErrors.confirmPassword && <p className="text-red-500 text-xs mt-1 ml-1">{regErrors.confirmPassword.message as string}</p>}
+              </div>
+
+              {otpSent && (
+                <div>
+                  <div className="relative">
+                    <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input 
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      type="text" 
+                      placeholder="Nhập mã OTP (6 số)" 
+                      maxLength={6}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-400 outline-none transition-all focus:ring-2 focus:ring-blue-100 bg-blue-50"
+                    />
+                  </div>
+                  <p className="text-slate-500 text-xs mt-1 ml-1">Mã OTP đã được gửi đến email của bạn, vui lòng kiểm tra hộp thư.</p>
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={isSendingOtp}
+                className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isSendingOtp ? <Loader2 className="w-5 h-5 animate-spin" /> : otpSent ? 'Xác thực & Đăng ký' : 'Nhận mã OTP'}
               </button>
             </form>
           )}

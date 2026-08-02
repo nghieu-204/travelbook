@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 'use client'
 
 import { useRouter } from 'next/navigation'
@@ -60,7 +61,7 @@ export default function BookingWidget({ tour }: { tour: any }) {
             <MapPin className="w-4 h-4 text-slate-400" />
             <span className="font-medium">Xuất phát:</span>
           </div>
-          <span className="text-blue-600 font-bold text-right">TP. Hồ Chí Minh</span>
+          <span className="text-blue-600 font-bold text-right">{tour.departure_location || "TP. Hồ Chí Minh"}</span>
         </div>
         
         <div className="flex justify-between items-center text-sm">

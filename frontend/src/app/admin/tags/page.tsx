@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -56,7 +57,7 @@ export default function TagsAdminPage() {
     if (!confirm('Bạn có chắc chắn muốn xóa nhãn này?')) return
     
     try {
-      await fetchApi(`/tags/${id}?category=${category}`, { method: 'DELETE' })
+      await fetchApi(`/admin/tags/${id}?category=${category}`, { method: 'DELETE' })
       setTags(prev => prev.filter(t => !(t.id === id && t.category === category)))
       alert('Đã xóa nhãn thành công!')
     } catch (error: any) {
@@ -83,7 +84,7 @@ export default function TagsAdminPage() {
 
     setIsSaving(true)
     try {
-      await fetchApi(`/tags/${id}`, {
+      await fetchApi(`/admin/tags/${id}`, {
         method: 'PUT',
         data: {
           name: editName.trim(),
@@ -110,7 +111,7 @@ export default function TagsAdminPage() {
 
     setIsSavingNew(true)
     try {
-      const res = await fetchApi('/tags', {
+      const res = await fetchApi('/admin/tags', {
         method: 'POST',
         data: {
           name: newName.trim(),

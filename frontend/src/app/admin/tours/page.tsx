@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -31,7 +32,7 @@ export default function AdminTours() {
   const handleDelete = async (id: number) => {
     if (!confirm('Bạn có chắc muốn xóa tour này?')) return;
     try {
-      await fetchApi(`/tours/${id}`, { method: 'DELETE' });
+      await fetchApi(`/admin/tours/${id}`, { method: 'DELETE' });
       setTours(tours.filter(t => t.id !== id));
       alert('Đã xóa tour thành công!');
     } catch (error) {
@@ -44,7 +45,7 @@ export default function AdminTours() {
     // Optimistic update
     setTours(tours.map(t => t.id === tourId ? { ...t, status: newStatus } : t));
     try {
-      await fetchApi(`/tours/${tourId}/status`, { 
+      await fetchApi(`/admin/tours/${tourId}/status`, { 
         method: 'PUT', 
         body: JSON.stringify({ status: newStatus }) 
       });
@@ -136,7 +137,7 @@ export default function AdminTours() {
                 <th className="p-4 font-semibold">Địa điểm</th>
                 <th className="p-4 font-semibold">Lịch trình</th>
                 <th className="p-4 font-semibold">Giá</th>
-                <th className="p-4 font-semibold text-center">Số chỗ</th>
+                <th className="p-4 font-semibold text-center whitespace-nowrap">Số chỗ</th>
                 <th className="p-4 font-semibold text-center">Trạng thái</th>
                 <th className="p-4 font-semibold text-right">Thao tác</th>
               </tr>
@@ -192,7 +193,7 @@ export default function AdminTours() {
                       <div className="text-emerald-500 font-semibold text-[15px]">{adultPrice}đ</div>
                       <div className="text-slate-400 text-xs mt-0.5">Trẻ em: {childPrice}đ</div>
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-4 text-center whitespace-nowrap">
                       <span className="text-white font-medium">{booked}</span> / <span className="text-slate-500">{spots}</span>
                     </td>
                     <td className="p-4 text-center">

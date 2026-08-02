@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/set-state-in-effect, @next/next/no-img-element */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -44,6 +45,7 @@ export default function EditTour() {
   const [priceAdultStr, setPriceAdultStr] = useState('')
   const [priceChildStr, setPriceChildStr] = useState('')
   const [maxSeats, setMaxSeats] = useState('30')
+  const [departureLocation, setDepartureLocation] = useState('TP. Hồ Chí Minh')
 
   const [selectedTypes, setSelectedTypes] = useState<number[]>([])
   const [selectedOccasions, setSelectedOccasions] = useState<number[]>([])
@@ -77,6 +79,7 @@ export default function EditTour() {
           setMaxSeats(data.available_spots ? String(data.available_spots) : '30')
 
           if (data.destination_id) setDestinationId(String(data.destination_id))
+          if (data.departure_location) setDepartureLocation(data.departure_location)
 
           if (data.tourTypes) setSelectedTypes(data.tourTypes)
           if (data.occasions) setSelectedOccasions(data.occasions)
@@ -206,7 +209,7 @@ export default function EditTour() {
         imageStr = mainImage.preview.replace('http://localhost:8902', '');
       }
 
-      let galleryArr = [];
+      const galleryArr = [];
       for (const img of galleryImages) {
         if (img.file) {
           galleryArr.push(await fileToBase64(img.file));
@@ -231,10 +234,11 @@ export default function EditTour() {
         image: imageStr,
         gallery: JSON.stringify(galleryArr),
         tourTypes: JSON.stringify(selectedTypes),
-        occasions: JSON.stringify(selectedOccasions)
+        occasions: JSON.stringify(selectedOccasions),
+        departure_location: departureLocation
       }
 
-      await fetchApi(`/tours/${tourId}`, { method: 'PUT', data: payload })
+      await fetchApi(`/admin/tours/${tourId}`, { method: 'PUT', data: payload })
       alert('🎉 Cập nhật Tour thành công!')
       router.push('/admin/tours')
     } catch (error) {
@@ -346,6 +350,10 @@ export default function EditTour() {
                   )}
                 </div>
                 <input type="date" min={todayStr} value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ colorScheme: 'dark' }} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-2">Điểm khởi hành</label>
+                <input type="text" value={departureLocation} onChange={(e) => setDepartureLocation(e.target.value)} placeholder="VD: TP. Hồ Chí Minh" className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">

@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, react-hooks/static-components */
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, ChevronDown, ArrowUpDown, Copy, FileText, FileSpreadsheet, FileIcon, Printer, Eye, CheckCircle2, XCircle, Phone, Mail, Filter, CalendarDays, Banknote, RefreshCw, Edit3, Rocket, Flag } from 'lucide-react'
+import { Search, ChevronDown, ArrowUpDown, Copy, FileText, FileSpreadsheet, FileIcon, Printer, Eye, CheckCircle2, XCircle, Phone, Mail, Filter, Banknote, RefreshCw, Edit3, Rocket, Flag } from 'lucide-react'
 import { fetchApi } from '@/lib/api'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
@@ -35,10 +36,10 @@ export default function BookingsPage() {
   const fetchBookings = async () => {
     try {
       setLoading(true)
-      const data = await fetchApi('/bookings')
+      const data = await fetchApi('/admin/bookings')
       const mappedData = data.map((b: any) => ({
         id: b.id,
-        tourCode: `T-${b.tour_id}`,
+        tourCode: b.tour_code || `T-${b.tour_id}`,
         tourName: b.tour_name,
         customerName: b.user_name,
         email: b.user_email,
@@ -124,7 +125,7 @@ export default function BookingsPage() {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
-      await fetchApi(`/bookings/${id}/status`, {
+      await fetchApi(`/admin/bookings/${id}/status`, {
         method: 'PUT',
         data: { status }
       })
@@ -139,7 +140,7 @@ export default function BookingsPage() {
 
   const handleUpdatePaymentStatus = async (id: string, payment_status: string) => {
     try {
-      await fetchApi(`/bookings/${id}/payment-status`, {
+      await fetchApi(`/admin/bookings/${id}/payment-status`, {
         method: 'PUT',
         data: { payment_status }
       })
@@ -176,7 +177,7 @@ export default function BookingsPage() {
     e.preventDefault()
     if (!selectedBooking) return
     try {
-      await fetchApi(`/bookings/${selectedBooking.id}`, {
+      await fetchApi(`/admin/bookings/${selectedBooking.id}`, {
         method: 'PUT',
         data: editForm
       })

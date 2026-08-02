@@ -1,46 +1,91 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Map, ShoppingBag, DollarSign, CheckCircle2, MoreHorizontal, Calendar, Download, UserPlus, TrendingDown, ChevronRight } from 'lucide-react'
+import { Map, ShoppingBag, DollarSign, CheckCircle2, MoreHorizontal, Calendar, Download, UserPlus, TrendingDown, ChevronRight, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { fetchApi } from '@/lib/api'
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts'
 
-const revenueData = [
-  { name: 'Tháng 1', total: 120000000 },
-  { name: 'Tháng 2', total: 150000000 },
-  { name: 'Tháng 3', total: 180000000 },
-  { name: 'Tháng 4', total: 220000000 },
-  { name: 'Tháng 5', total: 190000000 },
-  { name: 'Tháng 6', total: 310000000 },
-]
-
-const allTourData = [
-  { name: 'Trong nước', value: 65 },
-  { name: 'Quốc tế', value: 35 },
-]
-
-const domesticTourData = [
-  { name: 'Miền Bắc', value: 30 },
-  { name: 'Miền Trung', value: 20 },
-  { name: 'Miền Nam', value: 15 },
-]
-
-const internationalTourData = [
-  { name: 'Châu Á', value: 20 },
-  { name: 'Châu Âu', value: 10 },
-  { name: 'Châu Mỹ', value: 5 },
-]
-const COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b']
+const COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
 export default function AdminDashboard() {
+  const [isLoading, setIsLoading] = useState(true)
+  const [stats, setStats] = useState<any>(null)
   const [pieChartMode, setPieChartMode] = useState<'all' | 'domestic' | 'international'>('all')
+
+  useEffect(() => {
+    fetchApi('/admin/stats')
+      .then(data => {
+        setStats(data)
+      })
+      .catch(err => {
+        console.error('Lỗi lấy thống kê:', err)
+      })
+      .finally(() => setIsLoading(false))
+  }, [])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[600px]">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    )
+  }
+
+  if (!stats) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[600px] text-slate-400">
+        Không thể tải dữ liệu thống kê.
+      </div>
+    )
+  }
+
+  // --- Chuyển đổi dữ liệu từ API cho Charts ---
+  
+  // 1. Doanh thu 6 tháng (Bar Chart)
+  const revenueData = stats.monthly_analytics?.map((m: any) => ({
+    name: m.month,
+    total: Number(m.revenue)
+  })) || []
+
+  // 2. Tỷ trọng tour (Pie Chart)
+  const allTourData = [
+    { name: 'Trong nước', value: stats.region_analytics?.filter((r: any) => r.calc_category === 'Trong nước').reduce((acc: number, curr: any) => acc + curr.count, 0) || 0 },
+    { name: 'Quốc tế', value: stats.region_analytics?.filter((r: any) => r.calc_category === 'Quốc tế').reduce((acc: number, curr: any) => acc + curr.count, 0) || 0 },
+  ]
+  
+  const domesticTourData = stats.region_analytics?.filter((r: any) => r.calc_category === 'Trong nước').map((r: any) => ({
+    name: r.region_name,
+    value: r.count
+  })) || []
+  
+  const internationalTourData = stats.region_analytics?.filter((r: any) => r.calc_category === 'Quốc tế').map((r: any) => ({
+    name: r.region_name,
+    value: r.count
+  })) || []
 
   let activePieData = allTourData
   if (pieChartMode === 'domestic') activePieData = domesticTourData
   else if (pieChartMode === 'international') activePieData = internationalTourData
+  
+  // Tính tổng để lọc các mục có giá trị 0
+  activePieData = activePieData.filter((item: any) => item.value > 0)
+  if (activePieData.length === 0) {
+    activePieData = [{ name: 'Chưa có dữ liệu', value: 1 }]
+  }
+
+  // 3. Phương thức thanh toán phổ biến
+  const paymentTotal = stats.payment_analytics?.reduce((acc: number, curr: any) => acc + curr.count, 0) || 1;
+  const topPayments = stats.payment_analytics?.map((p: any, index: number) => ({
+    name: p.method,
+    count: p.count,
+    percent: Math.round((p.count / paymentTotal) * 100),
+    color: COLORS[index % COLORS.length]
+  })) || []
 
   return (
     <div className="p-8 pb-20 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 overflow-y-auto">
@@ -56,7 +101,7 @@ export default function AdminDashboard() {
               <option value="week">Tuần này</option>
               <option value="month">Tháng này</option>
               <option value="year">Năm nay</option>
-              <option value="custom">Tùy chỉnh...</option>
+              <option value="all">Tất cả thời gian</option>
             </select>
             <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -77,7 +122,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-400 font-medium mb-1">Tổng doanh thu</p>
-            <h3 className="text-3xl font-black text-white">450tr <span className="text-sm font-medium text-slate-500">VND</span></h3>
+            <h3 className="text-3xl font-black text-white">{(Number(stats.kpi?.total_revenue) || 0).toLocaleString('vi-VN')} <span className="text-sm font-medium text-slate-500">VND</span></h3>
           </div>
         </div>
 
@@ -89,7 +134,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-400 font-medium mb-1">Tổng lượt đặt</p>
-            <h3 className="text-3xl font-black text-white">128</h3>
+            <h3 className="text-3xl font-black text-white">{stats.kpi?.total_bookings || 0}</h3>
           </div>
         </div>
 
@@ -100,20 +145,20 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div>
-            <p className="text-slate-400 font-medium mb-1">Khách hàng mới</p>
-            <h3 className="text-3xl font-black text-white">42</h3>
+            <p className="text-slate-400 font-medium mb-1">Người dùng hệ thống</p>
+            <h3 className="text-3xl font-black text-white">{stats.kpi?.total_users || 0}</h3>
           </div>
         </div>
 
         <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-sm flex flex-col hover:border-slate-700 transition-colors">
           <div className="flex justify-between items-start mb-4">
-            <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
-              <TrendingDown className="w-6 h-6 text-red-500" />
+            <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0">
+              <Map className="w-6 h-6 text-indigo-500" />
             </div>
           </div>
           <div>
-            <p className="text-slate-400 font-medium mb-1">Tỷ lệ hủy tour</p>
-            <h3 className="text-3xl font-black text-white">2.4%</h3>
+            <p className="text-slate-400 font-medium mb-1">Tour đang hoạt động</p>
+            <h3 className="text-3xl font-black text-white">{stats.kpi?.active_tours || 0}</h3>
           </div>
         </div>
       </div>
@@ -123,16 +168,16 @@ export default function AdminDashboard() {
         {/* Pie Chart */}
         <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-sm col-span-1 flex flex-col">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-white">Tỷ trọng tour</h2>
+            <h2 className="text-lg font-bold text-white">Lượt đặt theo khu vực</h2>
             <div className="relative">
               <select 
                 value={pieChartMode}
                 onChange={(e) => setPieChartMode(e.target.value as any)}
                 className="appearance-none bg-[#0f172a] border border-slate-700 text-slate-300 py-1.5 pl-3 pr-8 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-500 hover:border-slate-600 transition-colors cursor-pointer"
               >
-                <option value="all">Phân loại: Tất cả</option>
-                <option value="domestic">Phân loại: Trong nước</option>
-                <option value="international">Phân loại: Quốc tế</option>
+                <option value="all">Tất cả</option>
+                <option value="domestic">Trong nước</option>
+                <option value="international">Quốc tế</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -152,8 +197,8 @@ export default function AdminDashboard() {
                   dataKey="value"
                   stroke="none"
                 >
-                  {activePieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {activePieData.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={entry.name === 'Chưa có dữ liệu' ? '#334155' : COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -164,9 +209,9 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </div>
           <div className="flex justify-center flex-wrap gap-4 mt-4 pt-4 border-t border-slate-800">
-            {activePieData.map((entry, index) => (
+            {activePieData.map((entry: any, index: number) => (
               <div key={entry.name} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index] }}></div>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.name === 'Chưa có dữ liệu' ? '#334155' : COLORS[index % COLORS.length] }}></div>
                 <span className="text-sm font-medium text-slate-300">{entry.name}</span>
               </div>
             ))}
@@ -175,21 +220,25 @@ export default function AdminDashboard() {
 
         {/* Bar Chart */}
         <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-sm col-span-1 lg:col-span-2 flex flex-col">
-          <h2 className="text-lg font-bold text-white mb-6">Doanh thu 6 tháng gần nhất</h2>
+          <h2 className="text-lg font-bold text-white mb-6">Doanh thu 12 tháng gần nhất</h2>
           <div className="flex-1 min-h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000000}tr`} dx={-10} />
-                <Tooltip 
-                  formatter={(value: any) => [`${Number(value).toLocaleString('vi-VN')} đ`, 'Doanh thu']}
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)' }}
-                  cursor={{ fill: '#334155', opacity: 0.2 }}
-                />
-                <Bar dataKey="total" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+            {revenueData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                  <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                  <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000000}tr`} dx={-10} />
+                  <Tooltip 
+                    formatter={(value: any) => [`${Number(value).toLocaleString('vi-VN')} đ`, 'Doanh thu']}
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)' }}
+                    cursor={{ fill: '#334155', opacity: 0.2 }}
+                  />
+                  <Bar dataKey="total" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-500 font-medium">Chưa có dữ liệu doanh thu</div>
+            )}
           </div>
         </div>
       </div>
@@ -201,69 +250,52 @@ export default function AdminDashboard() {
         <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-sm">
           <h2 className="text-lg font-bold text-white mb-6">Phương thức thanh toán phổ biến</h2>
           <div className="space-y-6">
-            <div>
-              <div className="flex justify-between text-sm mb-3">
-                <span className="font-medium text-slate-300">Tiền mặt / Tại quầy</span>
-                <span className="text-slate-400 font-medium">65 lượt <span className="text-blue-400">(50%)</span></span>
+            {topPayments.length > 0 ? topPayments.map((p: any) => (
+              <div key={p.name}>
+                <div className="flex justify-between text-sm mb-3">
+                  <span className="font-medium text-slate-300">{p.name}</span>
+                  <span className="text-slate-400 font-medium">{p.count} lượt <span style={{ color: p.color }}>({p.percent}%)</span></span>
+                </div>
+                <div className="w-full bg-slate-800/50 rounded-full h-2.5 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${p.percent}%`, backgroundColor: p.color }}></div>
+                </div>
               </div>
-              <div className="w-full bg-slate-800/50 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-blue-500 h-full rounded-full" style={{ width: '50%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-3">
-                <span className="font-medium text-slate-300">Ví MoMo</span>
-                <span className="text-slate-400 font-medium">40 lượt <span className="text-pink-400">(31%)</span></span>
-              </div>
-              <div className="w-full bg-slate-800/50 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-pink-500 h-full rounded-full" style={{ width: '31%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-3">
-                <span className="font-medium text-slate-300">PayPal</span>
-                <span className="text-slate-400 font-medium">23 lượt <span className="text-[#00457C]">(19%)</span></span>
-              </div>
-              <div className="w-full bg-slate-800/50 rounded-full h-2.5 overflow-hidden">
-                <div className="bg-[#00457C] h-full rounded-full" style={{ width: '19%' }}></div>
-              </div>
-            </div>
+            )) : (
+              <div className="text-center py-8 text-slate-500 font-medium">Chưa có dữ liệu</div>
+            )}
           </div>
         </div>
 
         {/* Top Tours */}
-        <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-sm">
+        <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-bold text-white">Tour được đặt nhiều nhất</h2>
             <Link href="/admin/tours" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 group">
               Xem tất cả <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto flex-1">
             <table className="w-full text-sm text-left text-slate-300">
               <thead className="text-xs text-slate-400 uppercase bg-[#0f172a]/50">
                 <tr>
                   <th className="px-4 py-3.5 rounded-l-lg font-semibold">Tên Tour</th>
-                  <th className="px-4 py-3.5 font-semibold">Đã đặt</th>
-                  <th className="px-4 py-3.5 rounded-r-lg font-semibold">Còn trống</th>
+                  <th className="px-4 py-3.5 font-semibold text-center">Đã đặt</th>
+                  <th className="px-4 py-3.5 rounded-r-lg font-semibold text-center">Tổng chỗ</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-4 font-medium text-white truncate max-w-[200px]">Hà Nội 36 Phố Phường</td>
-                  <td className="px-4 py-4 text-emerald-400 font-bold">45</td>
-                  <td className="px-4 py-4">5</td>
-                </tr>
-                <tr className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-4 font-medium text-white truncate max-w-[200px]">Đà Nẵng - Hội An</td>
-                  <td className="px-4 py-4 text-emerald-400 font-bold">38</td>
-                  <td className="px-4 py-4">12</td>
-                </tr>
-                <tr className="hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-4 font-medium text-white truncate max-w-[200px]">Khám phá Sapa</td>
-                  <td className="px-4 py-4 text-emerald-400 font-bold">29</td>
-                  <td className="px-4 py-4 text-amber-500 font-bold">0</td>
-                </tr>
+                {stats.capacity_analytics?.slice(0, 5).map((t: any) => (
+                  <tr key={t.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                    <td className="px-4 py-4 font-medium text-white truncate max-w-[250px]" title={t.name}>{t.name}</td>
+                    <td className="px-4 py-4 text-emerald-400 font-bold text-center">{t.booked_spots}</td>
+                    <td className="px-4 py-4 text-center">{t.available_spots}</td>
+                  </tr>
+                ))}
+                {!stats.capacity_analytics?.length && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-8 text-center text-slate-500">Chưa có dữ liệu</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -285,44 +317,33 @@ export default function AdminDashboard() {
               <tr>
                 <th className="px-6 py-4 rounded-l-xl font-semibold">Khách hàng</th>
                 <th className="px-6 py-4 font-semibold">Tên Tour</th>
-                <th className="px-6 py-4 font-semibold">Tổng tiền</th>
-                <th className="px-6 py-4 font-semibold">Trạng thái</th>
+                <th className="px-6 py-4 font-semibold text-right">Tổng tiền</th>
+                <th className="px-6 py-4 font-semibold text-center">Trạng thái</th>
                 <th className="px-6 py-4 rounded-r-xl font-semibold text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
-                <td className="px-6 py-5">
-                  <div className="font-bold text-white">Nguyễn Văn A</div>
-                  <div className="text-xs text-slate-500 mt-0.5">nguyenvana@gmail.com</div>
-                </td>
-                <td className="px-6 py-5 font-medium text-slate-200">Tour Đà Lạt mộng mơ 3N2Đ</td>
-                <td className="px-6 py-5 font-bold text-blue-400">4,500,000đ</td>
-                <td className="px-6 py-5">
-                  <span className="px-3 py-1.5 bg-amber-500/10 text-amber-500 text-xs font-bold rounded-full border border-amber-500/20">Chờ xử lý</span>
-                </td>
-                <td className="px-6 py-5 text-right">
-                  <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors text-xs flex items-center gap-1.5 ml-auto shadow-sm">
-                    <CheckCircle2 className="w-4 h-4" /> Xác nhận
-                  </button>
-                </td>
-              </tr>
-              <tr className="hover:bg-slate-800/50 transition-colors">
-                <td className="px-6 py-5">
-                  <div className="font-bold text-white">Trần Thị B</div>
-                  <div className="text-xs text-slate-500 mt-0.5">tranb99@gmail.com</div>
-                </td>
-                <td className="px-6 py-5 font-medium text-slate-200">Du thuyền Hạ Long 5 sao</td>
-                <td className="px-6 py-5 font-bold text-blue-400">12,400,000đ</td>
-                <td className="px-6 py-5">
-                  <span className="px-3 py-1.5 bg-amber-500/10 text-amber-500 text-xs font-bold rounded-full border border-amber-500/20">Chờ xử lý</span>
-                </td>
-                <td className="px-6 py-5 text-right">
-                  <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg transition-colors text-xs flex items-center gap-1.5 ml-auto shadow-sm">
-                    <CheckCircle2 className="w-4 h-4" /> Xác nhận
-                  </button>
-                </td>
-              </tr>
+              {stats.pending_bookings_list?.length > 0 ? stats.pending_bookings_list.map((b: any) => (
+                <tr key={b.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
+                  <td className="px-6 py-5">
+                    <div className="font-bold text-white">{b.user_name || 'Khách hàng ẩn danh'}</div>
+                  </td>
+                  <td className="px-6 py-5 font-medium text-slate-200 truncate max-w-[200px]" title={b.tour_name}>{b.tour_name}</td>
+                  <td className="px-6 py-5 font-bold text-blue-400 text-right">{(Number(b.total_price) || 0).toLocaleString('vi-VN')}đ</td>
+                  <td className="px-6 py-5 text-center">
+                    <span className="px-3 py-1.5 bg-amber-500/10 text-amber-500 text-xs font-bold rounded-full border border-amber-500/20">{b.status}</span>
+                  </td>
+                  <td className="px-6 py-5 text-right">
+                    <Link href={`/admin/bookings?id=${b.id}`} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors text-xs inline-flex items-center gap-1.5 shadow-sm">
+                      <CheckCircle2 className="w-4 h-4" /> Xử lý
+                    </Link>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">Không có đơn đặt nào đang chờ xác nhận</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

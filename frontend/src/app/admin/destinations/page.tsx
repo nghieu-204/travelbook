@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -73,7 +74,7 @@ export default function DestinationsAdminPage() {
     if (!confirm('Bạn có chắc chắn muốn xóa điểm đến này?')) return
     
     try {
-      await fetchApi(`/destinations/${id}`, { method: 'DELETE' })
+      await fetchApi(`/admin/destinations/${id}`, { method: 'DELETE' })
       setDestinations(prev => prev.filter(d => d.id !== id))
       alert('Đã xóa điểm đến thành công!')
     } catch (error: any) {
@@ -102,9 +103,17 @@ export default function DestinationsAdminPage() {
       return
     }
 
+    const isExist = destinations.some(
+      (d) => d.id !== id && d.name.toLowerCase() === editName.trim().toLowerCase()
+    )
+    if (isExist) {
+      alert('Điểm đến này đã tồn tại!')
+      return
+    }
+
     setIsSaving(true)
     try {
-      await fetchApi(`/destinations/${id}`, {
+      await fetchApi(`/admin/destinations/${id}`, {
         method: 'PUT',
         data: {
           name: editName.trim(),
@@ -128,6 +137,15 @@ export default function DestinationsAdminPage() {
       alert('Tên điểm đến không được để trống!')
       return
     }
+    
+    const isExist = destinations.some(
+      (d) => d.name.toLowerCase() === newName.trim().toLowerCase()
+    )
+    if (isExist) {
+      alert('Điểm đến này đã tồn tại!')
+      return
+    }
+
     if (!newRegionId) {
       alert('Vui lòng chọn Vùng miền!')
       return
@@ -135,7 +153,7 @@ export default function DestinationsAdminPage() {
 
     setIsSavingNew(true)
     try {
-      const res = await fetchApi('/destinations', {
+      const res = await fetchApi('/admin/destinations', {
         method: 'POST',
         data: {
           name: newName.trim(),

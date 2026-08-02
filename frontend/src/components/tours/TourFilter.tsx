@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars */
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronDown, ChevronUp, Search, Star, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Search, Star } from 'lucide-react'
 
 // --- MOCK DATA ---
 const MOCK_DATA = {
@@ -173,34 +174,29 @@ export default function TourFilter() {
   })
 
   // Cập nhật state nếu URL thay đổi từ bên ngoài
-  useEffect(() => {
+  const syncFromUrl = useCallback(() => {
     const cat = searchParams.get('category') as 'Trong nước' | 'Quốc tế' | '';
     const dest = searchParams.get('destination');
-    if (cat !== null && cat !== filterParams.category) {
-       setFilterParams(prev => ({ ...prev, category: cat || '', destinations: dest ? [dest] : [] }));
+    if (cat !== null) {
+       setFilterParams(prev => {
+         if (cat === prev.category) return prev;
+         return { ...prev, category: cat || '', destinations: dest ? [dest] : [] };
+       });
     }
   }, [searchParams])
+
+  useEffect(() => {
+    syncFromUrl()
+  }, [syncFromUrl])
 
   // Dữ liệu động dựa vào Tab Category
   const activeData = filterParams.category === 'Trong nước' ? MOCK_DATA.domestic : MOCK_DATA.international
 
   // Xử lý hiệu ứng chuyển tab
   const [isFading, setIsFading] = useState(false)
-  const handleCategoryChange = (cat: 'Trong nước' | 'Quốc tế') => {
-    if (cat === filterParams.category) return;
-    setIsFading(true)
-    setTimeout(() => {
-      setFilterParams({
-        ...filterParams,
-        category: cat,
-        regions: [], // Reset region & destination when changing tab
-        destinations: []
-      })
-      setIsFading(false)
-    }, 300)
-  }
 
   // Update State Helpers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateState = (key: keyof typeof filterParams, value: any) => {
     setFilterParams(prev => ({ ...prev, [key]: value }))
   }

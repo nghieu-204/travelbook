@@ -1,9 +1,10 @@
 'use client'
 
+// @ts-ignore
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { CreditCard, Wallet } from 'lucide-react'
+import { Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const checkoutSchema = z.object({
@@ -24,7 +25,7 @@ export default function CheckoutForm() {
 
   const selectedPayment = watch('paymentMethod')
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: z.infer<typeof checkoutSchema>) => {
     console.log(data)
     alert('Đặt tour thành công!')
   }

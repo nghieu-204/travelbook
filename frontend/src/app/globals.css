@@ -10,6 +10,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Brand Blue Overrides - #0046C1 */
+  --color-blue-400: #3373df;
+  --color-blue-500: #1a5ac7;
+  --color-blue-600: #0046c1;
+  --color-blue-700: #00379a;
+  --color-blue-800: #002973;
+  --color-blue-900: #001c4d;
 }
 
 @media (prefers-color-scheme: dark) {

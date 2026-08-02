@@ -39,10 +39,12 @@ export default function MultiSelectDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Đóng dropdown sẽ reset lại thanh search
-  useEffect(() => {
-    if (!isOpen) setSearchTerm('')
-  }, [isOpen])
+  // Reset search khi đóng dropdown
+  const handleToggle = () => {
+    const next = !isOpen
+    setIsOpen(next)
+    if (!next) setSearchTerm('')
+  }
 
   // Lọc option theo từ khóa tìm kiếm (Realtime)
   const filteredOptions = options.filter(option =>
@@ -68,7 +70,7 @@ export default function MultiSelectDropdown({
       {/* 2. Nút bấm (Trigger Button) */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="w-full flex items-center justify-between bg-[#0f172a] border border-slate-700 px-5 py-3 rounded-xl transition-colors outline-none text-white focus:ring-2 focus:ring-blue-500 hover:bg-slate-800"
       >
         <span className="truncate mr-4 text-sm font-medium">
