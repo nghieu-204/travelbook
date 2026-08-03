@@ -12,6 +12,18 @@ import {
 
 const COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
+const REGION_COLORS: Record<string, string> = {
+  'Trong nước': '#3b82f6', // Blue
+  'Quốc tế': '#10b981',    // Green
+  'Miền Bắc': '#ef4444',
+  'Miền Trung': '#f59e0b',
+  'Miền Nam': '#8b5cf6',
+  'Châu Á': '#ec4899',
+  'Châu Âu': '#06b6d4',
+  'Châu Mỹ': '#f97316',
+  'Chưa có dữ liệu': '#334155'
+}
+
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
@@ -54,18 +66,18 @@ export default function AdminDashboard() {
 
   // 2. Tỷ trọng tour (Pie Chart)
   const allTourData = [
-    { name: 'Trong nước', value: stats.region_analytics?.filter((r: any) => r.calc_category === 'Trong nước').reduce((acc: number, curr: any) => acc + curr.count, 0) || 0 },
-    { name: 'Quốc tế', value: stats.region_analytics?.filter((r: any) => r.calc_category === 'Quốc tế').reduce((acc: number, curr: any) => acc + curr.count, 0) || 0 },
+    { name: 'Trong nước', value: stats.region_analytics?.filter((r: any) => r.calc_category === 'Trong nước').reduce((acc: number, curr: any) => acc + Number(curr.count || 0), 0) || 0 },
+    { name: 'Quốc tế', value: stats.region_analytics?.filter((r: any) => r.calc_category === 'Quốc tế').reduce((acc: number, curr: any) => acc + Number(curr.count || 0), 0) || 0 },
   ]
   
   const domesticTourData = stats.region_analytics?.filter((r: any) => r.calc_category === 'Trong nước').map((r: any) => ({
     name: r.region_name,
-    value: r.count
+    value: Number(r.count || 0)
   })) || []
   
   const internationalTourData = stats.region_analytics?.filter((r: any) => r.calc_category === 'Quốc tế').map((r: any) => ({
     name: r.region_name,
-    value: r.count
+    value: Number(r.count || 0)
   })) || []
 
   let activePieData = allTourData
@@ -198,7 +210,7 @@ export default function AdminDashboard() {
                   stroke="none"
                 >
                   {activePieData.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.name === 'Chưa có dữ liệu' ? '#334155' : COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={REGION_COLORS[entry.name] || COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -211,7 +223,7 @@ export default function AdminDashboard() {
           <div className="flex justify-center flex-wrap gap-4 mt-4 pt-4 border-t border-slate-800">
             {activePieData.map((entry: any, index: number) => (
               <div key={entry.name} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.name === 'Chưa có dữ liệu' ? '#334155' : COLORS[index % COLORS.length] }}></div>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: REGION_COLORS[entry.name] || COLORS[index % COLORS.length] }}></div>
                 <span className="text-sm font-medium text-slate-300">{entry.name}</span>
               </div>
             ))}

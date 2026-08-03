@@ -28,9 +28,11 @@ const getAdminStats = async (req, res) => {
                 COUNT(b.id) as count
             FROM bookings b
             JOIN tours t ON b.tour_id = t.id
-            LEFT JOIN destination d ON t.destination_id = d.id
+            LEFT JOIN Tour_Destination td ON t.id = td.tour_id AND td.is_primary = TRUE
+            LEFT JOIN destination d ON td.destination_id = d.id
             LEFT JOIN region r ON d.region_id = r.id
             LEFT JOIN tourcategory c ON r.category_id = c.id
+            WHERE b.status != 'Hủy'
             GROUP BY calc_category, region_name
         `);
 
@@ -43,11 +45,13 @@ const getAdminStats = async (req, res) => {
 
         // Sức chứa tour và số chỗ đã đặt (Top tours được đặt nhiều nhất)
         const [spotsRows] = await pool.query(`
-            SELECT t.id, t.name, t.location, COALESCE(t.region, 'Miền Nam') as region, COALESCE(t.available_spots, 30) as available_spots, 
-                   COALESCE(SUM(CASE WHEN b.status != 'Hủy' THEN (b.adults + b.children) ELSE 0 END), 0) as booked_spots
+            SELECT t.id, t.name, COALESCE(t.available_spots, 30) as available_spots, 
+                   COALESCE(SUM(CASE WHEN b.status != 'Hủy' THEN (b.adults + b.children) ELSE 0 END), 0) as booked_spots,
+                   (SELECT d.name FROM Tour_Destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS location,
+                   (SELECT r.name FROM Tour_Destination td JOIN destination d ON td.destination_id = d.id JOIN region r ON d.region_id = r.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS region
             FROM tours t
             LEFT JOIN bookings b ON t.id = b.tour_id
-            GROUP BY t.id, t.name, t.location, t.region, t.available_spots
+            GROUP BY t.id, t.name, t.available_spots
             ORDER BY booked_spots DESC, t.id ASC
             LIMIT 10
         `);
