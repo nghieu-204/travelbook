@@ -12,7 +12,7 @@ export default function AboutPage() {
   return (
     <div className="bg-white min-h-screen">
       {/* 1. Khu vực Hero (Banner mở đầu) */}
-      <section className="relative h-[60vh] min-h-[500px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[45vh] min-h-[400px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image 
             src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1920&q=80" 
@@ -23,11 +23,11 @@ export default function AboutPage() {
           />
           <div className="absolute inset-0 bg-black/40"></div>
         </div>
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-6 drop-shadow-lg leading-tight">
-            Khai phá giới hạn, <br className="hidden md:block" /> chạm đến những miền đất mới
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto mt-8">
+          <h1 className="text-3xl md:text-5xl font-black text-white mb-6 drop-shadow-lg leading-tight">
+            Khai phá giới hạn, chạm đến những miền đất mới
           </h1>
-          <p className="text-lg md:text-xl text-white/90 font-medium">
+          <p className="text-base md:text-lg text-white/90 font-medium">
             Chúng tôi không chỉ bán tour du lịch, chúng tôi mang đến những trải nghiệm để đời.
           </p>
         </div>
