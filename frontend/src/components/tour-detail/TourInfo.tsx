@@ -318,14 +318,7 @@ export default function TourInfo({ tour }: { tour?: any }) {
                   </button>
                 </div>
               </form>
-            ) : (
-              <div className="text-center py-4">
-                <div className="bg-white inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-200 text-amber-700 text-sm font-medium shadow-sm">
-                  <ShieldAlert className="w-4 h-4" />
-                  {eligibility.reason || 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.'}
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         )}
 

@@ -160,7 +160,9 @@ export default function ContactPage() {
                 </div>
                 <h4 className="font-bold text-slate-800 mb-2 text-lg">Cần trợ giúp và hỗ trợ</h4>
                 <p className="text-slate-500 font-medium flex items-center gap-2">
-                  <Mail className="w-4 h-4" /> cskh@travelbook.vn
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="Gmail" className="w-4 h-4 shrink-0" /> 
+                  travelbook.cskh@gmail.com
                 </p>
               </div>
               
@@ -171,7 +173,7 @@ export default function ContactPage() {
                 </div>
                 <h4 className="font-bold text-slate-800 mb-2 text-lg">Cần bất kỳ việc khẩn cấp nào</h4>
                 <p className="text-slate-500 font-medium flex items-center gap-2">
-                  <Phone className="w-4 h-4" /> +84 (123) 456 789
+                  <Phone className="w-4 h-4" /> 0397 694 225
                 </p>
               </div>
 
@@ -180,9 +182,9 @@ export default function ContactPage() {
                 <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
                   <MapPin className="w-5 h-5" />
                 </div>
-                <h4 className="font-bold text-slate-800 mb-2 text-lg">Gia Lai</h4>
+                <h4 className="font-bold text-slate-800 mb-2 text-lg">Văn phòng chính</h4>
                 <p className="text-slate-500 font-medium flex items-start gap-2">
-                  <MapPin className="w-4 h-4 mt-1 shrink-0" /> Cửu An, An Khê, Gia Lai
+                  <MapPin className="w-4 h-4 mt-1 shrink-0" /> 180 Ỷ La, Dương Nội, Hà Đông
                 </p>
               </div>
 
@@ -191,9 +193,9 @@ export default function ContactPage() {
                 <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
                   <MapPin className="w-5 h-5" />
                 </div>
-                <h4 className="font-bold text-slate-800 mb-2 text-lg">Kí túc xá Việt Hàn</h4>
+                <h4 className="font-bold text-slate-800 mb-2 text-lg">Đại học Phenikaa</h4>
                 <p className="text-slate-500 font-medium flex items-start gap-2">
-                  <MapPin className="w-4 h-4 mt-1 shrink-0" /> 470 Trần Đại Nghĩa, Thành phố Đà Nẵng
+                  <MapPin className="w-4 h-4 mt-1 shrink-0" /> Phường Yên Nghĩa, Hà Đông, Hà Nội
                 </p>
               </div>
             </div>
@@ -212,65 +214,89 @@ export default function ContactPage() {
               <p className="text-slate-500 mb-8 font-medium text-sm">Địa chỉ email của bạn sẽ không được công bố. Các trường bắt buộc được đánh dấu <span className="text-red-500">*</span></p>
               
               <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Họ và tên</label>
+                  <input 
+                    type="text" 
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Nhập họ tên của bạn" 
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
+                  />
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Họ và tên <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
                     <input 
-                      type="text" 
-                      name="name"
+                      type="email" 
+                      name="email"
                       required
-                      value={formData.name}
+                      value={formData.email}
                       onChange={handleChange}
-                      placeholder="Họ và tên"
-                      className="w-full border border-slate-200 rounded-lg p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                      placeholder="example@gmail.com" 
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Số điện thoại <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Số điện thoại</label>
                     <input 
                       type="tel" 
                       name="phone"
                       required
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="Số điện thoại"
-                      className="w-full border border-slate-200 rounded-lg p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+                      placeholder="0988..." 
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
                     />
                   </div>
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Địa chỉ Email <span className="text-red-500">*</span></label>
-                  <input 
-                    type="email" 
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Nhập email"
-                    className="w-full border border-slate-200 rounded-lg p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Chủ đề (Subject)</label>
+                    <input 
+                      type="text" 
+                      name="subject"
+                      required
+                      value={formData.subject}
+                      onChange={handleChange}
+                      placeholder="Vấn đề bạn quan tâm..." 
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày dự kiến (nếu có)</label>
+                    <input 
+                      type="date" 
+                      name="date"
+                      value={formData.date}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Nội dung <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nội dung tư vấn</label>
                   <textarea 
                     name="message"
                     required
-                    rows={5}
                     value={formData.message}
                     onChange={handleChange}
-                    placeholder="Nội dung"
-                    className="w-full border border-slate-200 rounded-lg p-3 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white resize-none"
+                    placeholder="Tôi cần tư vấn tour đi Đà Nẵng..." 
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all min-h-[120px] resize-none" 
                   ></textarea>
                 </div>
 
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="bg-[#668B43] hover:bg-[#567638] text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-colors disabled:opacity-70"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-colors disabled:opacity-70"
                 >
-                  Gửi <Send className="w-4 h-4" />
+                  {isSubmitting ? 'Đang gửi...' : 'Gửi thông tin'} <Send className="w-4 h-4" />
                 </button>
               </form>
             </div>
