@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -48,6 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const links = [
     { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
     { href: '/admin/tours', label: 'Quản lý Tour', icon: Map },
+    { href: '/admin/countries', label: 'Quản lý Quốc gia', icon: MapPin },
     { href: '/admin/destinations', label: 'Quản lý Điểm đến', icon: MapPin },
     { href: '/admin/tags', label: 'Quản lý Nhãn', icon: Tag },
     { href: '/admin/bookings', label: 'Quản lý Đơn đặt', icon: ShoppingBag },
@@ -103,8 +103,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <h2 className="font-semibold text-white">Bảng Điều Khiển</h2>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm">A</div>
-            <span className="text-sm font-medium text-slate-300">Admin</span>
+            <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm overflow-hidden shrink-0">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                user?.name?.charAt(0) || 'A'
+              )}
+            </div>
+            <span className="text-sm font-medium text-slate-300">{user?.name || 'Admin'}</span>
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-8 bg-[#0f172a]">

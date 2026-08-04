@@ -3,22 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronDown, ChevronUp, Search, Star } from 'lucide-react'
-
-// --- MOCK DATA ---
-const MOCK_DATA = {
-  domestic: {
-    regions: ['Miền Bắc', 'Miền Trung', 'Miền Nam'],
-    destinations: ['Hà Nội', 'Đà Nẵng', 'Sapa', 'Phú Quốc', 'Huế', 'Hội An', 'Hạ Long', 'Đà Lạt']
-  },
-  international: {
-    regions: ['Châu Á', 'Châu Âu', 'Châu Mỹ', 'Châu Úc'],
-    destinations: ['Thái Lan', 'Nhật Bản', 'Hàn Quốc', 'Pháp', 'Mỹ', 'Úc', 'Singapore', 'Trung Quốc']
-  },
-  tourTypes: ['Nghỉ dưỡng', 'Khám phá', 'Văn hóa', 'Mạo hiểm', 'Trăng mật'],
-  occasions: ['Hè', 'Lễ 30/4', 'Lễ 2/9', 'Tết Nguyên Đán', 'Giáng Sinh'],
-  durations: ['1-3 ngày', '4-7 ngày', 'Trên 7 ngày']
-}
+import { ChevronDown, ChevronUp, ChevronRight, Star } from 'lucide-react'
 
 // --- SUBCOMPONENTS ---
 
@@ -64,7 +49,7 @@ const DualRangeSlider = ({ value, onChange }: { value: [number, number], onChang
       <div className="slider relative h-1.5 rounded-full bg-gray-200">
         <div 
           className="absolute h-1.5 bg-blue-600 rounded-full"
-          style={{ left: `${minPercent}%`, right: `${100 - maxPercent}%` }}
+          style={{ left: \`\${minPercent}%\`, right: \`\${100 - maxPercent}%\` }}
         />
       </div>
       <div className="relative">
@@ -86,65 +71,40 @@ const DualRangeSlider = ({ value, onChange }: { value: [number, number], onChang
   )
 }
 
-// 3. Searchable Multi Select
-const SearchableMultiSelect = ({ options, selected, onChange }: { options: string[], selected: string[], onChange: (val: string[]) => void }) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const [search, setSearch] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node)) setIsOpen(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()))
-
-  const toggle = (opt: string) => {
-    if (selected.includes(opt)) onChange(selected.filter(s => s !== opt))
-    else onChange([...selected, opt])
-  }
+// 3. Tree Checkbox Component for Destinations
+const TreeCheckbox = ({ node, isRoot = false, selected, onChange }: { node: any, isRoot?: boolean, selected: string[], onChange: (val: string) => void }) => {
+  const [isOpen, setIsOpen] = useState(isRoot);
+  
+  const hasChildren = node.children && node.children.length > 0;
+  const isChecked = selected.includes(node.name);
 
   return (
-    <div className="relative" ref={ref}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)} 
-        className="w-full flex items-center justify-between bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-slate-700 hover:bg-gray-100 transition-colors"
-      >
-        <span className="truncate">{selected.length > 0 ? `Đã chọn ${selected.length} điểm đến` : 'Chọn điểm đến...'}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-      
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-          <div className="p-2 border-b border-gray-100 relative">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              className="w-full bg-gray-50 rounded-lg pl-9 pr-3 py-2.5 text-sm font-medium outline-none focus:ring-1 focus:ring-blue-500 placeholder:font-normal" 
-              autoFocus
-            />
-          </div>
-          <div className="max-h-[220px] overflow-y-auto p-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {filtered.length > 0 ? filtered.map(opt => (
-              <label key={opt} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 rounded-lg cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  checked={selected.includes(opt)} 
-                  onChange={() => toggle(opt)} 
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 cursor-pointer" 
-                />
-                <span className={`text-sm transition-colors ${selected.includes(opt) ? 'font-semibold text-blue-700' : 'font-medium text-slate-700'}`}>{opt}</span>
-              </label>
-            )) : (
-              <div className="py-4 text-center text-sm text-slate-500 font-medium">Không tìm thấy địa điểm</div>
-            )}
-          </div>
+    <div className="flex flex-col">
+      <div className="flex items-center gap-2 py-1.5 group">
+        {hasChildren ? (
+          <button onClick={() => setIsOpen(!isOpen)} className="text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center">
+            <ChevronRight className={\`w-4 h-4 transition-transform \${isOpen ? 'rotate-90' : ''}\`} />
+          </button>
+        ) : (
+          <div className="w-5 h-5"></div>
+        )}
+        <label className="flex items-center gap-2 cursor-pointer flex-1">
+          <input 
+            type="checkbox" 
+            checked={isChecked}
+            onChange={() => onChange(node.name)}
+            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          />
+          <span className={\`text-sm transition-colors \${isChecked ? 'font-semibold text-blue-700' : 'font-medium text-slate-700 group-hover:text-blue-600'}\`}>
+            {node.name}
+          </span>
+        </label>
+      </div>
+      {hasChildren && isOpen && (
+        <div className="ml-5 border-l border-gray-200 pl-2">
+          {node.children.map((child: any) => (
+            <TreeCheckbox key={child.name} node={child} selected={selected} onChange={onChange} />
+          ))}
         </div>
       )}
     </div>
@@ -157,6 +117,45 @@ export default function TourFilter() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
+  // METADATA STATE
+  const [metadata, setMetadata] = useState<any>({
+    domestic: [],
+    international: [],
+    tourTypes: [],
+    departureLocations: []
+  })
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch metadata
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api') + '/tours/filters-metadata');
+        if (res.ok) {
+          const data = await res.json();
+          // Transform domestic and international to Tree format
+          const domesticTree = data.domestic.map((r: any) => ({
+            name: r.region,
+            children: r.destinations.map((d: string) => ({ name: d, children: [] }))
+          }));
+          const intlTree = data.international.map((r: any) => ({
+            name: r.region,
+            children: r.countries.map((c: any) => ({
+              name: c.country,
+              children: c.destinations.map((d: string) => ({ name: d, children: [] }))
+            }))
+          }));
+          setMetadata({ ...data, domesticTree, intlTree });
+        }
+      } catch (error) {
+        console.error("Lỗi lấy filter metadata:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchMetadata();
+  }, []);
+
   // STATE MANAGEMENT
   const [filterParams, setFilterParams] = useState({
     category: (searchParams.get('category') as 'Trong nước' | 'Quốc tế' | '') || '',
@@ -164,23 +163,20 @@ export default function TourFilter() {
       searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : 0,
       searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : 99990000
     ] as [number, number],
-    regions: searchParams.getAll('region'),
-    destinations: searchParams.getAll('destination'),
-    startDate: { from: '', to: '' },
-    tourTypes: [] as string[],
-    occasions: [] as string[],
-    duration: searchParams.get('duration') || '',
+    destinations: searchParams.getAll('destination').concat(searchParams.getAll('region'), searchParams.getAll('location')),
+    tourTypes: searchParams.getAll('tourType'),
+    departureLocations: searchParams.getAll('departureLocation'),
+    durations: searchParams.getAll('duration'),
     rating: searchParams.get('rating') ? Number(searchParams.get('rating')) : 0
   })
 
   // Cập nhật state nếu URL thay đổi từ bên ngoài
   const syncFromUrl = useCallback(() => {
     const cat = searchParams.get('category') as 'Trong nước' | 'Quốc tế' | '';
-    const dest = searchParams.get('destination');
     if (cat !== null) {
        setFilterParams(prev => {
          if (cat === prev.category) return prev;
-         return { ...prev, category: cat || '', destinations: dest ? [dest] : [] };
+         return { ...prev, category: cat || '', destinations: searchParams.getAll('destination') };
        });
     }
   }, [searchParams])
@@ -189,19 +185,12 @@ export default function TourFilter() {
     syncFromUrl()
   }, [syncFromUrl])
 
-  // Dữ liệu động dựa vào Tab Category
-  const activeData = filterParams.category === 'Trong nước' ? MOCK_DATA.domestic : MOCK_DATA.international
-
-  // Xử lý hiệu ứng chuyển tab
-  const [isFading, setIsFading] = useState(false)
-
   // Update State Helpers
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateState = (key: keyof typeof filterParams, value: any) => {
     setFilterParams(prev => ({ ...prev, [key]: value }))
   }
 
-  const toggleArrayState = (key: 'regions' | 'tourTypes' | 'occasions', value: string) => {
+  const toggleArrayState = (key: 'destinations' | 'tourTypes' | 'departureLocations' | 'durations', value: string) => {
     setFilterParams(prev => {
       const arr = prev[key]
       return { ...prev, [key]: arr.includes(value) ? arr.filter(i => i !== value) : [...arr, value] }
@@ -212,10 +201,11 @@ export default function TourFilter() {
     setFilterParams({
       category: '',
       priceRange: [0, 99990000],
-      regions: [], destinations: [],
-      startDate: { from: '', to: '' },
-      tourTypes: [], occasions: [],
-      duration: '', rating: 0
+      destinations: [],
+      tourTypes: [], 
+      departureLocations: [],
+      durations: [], 
+      rating: 0
     })
   }
 
@@ -240,14 +230,22 @@ export default function TourFilter() {
       if (filterParams.priceRange[0] > 0) params.set('minPrice', filterParams.priceRange[0].toString())
       if (filterParams.priceRange[1] < 99990000) params.set('maxPrice', filterParams.priceRange[1].toString())
       
-      if (filterParams.regions.length > 0) {
-         filterParams.regions.forEach(r => params.append('region', r))
-      }
       if (filterParams.destinations.length > 0) {
-         filterParams.destinations.forEach(d => params.append('destination', d))
+         filterParams.destinations.forEach(d => params.append('location', d))
       }
       
-      if (filterParams.duration) params.set('duration', filterParams.duration)
+      if (filterParams.tourTypes.length > 0) {
+         filterParams.tourTypes.forEach(t => params.append('tourType', t))
+      }
+
+      if (filterParams.departureLocations.length > 0) {
+         filterParams.departureLocations.forEach(dl => params.append('departureLocation', dl))
+      }
+
+      if (filterParams.durations.length > 0) {
+         filterParams.durations.forEach(d => params.append('duration', d))
+      }
+
       if (filterParams.rating > 0) params.set('rating', filterParams.rating.toString())
       
       const q = searchParamsRef.current.get('q')
@@ -255,11 +253,17 @@ export default function TourFilter() {
       const sort = searchParamsRef.current.get('sort')
       if (sort) params.set('sort', sort)
 
-      router.push(`/tours?${params.toString()}`, { scroll: false })
+      router.push(\`/tours?\${params.toString()}\`, { scroll: false })
     }, 500)
     
     return () => clearTimeout(timer)
   }, [filterParams, router])
+
+  const destinationTree = filterParams.category === 'Trong nước' ? metadata.domesticTree : 
+                          filterParams.category === 'Quốc tế' ? metadata.intlTree : 
+                          [...(metadata.domesticTree || []), ...(metadata.intlTree || [])];
+
+  if (isLoading) return <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-24 animate-pulse h-[800px]"></div>;
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-24">
@@ -272,11 +276,25 @@ export default function TourFilter() {
         </button>
       </div>
 
-
-
-      <div className={`transition-opacity duration-300 ${isFading ? 'opacity-0' : 'opacity-100'}`}>
+      <div className="transition-opacity duration-300">
         
-        {/* 2. Accordion 1: Mức giá */}
+        {/* Accordion: Điểm đến (Tree) */}
+        <Accordion title="Điểm đến" isOpenDefault={true}>
+          <div className="max-h-[300px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {destinationTree?.map((node: any) => (
+              <TreeCheckbox 
+                key={node.name} 
+                node={node} 
+                isRoot={true} 
+                selected={filterParams.destinations} 
+                onChange={(val) => toggleArrayState('destinations', val)} 
+              />
+            ))}
+            {destinationTree?.length === 0 && <div className="text-sm text-slate-500 py-2">Không có dữ liệu điểm đến.</div>}
+          </div>
+        </Accordion>
+
+        {/* Accordion: Mức giá */}
         <Accordion title="Mức giá" isOpenDefault={true}>
           <DualRangeSlider 
             value={filterParams.priceRange} 
@@ -284,106 +302,62 @@ export default function TourFilter() {
           />
         </Accordion>
 
-        {/* 3. Accordion 2: Vùng miền */}
-        <Accordion title="Vùng miền" isOpenDefault={true}>
-          <div className="space-y-3">
-            {activeData.regions.map(region => (
-              <label key={region} className="flex items-center gap-3 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  checked={filterParams.regions.includes(region)}
-                  onChange={() => toggleArrayState('regions', region)}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{region}</span>
-              </label>
-            ))}
-          </div>
-        </Accordion>
-
-        {/* 4. Accordion 3: Điểm đến */}
-        <Accordion title="Điểm đến" isOpenDefault={true}>
-          <SearchableMultiSelect 
-            options={activeData.destinations}
-            selected={filterParams.destinations}
-            onChange={(val) => updateState('destinations', val)}
-          />
-        </Accordion>
-
-        {/* 5. Accordion 4: Ngày khởi hành */}
-        <Accordion title="Ngày khởi hành">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Từ ngày</label>
-              <input 
-                type="date" 
-                value={filterParams.startDate.from}
-                onChange={(e) => updateState('startDate', { ...filterParams.startDate, from: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1">Đến ngày</label>
-              <input 
-                type="date" 
-                value={filterParams.startDate.to}
-                onChange={(e) => updateState('startDate', { ...filterParams.startDate, to: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-        </Accordion>
-
-        {/* 6. Accordion 5: Loại hình Tour */}
-        <Accordion title="Loại hình Tour">
-          <div className="space-y-3">
-            {MOCK_DATA.tourTypes.map(type => (
-              <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  checked={filterParams.tourTypes.includes(type)}
-                  onChange={() => toggleArrayState('tourTypes', type)}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{type}</span>
-              </label>
-            ))}
-          </div>
-        </Accordion>
-
-        {/* 7. Accordion 6: Dịp lễ / Sự kiện */}
-        <Accordion title="Dịp Lễ / Sự kiện">
-          <div className="space-y-3">
-            {MOCK_DATA.occasions.map(occ => (
-              <label key={occ} className="flex items-center gap-3 cursor-pointer group">
-                <input 
-                  type="checkbox" 
-                  checked={filterParams.occasions.includes(occ)}
-                  onChange={() => toggleArrayState('occasions', occ)}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{occ}</span>
-              </label>
-            ))}
-          </div>
-        </Accordion>
-
-        {/* 8. Accordion 7: Thời lượng */}
+        {/* Accordion: Thời lượng */}
         <Accordion title="Thời lượng">
-          <div className="flex flex-wrap gap-2">
-            {MOCK_DATA.durations.map(dur => (
-              <button 
-                key={dur}
-                onClick={() => updateState('duration', filterParams.duration === dur ? '' : dur)}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${filterParams.duration === dur ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'}`}
-              >
-                {dur}
-              </button>
+          <div className="space-y-3">
+            {['1-3 ngày', '4-7 ngày', 'Trên 7 ngày'].map(dur => (
+              <label key={dur} className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  checked={filterParams.durations.includes(dur)}
+                  onChange={() => toggleArrayState('durations', dur)}
+                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{dur}</span>
+              </label>
             ))}
           </div>
         </Accordion>
 
-        {/* 9. Accordion 8: Đánh giá */}
+        {/* Accordion: Loại hình Tour */}
+        {metadata.tourTypes && metadata.tourTypes.length > 0 && (
+          <Accordion title="Loại hình Tour">
+            <div className="space-y-3">
+              {metadata.tourTypes.map((type: string) => (
+                <label key={type} className="flex items-center gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={filterParams.tourTypes.includes(type)}
+                    onChange={() => toggleArrayState('tourTypes', type)}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{type}</span>
+                </label>
+              ))}
+            </div>
+          </Accordion>
+        )}
+
+        {/* Accordion: Điểm khởi hành */}
+        {metadata.departureLocations && metadata.departureLocations.length > 0 && (
+          <Accordion title="Điểm khởi hành">
+            <div className="space-y-3">
+              {metadata.departureLocations.map((loc: string) => (
+                <label key={loc} className="flex items-center gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={filterParams.departureLocations.includes(loc)}
+                    onChange={() => toggleArrayState('departureLocations', loc)}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{loc}</span>
+                </label>
+              ))}
+            </div>
+          </Accordion>
+        )}
+
+        {/* Accordion: Đánh giá */}
         <Accordion title="Đánh giá (Rating)">
           <div className="space-y-3">
             {[5, 4, 3].map(star => (
@@ -397,7 +371,7 @@ export default function TourFilter() {
                 />
                 <div className="flex items-center gap-1">
                   {Array.from({length: 5}).map((_, i) => (
-                    <Star key={i} className={`w-4 h-4 ${i < star ? 'fill-yellow-400 text-yellow-400' : 'fill-slate-200 text-slate-200'}`} />
+                    <Star key={i} className={\`w-4 h-4 \${i < star ? 'fill-yellow-400 text-yellow-400' : 'fill-slate-200 text-slate-200'}\`} />
                   ))}
                   <span className="text-sm font-medium text-slate-600 ml-1">{star < 5 && 'trở lên'}</span>
                 </div>

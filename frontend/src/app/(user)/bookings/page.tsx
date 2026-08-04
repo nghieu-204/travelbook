@@ -255,7 +255,7 @@ export default function BookingsPage() {
                         ) : (
                           <button 
                             onClick={() => setReviewBooking(booking)}
-                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-amber-50 hover:bg-amber-600 transition-colors shadow-sm shadow-amber-200"
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-sm shadow-amber-200"
                           >
                             <MessageSquare className="w-4 h-4" /> Đánh giá
                           </button>

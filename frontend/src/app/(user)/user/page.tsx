@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import { fetchApi } from '@/lib/api'
 
 export default function UserProfilePage() {
-  const { user, login } = useAuthStore()
+  const { user, token, login } = useAuthStore()
   
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -97,17 +97,24 @@ export default function UserProfilePage() {
       setProfile(res.user)
       alert('Cập nhật hồ sơ thành công!')
       
-      // Update store to reflect new name if needed
-      const token = localStorage.getItem('token')
       if (token && res.user) {
-        login({ 
+        const newUser = { 
           id: res.user.id, 
           name: res.user.name, 
           email: res.user.email, 
           role: res.user.role,
           avatar: res.user.avatar,
           phone: res.user.phone
-        }, token)
+        }
+        login(newUser, token)
+        
+        // Cập nhật cả bên admin store nếu user là admin đang đăng nhập
+        import('@/store/useAdminAuthStore').then(({ useAdminAuthStore }) => {
+          const adminState = useAdminAuthStore.getState()
+          if (adminState.user?.id === res.user.id) {
+            adminState.updateUser(newUser)
+          }
+        })
       }
     } catch (err: any) {
       alert(err.message || 'Lỗi cập nhật hồ sơ')

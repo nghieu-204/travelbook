@@ -19,10 +19,11 @@ export default function TourSection({ title, category, pills, tours }: TourSecti
   // Filter tours by active tab
   let displayTours = tours;
   if (activeTab !== 'Tất cả') {
-    displayTours = tours.filter(t => 
-      t.location?.toLowerCase().includes(activeTab.toLowerCase()) || 
-      t.name?.toLowerCase().includes(activeTab.toLowerCase())
-    );
+    displayTours = tours.filter(t => {
+      const matchName = t.name?.toLowerCase().includes(activeTab.toLowerCase());
+      const matchDest = t.destinations?.some(d => d.name?.toLowerCase().includes(activeTab.toLowerCase()));
+      return matchName || matchDest;
+    });
   }
   
   // Take max 4

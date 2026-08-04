@@ -1,11 +1,11 @@
 import Link from 'next/link'
-import { MapPin, Clock, Award } from 'lucide-react'
+import { MapPin, Clock, Award, Eye } from 'lucide-react'
 import FallbackImage from '@/components/ui/FallbackImage'
 
 export interface Tour {
   id: number
   name: string
-  location: string
+  destinations?: Array<{ id: number, name: string, is_primary: number }>
   price: number
   rating: number
   reviews: number
@@ -14,29 +14,50 @@ export interface Tour {
 }
 
 export default function TourCard({ tour }: { tour: Tour }) {
+  // Randomize tag between Tiêu chuẩn and Tiết kiệm based on ID
+  const isBudget = tour.id % 3 === 0;
   return (
     <div className="flex justify-center w-full h-full">
-      <Link href={`/tours/${tour.id}`} 
-        className="group relative flex flex-col h-full w-full max-w-[320px] mx-auto"
+      <Link href={`/tours/${tour.id}`}
+        className="group bg-white rounded-xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 border border-slate-200 relative flex flex-col h-full w-full max-w-[320px]"
       >
-        
-        {/* Image Section - Takes ~80% of visual weight */}
-        <div className="relative h-[320px] shrink-0 w-full rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] group-hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 bg-slate-100">
-          <FallbackImage 
-            src={tour.image} 
-            alt={tour.name} 
+
+        {/* Image Section */}
+        <div className="relative h-[270px] shrink-0 w-full bg-slate-100">
+          <FallbackImage
+            src={tour.image}
+            alt={tour.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
+
+          {/* Top Left Badge */}
+          {isBudget ? (
+            <div className="absolute top-4 left-4 bg-purple-50/95 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[13px] font-bold text-purple-700 shadow-sm z-20">
+              Tiết kiệm
+            </div>
+          ) : (
+            <div className="absolute top-4 left-4 bg-blue-50/95 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[13px] font-bold text-[#0046b8] shadow-sm z-20">
+              Tiêu chuẩn
+            </div>
+          )}
+
+          {/* Xem nhanh badge placed dynamically above the info box overlap */}
+          <div className="absolute bottom-6 right-3 z-30">
+            <div className="bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-full text-[12px] font-medium text-amber-400 flex items-center gap-1.5 shadow-md hover:bg-black transition-colors">
+              <Eye className="w-3.5 h-3.5" />
+              <span>Xem nhanh</span>
+            </div>
+          </div>
         </div>
 
-        {/* Content Section - 2 blocks design, slightly narrower (1px margin each side = 2px smaller) */}
-        <div className="flex-1 bg-white rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] border border-slate-100 relative z-10 flex flex-col p-3 pb-3 mx-[1px] -mt-10 group-hover:-translate-y-1 transition-transform duration-300">
+        {/* Content Section - natural height, overlapping image with negative margin */}
+        <div className="flex-1 bg-white rounded-t-xl -mt-5 relative z-10 flex flex-col p-3 pb-3">
           {/* Title */}
           <div className="flex items-start gap-1.5 mb-2">
             <div className="shrink-0 mt-0.5 rounded-full bg-amber-50 p-1">
               <Award className="w-3.5 h-3.5 text-amber-600 fill-amber-100" />
             </div>
-            <h3 className="font-bold text-slate-800 text-[14px] line-clamp-2 leading-snug group-hover:text-[#0046c1] transition-colors">
+            <h3 className="font-bold text-slate-800 text-[14px] line-clamp-2 leading-snug group-hover:text-[#0046b8] transition-colors">
               {tour.name}
             </h3>
           </div>
@@ -44,31 +65,34 @@ export default function TourCard({ tour }: { tour: Tour }) {
           {/* Info Columns */}
           <div className="flex items-center justify-between mb-3 px-0.5">
             <div className="flex items-center gap-1 text-[12px] text-slate-600 font-medium">
-              <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" strokeWidth={1.5} /> 
-              <span className="truncate max-w-[120px]">{tour.location}</span>
+              <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" strokeWidth={1.5} />
+              <span className="truncate max-w-[120px]" title={tour.destinations?.map(d => d.name).join(' - ')}>
+                {tour.destinations && tour.destinations.length > 2 
+                  ? `${tour.destinations[0].name} - ${tour.destinations[1].name} và ${tour.destinations.length - 2} điểm khác`
+                  : tour.destinations?.map(d => d.name).join(' - ') || 'Nhiều điểm đến'}
+              </span>
             </div>
             <div className="flex items-center gap-1 text-[12px] text-slate-600 font-medium">
-              <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" strokeWidth={1.5} /> 
+              <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" strokeWidth={1.5} />
               <span>{tour.duration}</span>
             </div>
           </div>
 
           {/* Price Section */}
-          <div className="mt-auto pt-2 border-t border-slate-50 relative">
+          <div className="mt-auto pt-2">
             <div className="text-[11px] text-slate-500 mb-0.5">Giá từ:</div>
-            <div className="text-[18px] font-black text-[#0046c1] leading-none mb-1">
+            <div className="text-[18px] font-black text-[#0046b8] leading-none mb-1">
               {tour.price.toLocaleString('vi-VN')}đ
-            </div>
-          </div>
-          
-          {/* Huge absolute button flush to bottom right of the info block */}
-          <div className="absolute bottom-0 right-0 z-20 overflow-hidden rounded-br-xl rounded-tl-2xl">
-            <div className="bg-[#0046c1] hover:bg-blue-800 text-white text-[13px] font-semibold px-4 pt-2 pb-2.5 transition-colors flex items-center justify-center">
-              Xem chi tiết
             </div>
           </div>
         </div>
 
+        {/* Huge absolute button flush to bottom right */}
+        <div className="absolute bottom-0 right-0 z-20">
+          <div className="bg-[#0046b8] hover:bg-blue-800 text-white text-[13px] font-semibold px-4 pt-2 pb-2.5 rounded-tl-2xl transition-colors flex items-center justify-center">
+            Xem chi tiết
+          </div>
+        </div>
       </Link>
     </div>
   )

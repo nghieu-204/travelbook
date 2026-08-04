@@ -20,6 +20,12 @@ const updateProfile = async (req, res) => {
             );
         }
 
+        // Cập nhật tên và avatar trong bảng reviews để mọi đánh giá cũ đều hiển thị ảnh/tên mới
+        await pool.query(
+            'UPDATE reviews SET user_name = ?, user_avatar = ? WHERE user_id = ?',
+            [name, avatar || null, userId]
+        );
+
         const [rows] = await pool.query('SELECT id, name, email, role, avatar, address, phone, status, is_active FROM users WHERE id = ?', [userId]);
         res.json({
             message: "🎉 Cập nhật thông tin cá nhân thành công!",

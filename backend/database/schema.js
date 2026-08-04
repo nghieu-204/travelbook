@@ -125,7 +125,7 @@ async function initSchema() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
-        // 2. Bảng Region (Cấp 2 - Vùng miền)
+        // 2. Bảng Region (Cấp 2 - Vùng miền / Châu lục)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS Region (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -136,15 +136,28 @@ async function initSchema() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
+        // 2.5 Bảng Country (Cấp trung gian cho Quốc tế)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS Country (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                region_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (region_id) REFERENCES Region(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
         // 3. Bảng Destination (Cấp 3 - Điểm đến)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS Destination (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                region_id INT NOT NULL,
+                region_id INT NULL,
+                country_id INT NULL,
                 name VARCHAR(255) NOT NULL,
                 image_url VARCHAR(500) NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (region_id) REFERENCES Region(id) ON DELETE CASCADE
+                FOREIGN KEY (region_id) REFERENCES Region(id) ON DELETE CASCADE,
+                FOREIGN KEY (country_id) REFERENCES Country(id) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 

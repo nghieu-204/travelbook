@@ -22,23 +22,14 @@ interface Country {
   name: string
 }
 
-interface Destination {
-  id: number
-  region_id: number | null
-  country_id: number | null
-  name: string
-}
-
-export default function DestinationsAdminPage() {
-  const [destinations, setDestinations] = useState<Destination[]>([])
-  const [regions, setRegions] = useState<Region[]>([])
+export default function CountriesAdminPage() {
   const [countries, setCountries] = useState<Country[]>([])
+  const [regions, setRegions] = useState<Region[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategoryId, setFilterCategoryId] = useState<number>(0)
   const [filterRegionId, setFilterRegionId] = useState<number>(0)
-  const [filterCountryId, setFilterCountryId] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -47,7 +38,6 @@ export default function DestinationsAdminPage() {
   const [editName, setEditName] = useState('')
   const [editCategoryId, setEditCategoryId] = useState<number>(0)
   const [editRegionId, setEditRegionId] = useState<number>(0)
-  const [editCountryId, setEditCountryId] = useState<number>(0)
   const [isSaving, setIsSaving] = useState(false)
 
   // Add state
@@ -55,16 +45,14 @@ export default function DestinationsAdminPage() {
   const [newName, setNewName] = useState('')
   const [newCategoryId, setNewCategoryId] = useState<number>(0)
   const [newRegionId, setNewRegionId] = useState<number>(0)
-  const [newCountryId, setNewCountryId] = useState<number>(0)
   const [isSavingNew, setIsSavingNew] = useState(false)
 
   const loadData = async () => {
     setIsLoading(true)
     try {
       const data = await fetchApi('/metadata')
-      setDestinations(data.destinations || [])
-      setRegions(data.regions || [])
       setCountries(data.countries || [])
+      setRegions(data.regions || [])
       setCategories(data.categories || [])
     } catch (error) {
       console.error("Failed to load metadata", error)
@@ -86,39 +74,26 @@ export default function DestinationsAdminPage() {
     if (!confirm('Bạn có chắc chắn muốn xóa điểm đến này?')) return
     
     try {
-      await fetchApi(`/admin/destinations/${id}`, { method: 'DELETE' })
-      setDestinations(prev => prev.filter(d => d.id !== id))
+      await fetchApi(`/admin/countries/${id}`, { method: 'DELETE' })
+      setCountries(prev => prev.filter(d => d.id !== id))
       alert('Đã xóa điểm đến thành công!')
     } catch (error: any) {
       alert(error.message || 'Có lỗi xảy ra khi xóa điểm đến!')
     }
   }
 
-  const startEdit = (dest: Destination) => {
+  const startEdit = (dest: Country) => {
     setEditingId(dest.id)
     setEditName(dest.name)
-    setEditRegionId(dest.region_id || 0)
-    setEditCountryId(dest.country_id || 0)
-    
-    // If it has a country_id, find region from country
-    if (dest.country_id) {
-      const country = countries.find(c => c.id === dest.country_id)
-      if (country) {
-        setEditRegionId(country.region_id)
-        const region = regions.find(r => r.id === country.region_id)
-        setEditCategoryId(region ? region.category_id : 0)
-      }
-    } else if (dest.region_id) {
-      const region = regions.find(r => r.id === dest.region_id)
-      setEditCategoryId(region ? region.category_id : 0)
-    }
+    setEditRegionId(dest.region_id)
+    const region = regions.find(r => r.id === dest.region_id)
+    setEditCategoryId(region ? region.category_id : 0)
   }
 
   const cancelEdit = () => {
     setEditingId(null)
     setEditName('')
     setEditRegionId(0)
-    setEditCountryId(0)
     setEditCategoryId(0)
   }
 
@@ -128,7 +103,7 @@ export default function DestinationsAdminPage() {
       return
     }
 
-    const isExist = destinations.some(
+    const isExist = countries.some(
       (d) => d.id !== id && d.name.toLowerCase() === editName.trim().toLowerCase()
     )
     if (isExist) {
@@ -136,31 +111,18 @@ export default function DestinationsAdminPage() {
       return
     }
 
-    const isInternational = categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes('quốc tế') || categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes('ngoài nước')
-    
-    if (isInternational && !editCountryId) {
-      alert('Vui lòng chọn Quốc gia!')
-      return
-    }
-
-    if (!isInternational && !editRegionId) {
-      alert('Vui lòng chọn Vùng miền!')
-      return
-    }
-
     setIsSaving(true)
     try {
-      await fetchApi(`/admin/destinations/${id}`, {
+      await fetchApi(`/admin/countries/${id}`, {
         method: 'PUT',
         data: {
           name: editName.trim(),
-          region_id: isInternational ? null : editRegionId,
-          country_id: isInternational ? editCountryId : null
+          region_id: editRegionId
         }
       })
       
-      setDestinations(prev => prev.map(d => 
-        d.id === id ? { ...d, name: editName.trim(), region_id: isInternational ? null : editRegionId, country_id: isInternational ? editCountryId : null } : d
+      setCountries(prev => prev.map(d => 
+        d.id === id ? { ...d, name: editName.trim(), region_id: editRegionId } : d
       ))
       setEditingId(null)
     } catch (error: any) {
@@ -176,7 +138,7 @@ export default function DestinationsAdminPage() {
       return
     }
     
-    const isExist = destinations.some(
+    const isExist = countries.some(
       (d) => d.name.toLowerCase() === newName.trim().toLowerCase()
     )
     if (isExist) {
@@ -184,35 +146,26 @@ export default function DestinationsAdminPage() {
       return
     }
 
-    const isInternational = categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes('quốc tế') || categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes('ngoài nước')
-
-    if (isInternational && !newCountryId) {
-      alert('Vui lòng chọn Quốc gia!')
-      return
-    }
-
-    if (!isInternational && !newRegionId) {
+    if (!newRegionId) {
       alert('Vui lòng chọn Vùng miền!')
       return
     }
 
     setIsSavingNew(true)
     try {
-      const res = await fetchApi('/admin/destinations', {
+      const res = await fetchApi('/admin/countries', {
         method: 'POST',
         data: {
           name: newName.trim(),
-          region_id: isInternational ? null : newRegionId,
-          country_id: isInternational ? newCountryId : null
+          region_id: newRegionId
         }
       })
       
       if (res && res.id) {
-        setDestinations(prev => [res, ...prev])
+        setCountries(prev => [res, ...prev])
         setIsAdding(false)
         setNewName('')
         setNewRegionId(0)
-        setNewCountryId(0)
         alert('Đã thêm điểm đến mới thành công!')
       }
     } catch (error: any) {
@@ -222,7 +175,7 @@ export default function DestinationsAdminPage() {
     }
   }
 
-  const filteredDestinations = destinations.filter(d => {
+  const filteredCountries = countries.filter(d => {
     const region = regions.find(r => r.id === d.region_id)
     const categoryId = region ? region.category_id : 0
     return d.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -230,8 +183,8 @@ export default function DestinationsAdminPage() {
       (filterCategoryId === 0 || categoryId === filterCategoryId)
   }).sort((a, b) => b.id - a.id) // Show newest first
 
-  const totalPages = Math.ceil(filteredDestinations.length / itemsPerPage)
-  const paginatedDestinations = filteredDestinations.slice(
+  const totalPages = Math.ceil(filteredCountries.length / itemsPerPage)
+  const paginatedCountries = filteredCountries.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
@@ -327,7 +280,6 @@ export default function DestinationsAdminPage() {
                         onChange={(e) => {
                           setNewCategoryId(Number(e.target.value))
                           setNewRegionId(0)
-                          setNewCountryId(0)
                         }}
                         className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
                       >
@@ -338,10 +290,7 @@ export default function DestinationsAdminPage() {
                       </select>
                       <select 
                         value={newRegionId}
-                        onChange={(e) => {
-                          setNewRegionId(Number(e.target.value))
-                          setNewCountryId(0)
-                        }}
+                        onChange={(e) => setNewRegionId(Number(e.target.value))}
                         className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
                         disabled={!newCategoryId}
                       >
@@ -350,19 +299,6 @@ export default function DestinationsAdminPage() {
                           <option key={r.id} value={r.id}>{r.name}</option>
                         ))}
                       </select>
-                      {(categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes('quốc tế') || categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes('ngoài nước')) && (
-                        <select 
-                          value={newCountryId}
-                          onChange={(e) => setNewCountryId(Number(e.target.value))}
-                          className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                          disabled={!newRegionId}
-                        >
-                          <option value={0}>-- Chọn Quốc gia --</option>
-                          {countries.filter(c => c.region_id === newRegionId).map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -387,18 +323,16 @@ export default function DestinationsAdminPage() {
                   </td>
                 </tr>
               )}
-              {filteredDestinations.length === 0 && !isAdding ? (
+              {filteredCountries.length === 0 && !isAdding ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
                     Không tìm thấy điểm đến nào.
                   </td>
                 </tr>
               ) : (
-                paginatedDestinations.map(dest => {
+                paginatedCountries.map(dest => {
                   const isEditing = editingId === dest.id
-                  const country = countries.find(c => c.id === dest.country_id)
-                  const region = regions.find(r => r.id === (country ? country.region_id : dest.region_id))
-                  const locationName = country ? `${country.name} (${region?.name || 'Không rõ'})` : (region?.name || 'Không rõ')
+                  const regionName = regions.find(r => r.id === dest.region_id)?.name || 'Không rõ'
 
                   return (
                     <tr key={dest.id} className="border-b border-slate-800 hover:bg-slate-800/30 transition-colors">
@@ -426,7 +360,6 @@ export default function DestinationsAdminPage() {
                               onChange={(e) => {
                                 setEditCategoryId(Number(e.target.value))
                                 setEditRegionId(0)
-                                setEditCountryId(0)
                               }}
                               className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
                             >
@@ -437,10 +370,7 @@ export default function DestinationsAdminPage() {
                             </select>
                             <select 
                               value={editRegionId}
-                              onChange={(e) => {
-                                setEditRegionId(Number(e.target.value))
-                                setEditCountryId(0)
-                              }}
+                              onChange={(e) => setEditRegionId(Number(e.target.value))}
                               className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
                               disabled={!editCategoryId}
                             >
@@ -449,23 +379,10 @@ export default function DestinationsAdminPage() {
                                 <option key={r.id} value={r.id}>{r.name}</option>
                               ))}
                             </select>
-                            {(categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes('quốc tế') || categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes('ngoài nước')) && (
-                              <select 
-                                value={editCountryId}
-                                onChange={(e) => setEditCountryId(Number(e.target.value))}
-                                className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                                disabled={!editRegionId}
-                              >
-                                <option value={0}>-- Chọn Quốc gia --</option>
-                                {countries.filter(c => c.region_id === editRegionId).map(c => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                              </select>
-                            )}
                           </div>
                         ) : (
                           <span className="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 text-xs font-medium">
-                            {locationName}
+                            {regionName}
                           </span>
                         )}
                       </td>

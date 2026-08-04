@@ -244,6 +244,7 @@ const getMetadata = async (req, res) => {
     try {
         const [categories] = await pool.query('SELECT * FROM tourcategory');
         const [regions] = await pool.query('SELECT * FROM region');
+        const [countries] = await pool.query('SELECT * FROM Country');
         const [destinations] = await pool.query('SELECT * FROM destination');
         
         let tourTypes = [];
@@ -255,20 +256,56 @@ const getMetadata = async (req, res) => {
             occasions = occasionsRes;
         } catch(e) { console.error("Could not fetch tags", e.message); }
         
-        res.json({ categories, regions, destinations, tourTypes, occasions });
+        res.json({ categories, regions, countries, destinations, tourTypes, occasions });
     } catch (error) {
         console.error("Lỗi getMetadata:", error);
         res.status(500).json({ message: "Lỗi tải metadata" });
     }
 };
 
-const createDestination = async (req, res) => {
+const createCountry = async (req, res) => {
     try {
         const { name, region_id } = req.body;
         if (!name || !region_id) return res.status(400).json({ message: "Thiếu dữ liệu" });
-        const [result] = await pool.query('INSERT INTO destination (name, region_id) VALUES (?, ?)', [name, region_id]);
+        const [result] = await pool.query('INSERT INTO Country (name, region_id) VALUES (?, ?)', [name, region_id]);
         res.status(201).json({ id: result.insertId, name, region_id });
     } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi tạo quốc gia" });
+    }
+};
+
+const updateCountry = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, region_id } = req.body;
+        await pool.query('UPDATE Country SET name=?, region_id=? WHERE id=?', [name, region_id, id]);
+        res.json({ id, name, region_id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi sửa quốc gia" });
+    }
+};
+
+const deleteCountry = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('DELETE FROM Country WHERE id=?', [id]);
+        res.json({ message: "Xóa quốc gia thành công" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi khi xóa quốc gia" });
+    }
+};
+
+const createDestination = async (req, res) => {
+    try {
+        const { name, region_id, country_id } = req.body;
+        if (!name) return res.status(400).json({ message: "Thiếu tên điểm đến" });
+        const [result] = await pool.query('INSERT INTO destination (name, region_id, country_id) VALUES (?, ?, ?)', [name, region_id || null, country_id || null]);
+        res.status(201).json({ id: result.insertId, name, region_id: region_id || null, country_id: country_id || null });
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ message: "Lỗi tạo điểm đến" });
     }
 };
@@ -276,10 +313,11 @@ const createDestination = async (req, res) => {
 const updateDestination = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, region_id } = req.body;
-        await pool.query('UPDATE destination SET name=?, region_id=? WHERE id=?', [name, region_id, id]);
-        res.json({ id, name, region_id });
+        const { name, region_id, country_id } = req.body;
+        await pool.query('UPDATE destination SET name=?, region_id=?, country_id=? WHERE id=?', [name, region_id || null, country_id || null, id]);
+        res.json({ id, name, region_id: region_id || null, country_id: country_id || null });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: "Lỗi sửa điểm đến" });
     }
 };
@@ -337,6 +375,7 @@ const deleteTag = async (req, res) => {
 module.exports = {
     getTours, getTourById, seedData, createTour, updateTour, updateTourStatus, deleteTour,
     getMetadata,
+    createCountry, updateCountry, deleteCountry,
     createDestination, updateDestination, deleteDestination,
     createTag, updateTag, deleteTag
 };

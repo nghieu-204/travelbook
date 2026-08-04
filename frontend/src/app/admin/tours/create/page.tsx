@@ -30,7 +30,9 @@ export default function CreateTourV2() {
   
   const [categoryId, setCategoryId] = useState('')
   const [regionId, setRegionId] = useState('')
-  const [destinationId, setDestinationId] = useState('')
+  const [countryId, setCountryId] = useState('')
+  const [selectedDestinations, setSelectedDestinations] = useState<number[]>([])
+  const [primaryDestinationId, setPrimaryDestinationId] = useState<number | null>(null)
 
   const [title, setTitle] = useState('')
   const [tourCode, setTourCode] = useState('')
@@ -71,28 +73,62 @@ export default function CreateTourV2() {
         setRegionId(filteredRegions[0].id.toString())
       } else {
         setRegionId('')
-        setDestinationId('')
+        setCountryId('')
+        setSelectedDestinations([])
       }
     }
   }, [categoryId, metadata.regions])
 
   useEffect(() => {
-    if (destinationId && metadata.destinations?.length > 0) {
-      const dest = metadata.destinations.find((d: any) => d.id.toString() === destinationId)
+    if (regionId && metadata.countries) {
+      const isInternational = metadata.categories?.find((c: any) => c.id.toString() === categoryId)?.name.toLowerCase().includes('quốc tế') || metadata.categories?.find((c: any) => c.id.toString() === categoryId)?.name.toLowerCase().includes('ngoài nước')
+      if (isInternational) {
+        const filteredCountries = metadata.countries.filter((c: any) => c.region_id.toString() === regionId)
+        if (filteredCountries.length > 0) {
+          setCountryId(filteredCountries[0].id.toString())
+        } else {
+          setCountryId('')
+        }
+      } else {
+        setCountryId('')
+      }
+    }
+  }, [regionId, categoryId, metadata.countries])
+
+  useEffect(() => {
+    if (selectedDestinations.length > 0 && metadata.destinations?.length > 0) {
+      if (!primaryDestinationId || !selectedDestinations.includes(primaryDestinationId)) {
+        setPrimaryDestinationId(selectedDestinations[0])
+      }
+      const firstDestId = primaryDestinationId || selectedDestinations[0]
+      const dest = metadata.destinations.find((d: any) => d.id === firstDestId)
       if (dest) {
-        setRegionId(dest.region_id.toString())
-        const reg = metadata.regions?.find((r: any) => r.id === dest.region_id)
-        if (reg) {
-          setCategoryId(reg.category_id.toString())
+        if (dest.country_id) {
+          setCountryId(dest.country_id.toString())
+          const c = metadata.countries?.find((c: any) => c.id === dest.country_id)
+          if (c) {
+            setRegionId(c.region_id.toString())
+            const reg = metadata.regions?.find((r: any) => r.id === c.region_id)
+            if (reg) {
+              setCategoryId(reg.category_id.toString())
+            }
+          }
+        } else if (dest.region_id) {
+          setRegionId(dest.region_id.toString())
+          const reg = metadata.regions?.find((r: any) => r.id === dest.region_id)
+          if (reg) {
+            setCategoryId(reg.category_id.toString())
+          }
         }
       }
     }
-  }, [destinationId, metadata])
+  }, [selectedDestinations, primaryDestinationId, metadata])
 
   // Auto-generate Tour Code
   useEffect(() => {
-    if (destinationId && startDate && !tourCode) {
-      const dest = metadata.destinations?.find((d: any) => d.id.toString() === destinationId);
+    if (selectedDestinations.length > 0 && startDate && !tourCode) {
+      const firstDestId = primaryDestinationId || selectedDestinations[0]
+      const dest = metadata.destinations?.find((d: any) => d.id === firstDestId);
       const destName = dest ? dest.name : 'TOUR';
       
       const cleanName = destName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -110,7 +146,7 @@ export default function CreateTourV2() {
       
       setTourCode(`${destAbbr}-${ddmm}-${random}`);
     }
-  }, [destinationId, startDate, tourCode, metadata.destinations]);
+  }, [selectedDestinations, startDate, tourCode, metadata.destinations]);
 
   const handlePriceAdultChange = (val: string) => {
     const raw = val.replace(/\D/g, '');
@@ -154,7 +190,7 @@ export default function CreateTourV2() {
   const handleSave = async () => {
     if (!title.trim()) { alert('Vui lòng nhập Tên Tour!'); return; }
     if (!priceAdultStr) { alert('Vui lòng nhập Giá người lớn!'); return; }
-    if (!destinationId) { alert('Vui lòng chọn Điểm đến!'); return; }
+    if (selectedDestinations.length === 0) { alert('Vui lòng chọn Điểm đến!'); return; }
     if (!mainImage) { alert('Vui lòng chọn ảnh đại diện!'); return; }
     if (Number(nights) > Number(days)) { alert('Số đêm không thể lớn hơn số ngày!'); return; }
 
@@ -178,7 +214,8 @@ export default function CreateTourV2() {
 
       const payload = {
         name: title,
-        destination_id: Number(destinationId),
+        destinations: JSON.stringify(selectedDestinations),
+        primary_destination_id: primaryDestinationId,
         price: Number(priceAdultStr.replace(/\D/g, '')),
         child_price: Number(priceChildStr.replace(/\D/g, '') || '0'),
         available_spots: Number(maxSeats || '30'),
@@ -208,7 +245,16 @@ export default function CreateTourV2() {
   }
 
   const filteredRegions = metadata.regions?.filter((r: any) => r.category_id.toString() === categoryId) || []
-  const filteredDestinations = metadata.destinations?.filter((d: any) => d.region_id.toString() === regionId) || []
+  const isInternational = metadata.categories?.find((c: any) => c.id.toString() === categoryId)?.name.toLowerCase().includes('quốc tế') || metadata.categories?.find((c: any) => c.id.toString() === categoryId)?.name.toLowerCase().includes('ngoài nước')
+  const filteredCountries = isInternational ? (metadata.countries?.filter((c: any) => c.region_id.toString() === regionId) || []) : []
+  
+  const filteredDestinations = metadata.destinations?.filter((d: any) => {
+    if (isInternational) {
+       return d.country_id?.toString() === countryId
+    } else {
+       return d.region_id?.toString() === regionId
+    }
+  }) || []
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -240,7 +286,7 @@ export default function CreateTourV2() {
               <Map className="w-5 h-5 text-blue-500" />
               <h2 className="text-lg font-bold text-white">Khối 1: Phân loại & Vị trí</h2>
             </div>
-            <div className="p-6 grid grid-cols-3 gap-6">
+            <div className={`p-6 grid gap-6 ${isInternational ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Loại Tour (Cấp 1)</label>
                 <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
@@ -248,16 +294,52 @@ export default function CreateTourV2() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Vùng miền (Cấp 2)</label>
+                <label className="block text-sm font-medium text-slate-400 mb-2">Châu lục / Vùng (Cấp 2)</label>
                 <select value={regionId} onChange={e => setRegionId(e.target.value)} disabled={!categoryId || filteredRegions.length === 0} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50">
                   {filteredRegions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               </div>
+              
+              {isInternational && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Quốc gia (Cấp 3)</label>
+                  <select value={countryId} onChange={e => setCountryId(e.target.value)} disabled={!regionId || filteredCountries.length === 0} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50">
+                    {filteredCountries.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
+              
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Điểm đến (Cấp 3)</label>
-                <select value={destinationId} onChange={e => setDestinationId(e.target.value)} disabled={!regionId || filteredDestinations.length === 0} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50">
-                  {filteredDestinations.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
+                <MultiSelectDropdown
+                  label={`Điểm đến (Cấp ${isInternational ? '4' : '3'})`}
+                  placeholder="Tìm và chọn điểm đến..."
+                  options={filteredDestinations.map((d: any) => ({ id: d.id, label: d.name }))}
+                  selectedIds={selectedDestinations}
+                  onChange={(ids) => setSelectedDestinations(ids as number[])}
+                />
+                
+                {selectedDestinations.length > 1 && (
+                  <div className="mt-3 p-3 bg-[#1e293b] border border-slate-700 rounded-xl">
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Chọn Điểm đến chính (Primary):</label>
+                    <div className="space-y-2">
+                      {selectedDestinations.map(destId => {
+                        const dest = metadata.destinations?.find((d: any) => d.id === destId);
+                        return dest ? (
+                          <label key={destId} className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white">
+                            <input 
+                              type="radio" 
+                              name="primaryDestination" 
+                              checked={primaryDestinationId === destId}
+                              onChange={() => setPrimaryDestinationId(destId)}
+                              className="text-blue-500 focus:ring-blue-500 bg-slate-700 border-slate-600"
+                            />
+                            <span className="text-sm">{dest.name}</span>
+                          </label>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </section>

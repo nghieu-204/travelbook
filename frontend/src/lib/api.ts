@@ -55,6 +55,7 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
              const { useAdminAuthStore } = await import('@/store/useAdminAuthStore');
              useAdminAuthStore.getState().logout();
              window.location.href = '/admin/login';
+             return new Promise(() => {}); // Prevent throwing error while redirecting
           } else {
              const { useAuthStore } = await import('@/store/useAuthStore');
              useAuthStore.getState().logout();

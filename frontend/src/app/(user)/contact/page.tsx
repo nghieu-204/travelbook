@@ -108,31 +108,28 @@ export default function ContactPage() {
              priority
            />
         </div>
-        <div className="container mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center justify-between mt-10">
+        <div className="container mx-auto px-4 relative z-10 flex items-center justify-between mt-10">
           <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">Liên hệ</h1>
-          <div className="flex items-center gap-2 text-slate-300 mt-4 md:mt-0 font-medium">
-            <Link href="/" className="hover:text-white transition-colors">Trang chủ</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-white">Liên hệ</span>
-          </div>
         </div>
       </section>
 
       {/* Khối 1: Header / Contact Info Cards */}
-      <section className="py-20 bg-slate-50">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
             {/* Left side text */}
-            <div className="space-y-8">
-              <h2 className="text-4xl md:text-5xl font-bold text-slate-800 leading-tight">
+            <div className="space-y-6">
+              <h2 className="text-4xl md:text-[42px] font-bold text-slate-800 leading-[1.2]">
                 Hãy Nói Chuyện Với Các Hướng Dẫn Viên Du Lịch Chuyên Nghiệp Của Chúng Tôi
               </h2>
-              <p className="text-slate-600 text-lg leading-relaxed">
-                Đội ngũ hỗ trợ tận tâm của chúng tôi luôn sẵn sàng hỗ trợ bạn giải đáp mọi thắc mắc hoặc vấn đề, cung cấp các giải pháp nhanh chóng và được cá nhân hóa để đáp ứng nhu cầu của bạn.
+              <p className="text-slate-500 text-sm leading-relaxed">
+                Đội ngũ hỗ trợ tận tâm của chúng tôi luôn sẵn sàng hỗ trợ bạn giải
+                đáp mọi thắc mắc hoặc vấn đề, cung cấp các giải pháp nhanh chóng
+                và được cá nhân hóa để đáp ứng nhu cầu của bạn.
               </p>
               
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 max-w-sm">
-                <h4 className="font-bold text-slate-800 mb-4">85+ Thành viên nhóm chuyên gia</h4>
+                <h4 className="font-bold text-slate-800 mb-4 text-sm">85+ Thành viên nhóm chuyên gia</h4>
                 <div className="flex items-center -space-x-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="https://ui-avatars.com/api/?name=John&background=random" alt="Avatar" className="w-10 h-10 rounded-full border-2 border-white object-cover" />
@@ -152,50 +149,48 @@ export default function ContactPage() {
             </div>
 
             {/* Right side grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Card 1 */}
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+              <div className="bg-[#F9FAFB] p-6 rounded-xl hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-5">
                   <Mail className="w-5 h-5" />
                 </div>
-                <h4 className="font-bold text-slate-800 mb-2 text-lg">Cần trợ giúp và hỗ trợ</h4>
-                <p className="text-slate-500 font-medium flex items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" alt="Gmail" className="w-4 h-4 shrink-0" /> 
-                  travelbook.cskh@gmail.com
+                <h4 className="font-bold text-slate-800 mb-2 text-[15px]">Cần trợ giúp và hỗ trợ</h4>
+                <p className="text-slate-500 font-medium flex items-center gap-2 text-[13px]">
+                  <Mail className="w-3.5 h-3.5 shrink-0" /> travelbook.cskh@gmail.com
                 </p>
               </div>
               
               {/* Card 2 */}
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+              <div className="bg-[#F9FAFB] p-6 rounded-xl hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-5">
                   <Phone className="w-5 h-5" />
                 </div>
-                <h4 className="font-bold text-slate-800 mb-2 text-lg">Cần bất kỳ việc khẩn cấp nào</h4>
-                <p className="text-slate-500 font-medium flex items-center gap-2">
-                  <Phone className="w-4 h-4" /> 0397 694 225
+                <h4 className="font-bold text-slate-800 mb-2 text-[15px]">Cần bất kỳ việc khẩn cấp nào</h4>
+                <p className="text-slate-500 font-medium flex items-center gap-2 text-[13px]">
+                  <Phone className="w-3.5 h-3.5 shrink-0" /> 0397 694 225
                 </p>
               </div>
 
               {/* Card 3 */}
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+              <div className="bg-[#F9FAFB] p-6 rounded-xl hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-5">
                   <MapPin className="w-5 h-5" />
                 </div>
-                <h4 className="font-bold text-slate-800 mb-2 text-lg">Văn phòng chính</h4>
-                <p className="text-slate-500 font-medium flex items-start gap-2">
-                  <MapPin className="w-4 h-4 mt-1 shrink-0" /> 180 Ỷ La, Dương Nội, Hà Đông
+                <h4 className="font-bold text-slate-800 mb-2 text-[15px]">Văn phòng chính</h4>
+                <p className="text-slate-500 font-medium flex items-start gap-2 text-[13px]">
+                  <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /> 180 Ỷ La, Dương Nội, Hà Đông
                 </p>
               </div>
 
               {/* Card 4 */}
-              <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6">
+              <div className="bg-[#F9FAFB] p-6 rounded-xl hover:shadow-md transition-shadow">
+                <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-5">
                   <MapPin className="w-5 h-5" />
                 </div>
-                <h4 className="font-bold text-slate-800 mb-2 text-lg">Đại học Phenikaa</h4>
-                <p className="text-slate-500 font-medium flex items-start gap-2">
-                  <MapPin className="w-4 h-4 mt-1 shrink-0" /> Phường Yên Nghĩa, Hà Đông, Hà Nội
+                <h4 className="font-bold text-slate-800 mb-2 text-[15px]">Đại học Phenikaa</h4>
+                <p className="text-slate-500 font-medium flex items-start gap-2 text-[13px]">
+                  <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" /> Phường Yên Nghĩa, Hà Đông, Hà Nội
                 </p>
               </div>
             </div>
@@ -205,8 +200,8 @@ export default function ContactPage() {
 
       {/* Khối 2: Form & Image Collage */}
       <section ref={section2Ref} className="py-20 bg-[#F4F5F4] overflow-hidden">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             
             {/* Form */}
             <div className={`transition-all duration-1000 transform ${showSection2 ? 'translate-x-0 opacity-100' : '-translate-x-20 opacity-0'}`}>
@@ -215,7 +210,7 @@ export default function ContactPage() {
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Họ và tên</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Họ và tên <span className="text-red-500">*</span></label>
                   <input 
                     type="text" 
                     name="name"
@@ -229,7 +224,7 @@ export default function ContactPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Email <span className="text-red-500">*</span></label>
                     <input 
                       type="email" 
                       name="email"
@@ -241,7 +236,7 @@ export default function ContactPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Số điện thoại</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Số điện thoại <span className="text-red-500">*</span></label>
                     <input 
                       type="tel" 
                       name="phone"
@@ -256,7 +251,7 @@ export default function ContactPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Chủ đề (Subject)</label>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Chủ đề (Subject) <span className="text-red-500">*</span></label>
                     <input 
                       type="text" 
                       name="subject"
@@ -280,7 +275,7 @@ export default function ContactPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nội dung tư vấn</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nội dung tư vấn <span className="text-red-500">*</span></label>
                   <textarea 
                     name="message"
                     required

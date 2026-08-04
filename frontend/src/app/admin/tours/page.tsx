@@ -57,7 +57,7 @@ export default function AdminTours() {
   }
 
   // Derive unique locations for filter dropdown
-  const locations = Array.from(new Set(tours.map(t => t.location || 'Chưa cập nhật').filter(Boolean)))
+  const locations = Array.from(new Set(tours.map(t => t.destinations?.map((d: any) => d.name).join(' - ') || 'Chưa cập nhật').filter(Boolean)))
 
   // Apply Filters
   const filteredTours = tours.filter(tour => {
@@ -67,7 +67,7 @@ export default function AdminTours() {
     const searchLower = searchTerm.toLowerCase()
     const matchesSearch = tourName.includes(searchLower) || tourId.includes(searchTerm) || tourCode.includes(searchLower)
     
-    const location = tour.location || 'Chưa cập nhật'
+    const location = tour.destinations?.map((d: any) => d.name).join(' - ') || 'Chưa cập nhật'
     const matchesLocation = filterLocation === 'All' || location === filterLocation
 
     const status = tour.status || 'Active'
@@ -185,7 +185,7 @@ export default function AdminTours() {
                     <td className="p-4 font-medium text-white max-w-[300px] truncate" title={tour.name || tour.title}>
                       {tour.name || tour.title}
                     </td>
-                    <td className="p-4">{tour.location || 'Chưa cập nhật'}</td>
+                    <td className="p-4">{tour.destinations?.map((d: any) => d.name).join(' - ') || 'Chưa cập nhật'}</td>
                     <td className="p-4 text-slate-400 text-sm whitespace-nowrap">
                       {startDate} - {endDate}
                     </td>
