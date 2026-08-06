@@ -88,6 +88,7 @@ export default function BookingsPage() {
         'completed': 'Đã hoàn thành',
         'confirmed': 'Đã xác nhận',
         'pending': 'Đang chờ xác nhận',
+        'in_progress': 'Đang diễn ra',
         'cancelled': 'Hủy'
       }
       if (statusMap[statusFilter]) {
@@ -125,13 +126,13 @@ export default function BookingsPage() {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
+      setOpenDropdownId(null) // Đóng ngay lập tức để phản hồi click và tránh click đúp
       await fetchApi(`/admin/bookings/${id}/status`, {
         method: 'PUT',
         data: { status }
       })
       // Cập nhật state nội bộ
       setAllBookings(prev => prev.map(b => b.id === id ? { ...b, bookingStatus: status } : b))
-      setOpenDropdownId(null)
       alert(`Đã cập nhật đơn hàng thành: ${status}`)
     } catch (err: any) {
       alert('Có lỗi xảy ra: ' + err.message)
@@ -140,13 +141,13 @@ export default function BookingsPage() {
 
   const handleUpdatePaymentStatus = async (id: string, payment_status: string) => {
     try {
+      setOpenDropdownId(null) // Đóng ngay lập tức để phản hồi click và tránh click đúp
       await fetchApi(`/admin/bookings/${id}/payment-status`, {
         method: 'PUT',
         data: { payment_status }
       })
       // Cập nhật state nội bộ
       setAllBookings(prev => prev.map(b => b.id === id ? { ...b, paymentStatus: payment_status } : b))
-      setOpenDropdownId(null)
       alert(`Đã xác nhận thanh toán thành công!`)
     } catch (err: any) {
       alert('Có lỗi xảy ra: ' + err.message)
@@ -246,8 +247,8 @@ export default function BookingsPage() {
         return <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đã hoàn thành</span>
       case 'Đã xác nhận':
         return <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đã xác nhận</span>
-      case 'Đang thực hiện':
-        return <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đang thực hiện</span>
+      case 'Đang diễn ra':
+        return <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đang diễn ra</span>
       case 'Đang chờ xác nhận':
         return <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đang chờ xác nhận</span>
       case 'Hủy':
@@ -476,6 +477,7 @@ export default function BookingsPage() {
                 <option value="all">Tất cả trạng thái</option>
                 <option value="completed">Đã hoàn thành</option>
                 <option value="confirmed">Đã xác nhận</option>
+                <option value="in_progress">Đang diễn ra</option>
                 <option value="pending">Đang chờ xác nhận</option>
                 <option value="cancelled">Đã hủy</option>
               </select>
@@ -577,7 +579,7 @@ export default function BookingsPage() {
                               </button>
 
                               {/* Separator */}
-                              {(booking.bookingStatus === 'Đang chờ xác nhận' || booking.bookingStatus === 'Đã xác nhận' || booking.bookingStatus === 'Đang thực hiện' || booking.bookingStatus === 'Hủy' || (booking.paymentMethod === 'Thanh toán trực tiếp' && booking.paymentStatus !== 'Đã thanh toán')) && (
+                              {(booking.bookingStatus === 'Đang chờ xác nhận' || booking.bookingStatus === 'Đã xác nhận' || booking.bookingStatus === 'Đang diễn ra' || booking.bookingStatus === 'Hủy' || (booking.paymentMethod === 'Thanh toán trực tiếp' && booking.paymentStatus !== 'Đã thanh toán')) && (
                                 <div className="border-t border-slate-700 my-1"></div>
                               )}
 
@@ -598,20 +600,9 @@ export default function BookingsPage() {
                                 </>
                               )}
 
-                              {booking.bookingStatus === 'Đã xác nhận' && (
-                                <>
-                                  <button onClick={() => handleUpdateStatus(booking.id, 'Đang thực hiện')} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-purple-400 hover:bg-slate-700 transition-colors">
-                                    <Rocket className="w-4 h-4" /> Bắt đầu Tour
-                                  </button>
-                                  <button onClick={() => { if(window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) handleUpdateStatus(booking.id, 'Hủy') }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
-                                    <XCircle className="w-4 h-4" /> Hủy đơn
-                                  </button>
-                                </>
-                              )}
-
-                              {booking.bookingStatus === 'Đang thực hiện' && (
-                                <button onClick={() => handleUpdateStatus(booking.id, 'Đã hoàn thành')} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-emerald-400 hover:bg-slate-700 transition-colors">
-                                  <Flag className="w-4 h-4" /> Hoàn thành Tour
+                              {(booking.bookingStatus === 'Đã xác nhận' || booking.bookingStatus === 'Đang diễn ra') && (
+                                <button onClick={() => { if(window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) handleUpdateStatus(booking.id, 'Hủy') }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
+                                  <XCircle className="w-4 h-4" /> Hủy đơn
                                 </button>
                               )}
 

@@ -124,13 +124,46 @@ const getBookingsByUser = async (req, res) => {
         // ---------------------------------------------------
 
         const [rows] = await pool.query(`
-            SELECT b.*, t.image as tour_image 
+            SELECT b.*, t.image as tour_image, t.duration
             FROM bookings b 
             LEFT JOIN tours t ON b.tour_id = t.id 
             WHERE b.user_id = ? 
             ORDER BY b.created_at DESC
         `, [userId]);
-        res.json(rows);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const processedRows = rows.map(booking => {
+            if (booking.status === 'Hủy' || booking.status === 'Đang chờ xác nhận') {
+                return booking;
+            }
+
+            if (booking.departure_date) {
+                const startDate = new Date(booking.departure_date);
+                startDate.setHours(0, 0, 0, 0);
+
+                let endDate = new Date(startDate);
+                if (booking.duration) {
+                    const daysMatch = booking.duration.match(/(\d+)\s*ngày/i);
+                    if (daysMatch && daysMatch[1]) {
+                        const days = parseInt(daysMatch[1]);
+                        endDate.setDate(endDate.getDate() + days - 1);
+                    }
+                }
+
+                if (today < startDate) {
+                    booking.status = 'Đã xác nhận';
+                } else if (today >= startDate && today <= endDate) {
+                    booking.status = 'Đang diễn ra';
+                } else if (today > endDate) {
+                    booking.status = 'Đã hoàn thành';
+                }
+            }
+            return booking;
+        });
+
+        res.json(processedRows);
     } catch (error) {
         console.error("Lỗi lấy lịch sử đặt tour:", error.message);
         res.json([]);

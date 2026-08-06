@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const reviewController = require('../../controllers/user/reviewController');
 
+// Route lấy danh sách testimonial cho trang chủ
+router.get('/reviews/testimonials', reviewController.getTestimonials);
+
 // Route kiểm tra điều kiện đánh giá (chỉ sau khi đặt hàng và trải nghiệm)
 router.get('/reviews/check-eligibility', reviewController.checkEligibility);
 

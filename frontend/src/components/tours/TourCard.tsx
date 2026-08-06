@@ -11,14 +11,29 @@ export interface Tour {
   reviews: number
   duration: string
   image: string
+  category?: string
+  region?: string
+  province?: string
+  country?: string
 }
 
+import { generateSlug } from '@/lib/utils'
+
 export default function TourCard({ tour }: { tour: Tour }) {
-  // Randomize tag between Tiêu chuẩn and Tiết kiệm based on ID
-  const isBudget = tour.id % 3 === 0;
+
+  // Generate SEO URL
+  let href = `/tours/${tour.id}`
+  if (tour.category && tour.region && tour.country && tour.province) {
+    href = `/${generateSlug(tour.category)}/${generateSlug(tour.region)}/${generateSlug(tour.country)}/${generateSlug(tour.province)}/${generateSlug(tour.name)}-${tour.id}`
+  } else if (tour.category && tour.region && tour.province) {
+    href = `/${generateSlug(tour.category)}/${generateSlug(tour.region)}/${generateSlug(tour.province)}/${generateSlug(tour.name)}-${tour.id}`
+  } else if (tour.category && tour.region) {
+    href = `/${generateSlug(tour.category)}/${generateSlug(tour.region)}/${generateSlug(tour.name)}-${tour.id}`
+  }
+  
   return (
     <div className="flex justify-center w-full h-full">
-      <Link href={`/tours/${tour.id}`}
+      <Link href={href}
         className="group bg-white rounded-xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 border border-slate-200 relative flex flex-col h-full w-full max-w-[320px]"
       >
 
@@ -30,16 +45,6 @@ export default function TourCard({ tour }: { tour: Tour }) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
 
-          {/* Top Left Badge */}
-          {isBudget ? (
-            <div className="absolute top-4 left-4 bg-purple-50/95 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[13px] font-bold text-purple-700 shadow-sm z-20">
-              Tiết kiệm
-            </div>
-          ) : (
-            <div className="absolute top-4 left-4 bg-blue-50/95 backdrop-blur-md px-3.5 py-1.5 rounded-full text-[13px] font-bold text-[#0046b8] shadow-sm z-20">
-              Tiêu chuẩn
-            </div>
-          )}
 
           {/* Xem nhanh badge placed dynamically above the info box overlap */}
           <div className="absolute bottom-6 right-3 z-30">

@@ -227,7 +227,7 @@ export default function TourInfo({ tour }: { tour?: any }) {
                   </h3>
                   <div className="flex items-center gap-1.5 text-slate-500 text-sm">
                     <Utensils className="w-4 h-4" />
-                    <span>Ăn sáng, trưa, tối</span>
+                    <span>{Array.isArray(item.meals) && item.meals.length > 0 ? item.meals.join(', ') : (item.meals && typeof item.meals === 'string' ? item.meals : 'Ăn sáng, trưa, tối')}</span>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-slate-400 shrink-0 group-hover:text-blue-600 transition-colors" />
@@ -394,7 +394,7 @@ export default function TourInfo({ tour }: { tour?: any }) {
                       </div>
                     </div>
                     
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="rounded-3xl border border-slate-100 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
                         {/* Card Top */}
                         <div className="flex flex-col-reverse md:flex-row bg-blue-50">
@@ -405,7 +405,7 @@ export default function TourInfo({ tour }: { tour?: any }) {
                             <h4 className="text-slate-900 font-bold text-lg md:text-xl mb-2">{item.title}</h4>
                             <div className="flex items-center gap-1.5 text-slate-500 text-sm font-medium">
                               <Utensils className="w-4 h-4" />
-                              <span>Ăn sáng, trưa, tối</span>
+                              <span>{Array.isArray(item.meals) && item.meals.length > 0 ? item.meals.join(', ') : (item.meals && typeof item.meals === 'string' ? item.meals : 'Ăn sáng, trưa, tối')}</span>
                             </div>
                           </div>
                           {item.image && (
@@ -420,9 +420,13 @@ export default function TourInfo({ tour }: { tour?: any }) {
                         </div>
                         
                         {/* Card Bottom */}
-                        <div className="p-6 md:p-8 bg-white text-slate-600 leading-relaxed text-sm md:text-base whitespace-pre-line border-t border-blue-100/50">
+                        <div className="p-4 md:p-6 bg-white text-slate-600 leading-relaxed text-sm md:text-base border-t border-blue-100/50 break-words overflow-x-auto">
                           <p className="font-semibold text-slate-800 mb-3 text-base">Hoạt động chính:</p>
-                          {item.fullDetails || item.content}
+                          {item.description ? (
+                            <div className="[&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5" dangerouslySetInnerHTML={{ __html: item.description }} />
+                          ) : (
+                            <div className="whitespace-pre-line">{item.fullDetails || item.content}</div>
+                          )}
                         </div>
                       </div>
                     </div>

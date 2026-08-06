@@ -23,7 +23,10 @@ export default async function ToursPage({
   const maxPrice = maxPriceStr ? Number(maxPriceStr) : 99990000
   const minPriceStr = typeof params.minPrice === 'string' ? params.minPrice : ''
   const minPrice = minPriceStr ? Number(minPriceStr) : 0
-  const destinations = Array.isArray(params.destination) ? params.destination : params.destination ? [params.destination] : []
+  const destinations = Array.isArray(params.location) ? params.location : params.location ? [params.location] : []
+  console.log('[page.tsx] params.location:', params.location, 'parsed destinations:', destinations);
+  const tourTypes = Array.isArray(params.tourType) ? params.tourType : params.tourType ? [params.tourType] : []
+  const departureLocations = Array.isArray(params.departureLocation) ? params.departureLocation : params.departureLocation ? [params.departureLocation] : []
 
   const categoryStr = typeof params.category === 'string' ? params.category : ''
   const sort = typeof params.sort === 'string' ? params.sort : 'popular'
@@ -37,11 +40,19 @@ export default async function ToursPage({
   // Backend chỉ hỗ trợ 1 region tại 1 thời điểm trong controller hiện tại
   if (regions.length > 0) {
     const regionMap: Record<string, string> = { 'Bắc': 'Miền Bắc', 'Trung': 'Miền Trung', 'Nam': 'Miền Nam' }
-    apiParams.append('region', regionMap[regions[0]] || regions[0]);
+    regions.forEach(r => apiParams.append('region', regionMap[r] || r));
   }
   
   if (destinations.length > 0) {
-    apiParams.append('location', destinations[0]);
+    destinations.forEach(d => apiParams.append('location', d));
+  }
+
+  if (tourTypes.length > 0) {
+    tourTypes.forEach(t => apiParams.append('tourType', t));
+  }
+
+  if (departureLocations.length > 0) {
+    departureLocations.forEach(dl => apiParams.append('departureLocation', dl));
   }
 
   if (minPrice > 0) {
@@ -64,8 +75,6 @@ export default async function ToursPage({
   } catch (error) {
     console.error("Lỗi khi lấy danh sách tour:", error);
   }
-
-  // Lọc thêm theo rating ở client/server component do backend chưa hỗ trợ param rating
   if (rating > 0) {
     filteredTours = filteredTours.filter(tour => tour.rating >= rating)
   }
@@ -118,6 +127,7 @@ export default async function ToursPage({
           src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2000&q=80"
           alt="Travel Banner"
           className="absolute inset-0 w-full h-full object-cover opacity-70"
+          suppressHydrationWarning
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent flex items-end">
           <div className="container mx-auto px-4 pb-10">
@@ -198,17 +208,19 @@ export default async function ToursPage({
                   </div>
 
                   {/* Pagination */}
-                  <div className="flex justify-center items-center gap-2 mb-16 bg-white py-3 px-6 rounded-full shadow-sm border border-slate-100 inline-flex w-max mx-auto">
-                    <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-500 transition-colors disabled:opacity-30" disabled={true}>
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center shadow-md">1</button>
-                    {filteredTours.length > 6 && (
-                      <button className="w-10 h-10 rounded-full hover:bg-slate-100 font-medium text-slate-700 flex items-center justify-center transition-colors">2</button>
-                    )}
-                    <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-500 transition-colors">
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
+                  <div className="flex justify-center w-full mb-16">
+                    <div className="flex justify-center items-center gap-2 bg-white py-3 px-6 rounded-full shadow-sm border border-slate-100 inline-flex w-max">
+                      <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-500 transition-colors disabled:opacity-30" disabled={true}>
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button className="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center shadow-md">1</button>
+                      {filteredTours.length > 6 && (
+                        <button className="w-10 h-10 rounded-full hover:bg-slate-100 font-medium text-slate-700 flex items-center justify-center transition-colors">2</button>
+                      )}
+                      <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-500 transition-colors">
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </>
               ) : (

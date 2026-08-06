@@ -10,11 +10,11 @@ const getTours = async (req, res) => {
             SELECT t.*, 
                    d.name AS location, 
                    r.name AS region, 
-                   c.name AS category 
+                   c.name AS category,
+                   (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('id', dest.id, 'name', dest.name, 'is_primary', td.is_primary)), ']') FROM tour_destination td JOIN destination dest ON td.destination_id = dest.id WHERE td.tour_id = t.id) AS destinations
             FROM tours t
-            LEFT JOIN destination d ON t.destination_id = d.id
-            LEFT JOIN region r ON d.region_id = r.id
-            LEFT JOIN tourcategory c ON r.category_id = c.id
+            LEFT JOIN region r ON r.id = (SELECT r2.id FROM tour_destination td2 JOIN destination d2 ON td2.destination_id = d2.id LEFT JOIN country co2 ON d2.country_id = co2.id JOIN region r2 ON r2.id = COALESCE(d2.region_id, co2.region_id) WHERE td2.tour_id = t.id AND td2.is_primary = TRUE LIMIT 1)
+            LEFT JOIN tourcategory c ON c.id = (SELECT c2.id FROM tour_destination td3 JOIN destination d3 ON td3.destination_id = d3.id LEFT JOIN country co3 ON d3.country_id = co3.id JOIN region r3 ON r3.id = COALESCE(d3.region_id, co3.region_id) JOIN tourcategory c2 ON r3.category_id = c2.id WHERE td3.tour_id = t.id AND td3.is_primary = TRUE LIMIT 1)
             WHERE 1=1
         `;
         let params = [];
@@ -75,6 +75,9 @@ const getTours = async (req, res) => {
         query += ' ORDER BY t.id DESC';
 
         const [rows] = await pool.query(query, params);
+        rows.forEach(row => {
+            try { row.destinations = row.destinations ? JSON.parse(row.destinations) : []; } catch (e) { row.destinations = []; }
+        });
         res.json(rows);
     } catch (error) {
         console.error("Lỗi truy vấn tours:", error.message);
@@ -90,11 +93,11 @@ const getTourById = async (req, res) => {
             SELECT t.*, 
                    d.name AS location, 
                    r.name AS region, 
-                   c.name AS category 
+                   c.name AS category,
+                   (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('id', dest.id, 'name', dest.name, 'is_primary', td.is_primary)), ']') FROM tour_destination td JOIN destination dest ON td.destination_id = dest.id WHERE td.tour_id = t.id) AS destinations
             FROM tours t
-            LEFT JOIN destination d ON t.destination_id = d.id
-            LEFT JOIN region r ON d.region_id = r.id
-            LEFT JOIN tourcategory c ON r.category_id = c.id
+            LEFT JOIN region r ON r.id = (SELECT r2.id FROM tour_destination td2 JOIN destination d2 ON td2.destination_id = d2.id LEFT JOIN country co2 ON d2.country_id = co2.id JOIN region r2 ON r2.id = COALESCE(d2.region_id, co2.region_id) WHERE td2.tour_id = t.id AND td2.is_primary = TRUE LIMIT 1)
+            LEFT JOIN tourcategory c ON c.id = (SELECT c2.id FROM tour_destination td3 JOIN destination d3 ON td3.destination_id = d3.id LEFT JOIN country co3 ON d3.country_id = co3.id JOIN region r3 ON r3.id = COALESCE(d3.region_id, co3.region_id) JOIN tourcategory c2 ON r3.category_id = c2.id WHERE td3.tour_id = t.id AND td3.is_primary = TRUE LIMIT 1)
             WHERE t.id = ?
         `;
         if (req.query.isAdmin !== 'true') {
@@ -107,6 +110,7 @@ const getTourById = async (req, res) => {
         }
         
         const tour = rows[0];
+        try { tour.destinations = tour.destinations ? JSON.parse(tour.destinations) : []; } catch (e) { tour.destinations = []; }
 
         // Lấy Tags
         try {
@@ -126,7 +130,7 @@ const getTourById = async (req, res) => {
 // 3. Admin: Thêm tour mới (Lưu ID thay vì chuỗi)
 const createTour = async (req, res) => {
     try {
-        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, tourTypes, occasions, tour_code, notes } = req.body;
+        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, destinations, tourTypes, occasions, tour_code, notes } = req.body;
         
         const galleryJson = typeof gallery === 'string' && gallery.startsWith('[') ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' && itinerary.startsWith('[') ? itinerary : JSON.stringify(itinerary || []);
@@ -135,12 +139,21 @@ const createTour = async (req, res) => {
         const notesJson = typeof notes === 'string' && notes.startsWith('[') ? notes : JSON.stringify(notes || []);
 
         const [result] = await pool.query(
-            `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, tour_code, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge || 'Mới', description, itineraryJson, includedJson, excludedJson, destination_id || null, tour_code || null, notesJson]
+            `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, tour_code, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge || 'Mới', description, itineraryJson, includedJson, excludedJson, tour_code || null, notesJson]
         );
 
         const tourId = result.insertId;
+
+        // Insert Destinations
+        if (destinations) {
+            let destArr = typeof destinations === 'string' ? JSON.parse(destinations) : destinations;
+            for (let destId of destArr) {
+                const isPrimary = (destId === destination_id) || (destId === Number(destination_id));
+                await pool.query('INSERT IGNORE INTO tour_destination (tour_id, destination_id, is_primary) VALUES (?, ?, ?)', [tourId, destId, isPrimary]);
+            }
+        }
 
         // Insert Tags
         if (tourTypes) {
@@ -167,7 +180,7 @@ const createTour = async (req, res) => {
 const updateTour = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, tourTypes, occasions, tour_code, notes } = req.body;
+        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, destinations, tourTypes, occasions, tour_code, notes } = req.body;
 
         const galleryJson = typeof gallery === 'string' && gallery.startsWith('[') ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' && itinerary.startsWith('[') ? itinerary : JSON.stringify(itinerary || []);
@@ -176,10 +189,20 @@ const updateTour = async (req, res) => {
         const notesJson = typeof notes === 'string' && notes.startsWith('[') ? notes : JSON.stringify(notes || []);
 
         await pool.query(
-            `UPDATE tours SET name=?, price=?, original_price=?, child_price=?, available_spots=?, departure_date=?, duration=?, image=?, gallery=?, badge=?, description=?, itinerary=?, included=?, excluded=?, destination_id=?, tour_code=?, notes=?
+            `UPDATE tours SET name=?, price=?, original_price=?, child_price=?, available_spots=?, departure_date=?, duration=?, image=?, gallery=?, badge=?, description=?, itinerary=?, included=?, excluded=?, tour_code=?, notes=?
              WHERE id=?`,
-            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge, description, itineraryJson, includedJson, excludedJson, destination_id || null, tour_code || null, notesJson, id]
+            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge, description, itineraryJson, includedJson, excludedJson, tour_code || null, notesJson, id]
         );
+
+        // Update Destinations
+        if (destinations) {
+            await pool.query('DELETE FROM tour_destination WHERE tour_id = ?', [id]);
+            let destArr = typeof destinations === 'string' ? JSON.parse(destinations) : destinations;
+            for (let destId of destArr) {
+                const isPrimary = (destId === destination_id) || (destId === Number(destination_id));
+                await pool.query('INSERT IGNORE INTO tour_destination (tour_id, destination_id, is_primary) VALUES (?, ?, ?)', [id, destId, isPrimary]);
+            }
+        }
 
         // Update Tags
         if (tourTypes) {
@@ -263,6 +286,46 @@ const getMetadata = async (req, res) => {
     }
 };
 
+const createRegion = async (req, res) => {
+    try {
+        const { name, category_id } = req.body;
+        if (!name || !category_id) return res.status(400).json({ message: "Thiếu dữ liệu" });
+        const [result] = await pool.query('INSERT INTO region (name, category_id) VALUES (?, ?)', [name, category_id]);
+        res.status(201).json({ id: result.insertId, name, category_id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi tạo vùng miền" });
+    }
+};
+
+const updateRegion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, category_id } = req.body;
+        await pool.query('UPDATE region SET name=?, category_id=? WHERE id=?', [name, category_id, id]);
+        res.json({ id, name, category_id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi sửa vùng miền" });
+    }
+};
+
+const deleteRegion = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [countries] = await pool.query('SELECT id FROM Country WHERE region_id = ?', [id]);
+        const [destinations] = await pool.query('SELECT id FROM destination WHERE region_id = ?', [id]);
+        if (countries.length > 0 || destinations.length > 0) {
+            return res.status(400).json({ message: "Không thể xóa khu vực này vì đang chứa các quốc gia hoặc điểm đến bên trong." });
+        }
+        await pool.query('DELETE FROM region WHERE id=?', [id]);
+        res.json({ message: "Xóa vùng miền thành công" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi khi xóa vùng miền" });
+    }
+};
+
 const createCountry = async (req, res) => {
     try {
         const { name, region_id } = req.body;
@@ -290,6 +353,10 @@ const updateCountry = async (req, res) => {
 const deleteCountry = async (req, res) => {
     try {
         const { id } = req.params;
+        const [destinations] = await pool.query('SELECT id FROM destination WHERE country_id = ?', [id]);
+        if (destinations.length > 0) {
+            return res.status(400).json({ message: "Không thể xóa quốc gia này vì đang chứa các điểm đến bên trong." });
+        }
         await pool.query('DELETE FROM Country WHERE id=?', [id]);
         res.json({ message: "Xóa quốc gia thành công" });
     } catch (error) {
@@ -375,6 +442,7 @@ const deleteTag = async (req, res) => {
 module.exports = {
     getTours, getTourById, seedData, createTour, updateTour, updateTourStatus, deleteTour,
     getMetadata,
+    createRegion, updateRegion, deleteRegion,
     createCountry, updateCountry, deleteCountry,
     createDestination, updateDestination, deleteDestination,
     createTag, updateTag, deleteTag

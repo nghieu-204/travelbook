@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -15,6 +16,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
     if (!user || user.role !== 'admin') {
       if (pathname !== '/admin/login') {
         router.push('/admin/login')
@@ -47,8 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const links = [
     { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
     { href: '/admin/tours', label: 'Quản lý Tour', icon: Map },
-    { href: '/admin/countries', label: 'Quản lý Quốc gia', icon: MapPin },
-    { href: '/admin/destinations', label: 'Quản lý Điểm đến', icon: MapPin },
+    { href: '/admin/destinations', label: 'Khu vực & Điểm đến', icon: MapPin },
     { href: '/admin/tags', label: 'Quản lý Nhãn', icon: Tag },
     { href: '/admin/bookings', label: 'Quản lý Đơn đặt', icon: ShoppingBag },
     { href: '/admin/users', label: 'Người dùng', icon: Users },

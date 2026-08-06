@@ -15,6 +15,24 @@ exports.getReviewsByTour = async (req, res) => {
     }
 };
 
+// Lấy danh sách đánh giá tiêu biểu cho Trang chủ
+exports.getTestimonials = async (req, res) => {
+    try {
+        const [reviews] = await pool.query(
+            `SELECT r.*, u.name as user_name, u.avatar as user_avatar, t.name as tour_name 
+             FROM reviews r 
+             JOIN users u ON r.user_id = u.id 
+             JOIN tours t ON r.tour_id = t.id 
+             WHERE r.rating >= 4
+             ORDER BY LENGTH(r.comment) DESC LIMIT 3`
+        );
+        res.json(reviews);
+    } catch (error) {
+        console.error('❌ Lỗi lấy testimonials:', error.message);
+        res.status(500).json({ message: 'Lỗi máy chủ khi tải testimonials.' });
+    }
+};
+
 // Kiểm tra điều kiện đánh giá (chỉ sau khi đặt hàng xong và trải nghiệm dịch vụ)
 exports.checkEligibility = async (req, res) => {
     try {
@@ -29,11 +47,34 @@ exports.checkEligibility = async (req, res) => {
 
         // Kiểm tra xem khách đã đặt tour này chưa
         const [bookings] = await pool.query(
-            `SELECT id, departure_date, status, is_reviewed FROM bookings 
-             WHERE tour_id = ? AND (user_id = ? OR user_email = ?) 
-             ORDER BY id DESC`,
+            `SELECT b.id, b.departure_date, b.status, b.is_reviewed, t.duration FROM bookings b 
+             LEFT JOIN tours t ON b.tour_id = t.id
+             WHERE b.tour_id = ? AND (b.user_id = ? OR b.user_email = ?) 
+             ORDER BY b.id DESC`,
             [tourId, userId || 0, email || '']
         );
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        bookings.forEach(b => {
+            if (b.status === 'Hủy' || b.status === 'Đang chờ xác nhận') return;
+            if (b.departure_date) {
+                const startDate = new Date(b.departure_date);
+                startDate.setHours(0, 0, 0, 0);
+                let endDate = new Date(startDate);
+                if (b.duration) {
+                    const daysMatch = b.duration.match(/(\d+)\s*ngày/i);
+                    if (daysMatch && daysMatch[1]) {
+                        const days = parseInt(daysMatch[1]);
+                        endDate.setDate(endDate.getDate() + days - 1);
+                    }
+                }
+                if (today < startDate) b.status = 'Đã xác nhận';
+                else if (today >= startDate && today <= endDate) b.status = 'Đang diễn ra';
+                else if (today > endDate) b.status = 'Đã hoàn thành';
+            }
+        });
 
         if (bookings.length === 0) {
             return res.json({ 
@@ -87,10 +128,33 @@ exports.createReview = async (req, res) => {
 
         // Kiểm tra bảo mật phía backend: bắt buộc phải có đơn đặt tour (tạm thời cho phép ngay sau khi đặt, không bị hủy)
         const [bookings] = await pool.query(
-            `SELECT id, departure_date, status, is_reviewed FROM bookings 
-             WHERE tour_id = ? AND (user_id = ? OR user_email = ?)`,
+            `SELECT b.id, b.departure_date, b.status, b.is_reviewed, t.duration FROM bookings b 
+             LEFT JOIN tours t ON b.tour_id = t.id
+             WHERE b.tour_id = ? AND (b.user_id = ? OR b.user_email = ?)`,
             [tour_id, user_id || 0, user_email || '']
         );
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        bookings.forEach(b => {
+            if (b.status === 'Hủy' || b.status === 'Đang chờ xác nhận') return;
+            if (b.departure_date) {
+                const startDate = new Date(b.departure_date);
+                startDate.setHours(0, 0, 0, 0);
+                let endDate = new Date(startDate);
+                if (b.duration) {
+                    const daysMatch = b.duration.match(/(\d+)\s*ngày/i);
+                    if (daysMatch && daysMatch[1]) {
+                        const days = parseInt(daysMatch[1]);
+                        endDate.setDate(endDate.getDate() + days - 1);
+                    }
+                }
+                if (today < startDate) b.status = 'Đã xác nhận';
+                else if (today >= startDate && today <= endDate) b.status = 'Đang diễn ra';
+                else if (today > endDate) b.status = 'Đã hoàn thành';
+            }
+        });
 
         if (bookings.length === 0) {
             return res.status(400).json({ message: 'Vui lòng đặt tour để có thể đánh giá' });

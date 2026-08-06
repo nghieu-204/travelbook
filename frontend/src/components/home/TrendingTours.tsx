@@ -4,10 +4,9 @@ import type { Tour } from '@/components/tours/TourCard'
 export default async function TrendingTours() {
   let tours = [];
   try {
-    const res = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=4`, { cache: 'no-store' });
+    const res = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=4&sort=latest`, { cache: 'no-store' });
     if (res.ok) {
       tours = await res.json();
-      tours = tours.slice(0, 4); // Lấy 4 tour
     }
   } catch (e) {
     console.error("Lỗi lấy TrendingTours:", e);

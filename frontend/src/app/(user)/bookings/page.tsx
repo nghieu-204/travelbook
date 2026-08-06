@@ -83,13 +83,61 @@ export default function BookingsPage() {
         return <span className="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đã xác nhận</span>
       case 'Đang chờ xác nhận':
         return <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đang chờ xác nhận</span>
-      case 'Đang thực hiện':
-        return <span className="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đang thực hiện</span>
+      case 'Đang diễn ra':
+        return <span className="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đang diễn ra</span>
       case 'Hủy':
         return <span className="bg-red-100 text-red-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đã hủy</span>
       default:
         return <span className="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">{status}</span>
     }
+  }
+
+  const handlePrintTicket = (booking: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Vé Điện Tử - ${booking.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .title { font-size: 24px; font-weight: bold; margin-bottom: 5px; color: #0369a1; }
+            .subtitle { color: #666; }
+            .info-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            .info-table th, .info-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            .info-table th { background-color: #f8f9fa; font-weight: bold; width: 30%; }
+            .footer { text-align: center; margin-top: 50px; font-size: 14px; color: #777; border-top: 1px dashed #ccc; padding-top: 20px; }
+            .qr-code { text-align: center; margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">✈️ VÉ ĐIỆN TỬ TRAVELBOOK</div>
+            <div class="subtitle">Mã đơn: TB-${booking.id} | Ngày đặt: ${new Date(booking.created_at || new Date()).toLocaleDateString('vi-VN')}</div>
+          </div>
+          <div class="qr-code">
+             <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TB-${booking.id}" alt="QR Code" />
+          </div>
+          <table class="info-table">
+            <tr><th>Tên Tour</th><td>${booking.tour_name}</td></tr>
+            <tr><th>Điện thoại</th><td>${booking.user_phone}</td></tr>
+            <tr><th>Ngày khởi hành</th><td>${new Date(booking.departure_date).toLocaleDateString('vi-VN')}</td></tr>
+            <tr><th>Số lượng</th><td>${booking.adults} Người lớn, ${booking.children || 0} Trẻ em</td></tr>
+            <tr><th>Phương thức thanh toán</th><td>${booking.payment_method}</td></tr>
+            <tr><th>Tổng tiền</th><td><strong style="color: #e11d48; font-size: 18px;">${formatCurrency(booking.total_price)} VNĐ</strong></td></tr>
+          </table>
+          <div class="footer">
+            Vui lòng xuất trình mã QR này hoặc vé in tại điểm khởi hành.<br/>
+            Cảm ơn quý khách đã sử dụng dịch vụ của TravelBook!
+          </div>
+          <script>
+            window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   }
 
   if (loading) {
@@ -261,8 +309,8 @@ export default function BookingsPage() {
                           </button>
                         )
                       )}
-                      {(booking.status === 'Đã xác nhận' || booking.status === 'Đã hoàn thành' || booking.status === 'Đang thực hiện') && (
-                        <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition-colors shadow-sm">
+                      {(booking.status === 'Đã xác nhận' || booking.status === 'Đã hoàn thành' || booking.status === 'Đang diễn ra') && (
+                        <button onClick={() => handlePrintTicket(booking)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition-colors shadow-sm">
                           <Download className="w-4 h-4" /> Tải vé
                         </button>
                       )}

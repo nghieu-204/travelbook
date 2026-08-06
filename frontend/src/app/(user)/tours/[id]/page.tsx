@@ -6,6 +6,7 @@ import TourInfo from '@/components/tour-detail/TourInfo'
 import BookingWidget from '@/components/tour-detail/BookingWidget'
 import TourCard, { Tour } from '@/components/tours/TourCard'
 import { fetchApi } from '@/lib/api'
+import { generateSlug } from '@/lib/utils'
 
 export default async function TourDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -53,12 +54,37 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
     <div className="bg-slate-50 pb-20">
       <div className="container mx-auto px-4 py-6">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-sm text-slate-500 mb-6 px-2">
+        <div className="flex items-center gap-2 text-sm text-slate-500 mb-6 px-2 flex-wrap">
           <Link href="/" className="hover:text-blue-600 transition-colors">Trang chủ</Link>
-          <span>/</span>
-          <Link href={`/tours`} className="hover:text-blue-600 transition-colors">Trong nước</Link>
-          <span>/</span>
-          <Link href={`/tours?region=${tour.region}`} className="hover:text-blue-600 transition-colors">{tour.region}</Link>
+          
+          {tour.category && (
+            <>
+              <span>/</span>
+              <Link href={`/${generateSlug(tour.category)}`} className="hover:text-blue-600 transition-colors">{tour.category}</Link>
+            </>
+          )}
+          
+          {tour.category && tour.region && (
+            <>
+              <span>/</span>
+              <Link href={`/${generateSlug(tour.category)}/${generateSlug(tour.region)}`} className="hover:text-blue-600 transition-colors">{tour.region}</Link>
+            </>
+          )}
+
+          {tour.category && tour.region && tour.country && (
+            <>
+              <span>/</span>
+              <Link href={`/${generateSlug(tour.category)}/${generateSlug(tour.region)}/${generateSlug(tour.country)}`} className="hover:text-blue-600 transition-colors">{tour.country}</Link>
+            </>
+          )}
+
+          {tour.category && tour.region && tour.province && (
+            <>
+              <span>/</span>
+              <Link href={`/${generateSlug(tour.category)}/${generateSlug(tour.region)}${tour.country ? `/${generateSlug(tour.country)}` : ''}/${generateSlug(tour.province)}`} className="hover:text-blue-600 transition-colors">{tour.province}</Link>
+            </>
+          )}
+
           <span>/</span>
           <span className="text-slate-900 font-medium truncate max-w-xs">{tour.name}</span>
         </div>

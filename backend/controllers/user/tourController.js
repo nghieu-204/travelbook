@@ -8,14 +8,18 @@ const getTours = async (req, res) => {
         
         let query = `
             SELECT t.*, 
+                   GREATEST(0, t.available_spots - COALESCE((SELECT SUM(b.adults + b.children) FROM bookings b WHERE b.tour_id = t.id AND b.status != 'Hủy'), 0)) AS available_spots,
                    (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('id', d.id, 'name', d.name, 'is_primary', td.is_primary)), ']') FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id) AS destinations,
                    (SELECT r.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS region, 
-                   (SELECT c.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id JOIN tourcategory c ON r.category_id = c.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS category 
+                   (SELECT c.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id JOIN tourcategory c ON r.category_id = c.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS category,
+                   (SELECT d.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS province,
+                   (SELECT co.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS country
             FROM tours t
             WHERE 1=1
         `;
         let params = [];
 
+        console.log(`[getTours] req.query.location:`, req.query.location);
         console.log(`[getTours] isAdmin: ${req.query.isAdmin}, URL: ${req.url}`);
         if (req.query.isAdmin !== 'true') {
             query += ' AND t.status = "Active"';
@@ -35,8 +39,8 @@ const getTours = async (req, res) => {
         const locations = ensureArray(location);
         if (locations.length > 0) {
             const placeholders = locations.map(() => '?').join(',');
-            query += ` AND t.id IN (SELECT td.tour_id FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE d.name IN (${placeholders}))`;
-            params.push(...locations);
+            query += ` AND t.id IN (SELECT td.tour_id FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id WHERE d.name IN (${placeholders}) OR co.name IN (${placeholders}) OR r.name IN (${placeholders}))`;
+            params.push(...locations, ...locations, ...locations);
         }
 
         const regions = ensureArray(region);
@@ -103,9 +107,21 @@ const getTours = async (req, res) => {
             params.push(...departureLocs);
         }
 
-        query += ' ORDER BY t.id DESC';
+        if (req.query.sort === 'bestselling') {
+            query += ' ORDER BY (SELECT COUNT(*) FROM bookings b WHERE b.tour_id = t.id) DESC, t.id DESC';
+        } else {
+            query += ' ORDER BY t.id DESC';
+        }
+
+        if (req.query.limit && !isNaN(req.query.limit)) {
+            query += ' LIMIT ?';
+            params.push(Number(req.query.limit));
+        }
 
         const [rows] = await pool.query(query, params);
+        rows.forEach(row => {
+            try { row.destinations = row.destinations ? JSON.parse(row.destinations) : []; } catch (e) { row.destinations = []; }
+        });
         res.json(rows);
     } catch (error) {
         console.error("Lỗi truy vấn tours:", error.message);
@@ -119,9 +135,12 @@ const getTourById = async (req, res) => {
         const { id } = req.params;
         let query = `
             SELECT t.*, 
+                   GREATEST(0, t.available_spots - COALESCE((SELECT SUM(b.adults + b.children) FROM bookings b WHERE b.tour_id = t.id AND b.status != 'Hủy'), 0)) AS available_spots,
                    (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('id', d.id, 'name', d.name, 'is_primary', td.is_primary)), ']') FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id) AS destinations,
                    (SELECT r.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS region, 
-                   (SELECT c.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id JOIN tourcategory c ON r.category_id = c.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS category 
+                   (SELECT c.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id JOIN tourcategory c ON r.category_id = c.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS category,
+                   (SELECT d.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS province,
+                   (SELECT co.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS country
             FROM tours t
             WHERE t.id = ?
         `;
@@ -163,9 +182,9 @@ const createTour = async (req, res) => {
         const notesJson = typeof notes === 'string' && notes.startsWith('[') ? notes : JSON.stringify(notes || []);
 
         const [result] = await pool.query(
-            `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, tour_code, notes, departure_location)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge || 'Mới', description, itineraryJson, includedJson, excludedJson, destination_id || null, tour_code || null, notesJson, departure_location || 'TP HCM']
+            `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, tour_code, notes, departure_location)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge || 'Mới', description, itineraryJson, includedJson, excludedJson, tour_code || null, notesJson, departure_location || 'TP HCM']
         );
 
         const tourId = result.insertId;
@@ -204,9 +223,9 @@ const updateTour = async (req, res) => {
         const notesJson = typeof notes === 'string' && notes.startsWith('[') ? notes : JSON.stringify(notes || []);
 
         await pool.query(
-            `UPDATE tours SET name=?, price=?, original_price=?, child_price=?, available_spots=?, departure_date=?, duration=?, image=?, gallery=?, badge=?, description=?, itinerary=?, included=?, excluded=?, destination_id=?, tour_code=?, notes=?, departure_location=?
+            `UPDATE tours SET name=?, price=?, original_price=?, child_price=?, available_spots=?, departure_date=?, duration=?, image=?, gallery=?, badge=?, description=?, itinerary=?, included=?, excluded=?, tour_code=?, notes=?, departure_location=?
              WHERE id=?`,
-            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge, description, itineraryJson, includedJson, excludedJson, destination_id || null, tour_code || null, notesJson, departure_location || 'TP HCM', id]
+            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge, description, itineraryJson, includedJson, excludedJson, tour_code || null, notesJson, departure_location || 'TP HCM', id]
         );
 
         // Update Tags
@@ -272,6 +291,7 @@ const getMetadata = async (req, res) => {
     try {
         const [categories] = await pool.query('SELECT * FROM tourcategory');
         const [regions] = await pool.query('SELECT * FROM region');
+        const [countries] = await pool.query('SELECT * FROM country');
         const [destinations] = await pool.query('SELECT * FROM destination');
         
         let tourTypes = [];
@@ -283,7 +303,7 @@ const getMetadata = async (req, res) => {
             occasions = occasionsRes;
         } catch(e) { console.error("Could not fetch tags", e.message); }
         
-        res.json({ categories, regions, destinations, tourTypes, occasions });
+        res.json({ categories, regions, countries, destinations, tourTypes, occasions });
     } catch (error) {
         console.error("Lỗi getMetadata:", error);
         res.status(500).json({ message: "Lỗi tải metadata" });

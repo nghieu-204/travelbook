@@ -215,7 +215,7 @@ export default function CreateTourV2() {
       const payload = {
         name: title,
         destinations: JSON.stringify(selectedDestinations),
-        primary_destination_id: primaryDestinationId,
+        destination_id: primaryDestinationId,
         price: Number(priceAdultStr.replace(/\D/g, '')),
         child_price: Number(priceChildStr.replace(/\D/g, '') || '0'),
         available_spots: Number(maxSeats || '30'),
@@ -554,10 +554,27 @@ export default function CreateTourV2() {
               {itinerary.map((day, index) => (
                 <div key={day.id} className="p-5 border border-slate-700 bg-[#0f172a] rounded-xl relative group">
                   <button onClick={() => setItinerary(itinerary.filter(i => i.id !== day.id))} className="absolute top-4 right-4 text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 className="w-5 h-5" /></button>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                     <div className="md:col-span-1">
                       <label className="block text-sm font-medium text-slate-400 mb-2">Đánh dấu (Ngày/Đêm)</label>
                       <input value={day.day || ''} onChange={e => setItinerary(itinerary.map(i => i.id === day.id ? { ...i, day: e.target.value } : i))} placeholder="VD: Ngày 1" className="w-full bg-[#1e293b] border border-slate-700 rounded-lg px-4 py-2 text-white outline-none" />
+                    </div>
+                    <div className="md:col-span-1">
+                      <MultiSelectDropdown
+                        label="Bữa ăn"
+                        placeholder="Chọn bữa..."
+                        options={[
+                          { id: 'Sáng', label: 'Sáng' },
+                          { id: 'Trưa', label: 'Trưa' },
+                          { id: 'Tối', label: 'Tối' }
+                        ]}
+                        selectedIds={Array.isArray(day.meals) ? day.meals : (typeof day.meals === 'string' && (day.meals as any).trim() !== '' ? (day.meals as any).split(',').map((m: string) => m.trim()) : [])}
+                        onChange={(ids) => {
+                          const order = ['Sáng', 'Trưa', 'Tối'];
+                          const sortedIds = [...ids].sort((a, b) => order.indexOf(a as string) - order.indexOf(b as string)) as string[];
+                          setItinerary(itinerary.map(i => i.id === day.id ? { ...i, meals: sortedIds } : i));
+                        }}
+                      />
                     </div>
                     <div className="md:col-span-3">
                       <label className="block text-sm font-medium text-slate-400 mb-2">Tiêu đề hoạt động</label>
@@ -607,7 +624,7 @@ export default function CreateTourV2() {
                   </div>
                 </div>
               ))}
-              <button onClick={() => setItinerary([...itinerary, { id: Date.now(), day: `Ngày ${itinerary.length + 1}`, title: '', description: '', meals: [], image: '' }])} className="w-full py-4 border-2 border-dashed border-slate-700 rounded-xl text-slate-400 hover:text-white hover:border-slate-500 hover:bg-[#0f172a] transition-all flex items-center justify-center gap-2 font-medium">
+              <button onClick={() => setItinerary([...itinerary, { id: Date.now(), day: `Ngày ${itinerary.length + 1}`, title: '', description: '', meals: [] as string[], image: '' }])} className="w-full py-4 border-2 border-dashed border-slate-700 rounded-xl text-slate-400 hover:text-white hover:border-slate-500 hover:bg-[#0f172a] transition-all flex items-center justify-center gap-2 font-medium">
                 <Plus className="w-5 h-5" /> Thêm Ngày Mới
               </button>
             </div>

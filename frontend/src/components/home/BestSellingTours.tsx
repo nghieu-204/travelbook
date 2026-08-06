@@ -4,11 +4,9 @@ import type { Tour } from '@/components/tours/TourCard'
 export default async function BestSellingTours() {
   let tours = [];
   try {
-    // Fetch a bit more to skip the first ones so it looks different from Trending
-    const res = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=8`, { cache: 'no-store' });
+    const res = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=4&sort=bestselling`, { cache: 'no-store' });
     if (res.ok) {
       tours = await res.json();
-      tours = tours.slice(4, 8); // Skip first 4
     }
   } catch (e) {
     console.error("Lỗi lấy BestSellingTours:", e);

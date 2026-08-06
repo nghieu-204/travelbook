@@ -22,7 +22,7 @@ export default function BookingWidget({ tour }: { tour: any }) {
   if (!tour) return null;
 
   const tourCode = tour.tour_code || `NDSGN846-132-${tour.id?.toString().padStart(6, '0')}XE-V`
-  const availableSpots = tour.available_spots || 2
+  const availableSpots = tour.available_spots !== undefined && tour.available_spots !== null ? tour.available_spots : 2
   const departureDate = tour.departure_date ? new Date(tour.departure_date).toLocaleDateString('vi-VN') : '23/07/2026'
 
   let endDate = '';

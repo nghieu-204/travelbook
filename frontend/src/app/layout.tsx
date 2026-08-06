@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: "Khám phá thế giới với các tour du lịch đa dạng và hấp dẫn.",
 };
 
+import Chatbot from "@/components/chat/Chatbot";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,6 +22,7 @@ export default function RootLayout({
       <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 antialiased`}>
         {children}
         <AuthModal />
+        <Chatbot />
       </body>
     </html>
   );

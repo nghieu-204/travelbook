@@ -3,69 +3,227 @@
 
 import { useState, useEffect } from 'react'
 import { fetchApi } from '@/lib/api'
-import { MapPin, Edit, Trash2, X, Check, Search, Plus } from 'lucide-react'
+import { MapPin, Edit, Trash2, X, Check, Search, Plus, ChevronRight, ChevronDown, Folder, File, Globe, Map } from 'lucide-react'
 
-interface Category {
-  id: number
-  name: string
+interface Category { id: number; name: string }
+interface Region { id: number; category_id: number; name: string }
+interface Country { id: number; region_id: number; name: string }
+interface Destination { id: number; region_id: number | null; country_id: number | null; name: string }
+
+type NodeType = 'category' | 'region' | 'country' | 'destination'
+
+interface TreeNode {
+  uid: string;
+  id: number;
+  name: string;
+  type: NodeType;
+  children: TreeNode[];
+  categoryId?: number;
+  regionId?: number;
+  countryId?: number;
+  isInternational?: boolean;
 }
 
-interface Region {
-  id: number
-  category_id: number
-  name: string
-}
+const TreeRow = ({ 
+  node, 
+  level = 0, 
+  onAdd, 
+  onEdit, 
+  onDelete,
+  searchTerm
+}: { 
+  node: TreeNode; 
+  level?: number;
+  onAdd: (type: NodeType, parentNode: TreeNode) => void;
+  onEdit: (node: TreeNode) => void;
+  onDelete: (node: TreeNode) => void;
+  searchTerm?: string;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(level < 1);
+  const hasChildren = node.children && node.children.length > 0;
 
-interface Country {
-  id: number
-  region_id: number
-  name: string
-}
+  useEffect(() => {
+    if (searchTerm) {
+      setIsExpanded(true)
+    } else {
+      setIsExpanded(level < 1)
+    }
+  }, [searchTerm, level])
 
-interface Destination {
-  id: number
-  region_id: number | null
-  country_id: number | null
-  name: string
+  const getIcon = () => {
+    switch (node.type) {
+      case 'category': return <Globe className="w-4 h-4 text-blue-500" />
+      case 'region': return <Map className="w-4 h-4 text-emerald-500" />
+      case 'country': return <Folder className="w-4 h-4 text-amber-500" />
+      case 'destination': return <MapPin className="w-4 h-4 text-rose-500" />
+    }
+  }
+
+  const getTypeLabel = () => {
+    switch (node.type) {
+      case 'category': return 'Phân loại'
+      case 'region': return 'Vùng miền'
+      case 'country': return 'Quốc gia'
+      case 'destination': return 'Điểm đến'
+    }
+  }
+
+  return (
+    <>
+      <tr className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
+        <td className="px-6 py-3">
+          <div className="flex items-center" style={{ paddingLeft: `${level * 24}px` }}>
+            <button 
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="w-6 h-6 flex items-center justify-center shrink-0 mr-1 text-slate-400 hover:text-white disabled:opacity-30"
+              disabled={!hasChildren}
+            >
+              {hasChildren ? (isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />) : <span className="w-4 h-4" />}
+            </button>
+            <div className="flex items-center gap-2">
+              {getIcon()}
+              <span className={`font-medium ${node.type === 'category' ? 'text-white' : 'text-slate-300'}`}>
+                {node.name}
+              </span>
+              <span className="text-xs text-slate-500 ml-2 bg-slate-800 px-2 py-0.5 rounded-full">
+                {getTypeLabel()}
+              </span>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-3 text-right">
+          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {node.type === 'category' && (
+              <button onClick={() => onAdd('region', node)} className="px-2 py-1 text-xs font-medium rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors">
+                + Thêm Vùng miền
+              </button>
+            )}
+            {node.type === 'region' && node.isInternational && (
+              <button onClick={() => onAdd('country', node)} className="px-2 py-1 text-xs font-medium rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-colors">
+                + Thêm Quốc gia
+              </button>
+            )}
+            {node.type === 'region' && !node.isInternational && (
+              <button onClick={() => onAdd('destination', node)} className="px-2 py-1 text-xs font-medium rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-colors">
+                + Thêm Điểm đến
+              </button>
+            )}
+            {node.type === 'country' && (
+              <button onClick={() => onAdd('destination', node)} className="px-2 py-1 text-xs font-medium rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-colors">
+                + Thêm Điểm đến
+              </button>
+            )}
+            
+            {node.type !== 'category' && (
+              <>
+                <button onClick={() => onEdit(node)} className="p-1.5 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-400 transition-colors" title="Sửa">
+                  <Edit className="w-4 h-4" />
+                </button>
+                <button onClick={() => onDelete(node)} className="p-1.5 rounded hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors" title="Xóa">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+      {isExpanded && hasChildren && node.children.map(child => (
+        <TreeRow 
+          key={child.uid} 
+          node={child} 
+          level={level + 1} 
+          onAdd={onAdd}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          searchTerm={searchTerm}
+        />
+      ))}
+    </>
+  )
 }
 
 export default function DestinationsAdminPage() {
-  const [destinations, setDestinations] = useState<Destination[]>([])
-  const [regions, setRegions] = useState<Region[]>([])
-  const [countries, setCountries] = useState<Country[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
+  const [treeData, setTreeData] = useState<TreeNode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterCategoryId, setFilterCategoryId] = useState<number>(0)
-  const [filterRegionId, setFilterRegionId] = useState<number>(0)
-  const [filterCountryId, setFilterCountryId] = useState<number>(0)
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
-
-  // Edit state
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editCategoryId, setEditCategoryId] = useState<number>(0)
-  const [editRegionId, setEditRegionId] = useState<number>(0)
-  const [editCountryId, setEditCountryId] = useState<number>(0)
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add')
+  const [modalType, setModalType] = useState<NodeType>('destination')
+  const [modalParentNode, setModalParentNode] = useState<TreeNode | null>(null)
+  const [modalNodeToEdit, setModalNodeToEdit] = useState<TreeNode | null>(null)
+  const [modalName, setModalName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-
-  // Add state
-  const [isAdding, setIsAdding] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newCategoryId, setNewCategoryId] = useState<number>(0)
-  const [newRegionId, setNewRegionId] = useState<number>(0)
-  const [newCountryId, setNewCountryId] = useState<number>(0)
-  const [isSavingNew, setIsSavingNew] = useState(false)
 
   const loadData = async () => {
     setIsLoading(true)
     try {
       const data = await fetchApi('/metadata')
-      setDestinations(data.destinations || [])
-      setRegions(data.regions || [])
-      setCountries(data.countries || [])
-      setCategories(data.categories || [])
+      
+      const categories: Category[] = data.categories || []
+      const regions: Region[] = data.regions || []
+      const countries: Country[] = data.countries || []
+      const destinations: Destination[] = data.destinations || []
+
+      // Build Tree
+      const tree: TreeNode[] = categories.map(cat => {
+        const isInternational = cat.name.toLowerCase().includes('quốc tế') || cat.name.toLowerCase().includes('ngoài nước')
+        
+        return {
+          uid: `cat-${cat.id}`,
+          id: cat.id,
+          name: cat.name,
+          type: 'category',
+          categoryId: cat.id,
+          isInternational,
+          children: regions.filter(r => r.category_id === cat.id).map(reg => {
+            return {
+              uid: `reg-${reg.id}`,
+              id: reg.id,
+              name: reg.name,
+              type: 'region',
+              categoryId: cat.id,
+              regionId: reg.id,
+              isInternational,
+              children: isInternational 
+                ? countries.filter(c => c.region_id === reg.id).map(country => ({
+                    uid: `country-${country.id}`,
+                    id: country.id,
+                    name: country.name,
+                    type: 'country',
+                    categoryId: cat.id,
+                    regionId: reg.id,
+                    countryId: country.id,
+                    isInternational,
+                    children: destinations.filter(d => d.country_id === country.id).map(dest => ({
+                      uid: `dest-${dest.id}`,
+                      id: dest.id,
+                      name: dest.name,
+                      type: 'destination',
+                      categoryId: cat.id,
+                      regionId: reg.id,
+                      countryId: country.id,
+                      isInternational,
+                      children: []
+                    }))
+                  }))
+                : destinations.filter(d => d.region_id === reg.id && !d.country_id).map(dest => ({
+                    uid: `dest-${dest.id}`,
+                    id: dest.id,
+                    name: dest.name,
+                    type: 'destination',
+                    categoryId: cat.id,
+                    regionId: reg.id,
+                    isInternational,
+                    children: []
+                  }))
+            }
+          })
+        }
+      })
+
+      setTreeData(tree)
     } catch (error) {
       console.error("Failed to load metadata", error)
     } finally {
@@ -77,164 +235,120 @@ export default function DestinationsAdminPage() {
     loadData()
   }, [])
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm, filterRegionId, filterCategoryId])
+  const handleAdd = (type: NodeType, parentNode: TreeNode) => {
+    setModalMode('add')
+    setModalType(type)
+    setModalParentNode(parentNode)
+    setModalName('')
+    setIsModalOpen(true)
+  }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa điểm đến này?')) return
+  const handleEdit = (node: TreeNode) => {
+    setModalMode('edit')
+    setModalType(node.type)
+    setModalNodeToEdit(node)
+    setModalName(node.name)
+    setIsModalOpen(true)
+  }
+
+  const handleDelete = async (node: TreeNode) => {
+    if (node.children && node.children.length > 0) {
+      alert(`Không thể xóa vì mục này đang chứa các ${node.children[0].type === 'country' ? 'quốc gia' : 'điểm đến'} bên trong. Vui lòng xóa chúng trước.`)
+      return
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn xóa ${getTypeLabel(node.type)} "${node.name}"?`)) return
     
     try {
-      await fetchApi(`/admin/destinations/${id}`, { method: 'DELETE' })
-      setDestinations(prev => prev.filter(d => d.id !== id))
-      alert('Đã xóa điểm đến thành công!')
+      let endpoint = ''
+      if (node.type === 'region') endpoint = `/admin/regions/${node.id}`
+      else if (node.type === 'country') endpoint = `/admin/countries/${node.id}`
+      else if (node.type === 'destination') endpoint = `/admin/destinations/${node.id}`
+      
+      await fetchApi(endpoint, { method: 'DELETE' })
+      loadData()
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra khi xóa điểm đến!')
+      alert(error.message || 'Có lỗi xảy ra khi xóa!')
     }
   }
 
-  const startEdit = (dest: Destination) => {
-    setEditingId(dest.id)
-    setEditName(dest.name)
-    setEditRegionId(dest.region_id || 0)
-    setEditCountryId(dest.country_id || 0)
-    
-    // If it has a country_id, find region from country
-    if (dest.country_id) {
-      const country = countries.find(c => c.id === dest.country_id)
-      if (country) {
-        setEditRegionId(country.region_id)
-        const region = regions.find(r => r.id === country.region_id)
-        setEditCategoryId(region ? region.category_id : 0)
-      }
-    } else if (dest.region_id) {
-      const region = regions.find(r => r.id === dest.region_id)
-      setEditCategoryId(region ? region.category_id : 0)
-    }
-  }
-
-  const cancelEdit = () => {
-    setEditingId(null)
-    setEditName('')
-    setEditRegionId(0)
-    setEditCountryId(0)
-    setEditCategoryId(0)
-  }
-
-  const handleSave = async (id: number) => {
-    if (!editName.trim()) {
-      alert('Tên điểm đến không được để trống!')
-      return
-    }
-
-    const isExist = destinations.some(
-      (d) => d.id !== id && d.name.toLowerCase() === editName.trim().toLowerCase()
-    )
-    if (isExist) {
-      alert('Điểm đến này đã tồn tại!')
-      return
-    }
-
-    const isInternational = categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes('quốc tế') || categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes('ngoài nước')
-    
-    if (isInternational && !editCountryId) {
-      alert('Vui lòng chọn Quốc gia!')
-      return
-    }
-
-    if (!isInternational && !editRegionId) {
-      alert('Vui lòng chọn Vùng miền!')
+  const submitModal = async () => {
+    if (!modalName.trim()) {
+      alert('Vui lòng nhập tên!')
       return
     }
 
     setIsSaving(true)
     try {
-      await fetchApi(`/admin/destinations/${id}`, {
-        method: 'PUT',
-        data: {
-          name: editName.trim(),
-          region_id: isInternational ? null : editRegionId,
-          country_id: isInternational ? editCountryId : null
+      let endpoint = ''
+      let payload: any = { name: modalName.trim() }
+
+      if (modalType === 'region') {
+        endpoint = '/admin/regions'
+        payload.category_id = modalMode === 'add' ? modalParentNode?.id : modalNodeToEdit?.categoryId
+      } else if (modalType === 'country') {
+        endpoint = '/admin/countries'
+        payload.region_id = modalMode === 'add' ? modalParentNode?.id : modalNodeToEdit?.regionId
+      } else if (modalType === 'destination') {
+        endpoint = '/admin/destinations'
+        if (modalMode === 'add') {
+           payload.region_id = modalParentNode?.regionId || modalParentNode?.id || null
+           payload.country_id = modalParentNode?.type === 'country' ? modalParentNode.id : null
+        } else {
+           payload.region_id = modalNodeToEdit?.regionId || null
+           payload.country_id = modalNodeToEdit?.countryId || null
         }
-      })
+      }
+
+      if (modalMode === 'edit') {
+        await fetchApi(`${endpoint}/${modalNodeToEdit?.id}`, {
+          method: 'PUT',
+          data: payload
+        })
+      } else {
+        await fetchApi(endpoint, {
+          method: 'POST',
+          data: payload
+        })
+      }
       
-      setDestinations(prev => prev.map(d => 
-        d.id === id ? { ...d, name: editName.trim(), region_id: isInternational ? null : editRegionId, country_id: isInternational ? editCountryId : null } : d
-      ))
-      setEditingId(null)
+      setIsModalOpen(false)
+      loadData()
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra khi cập nhật điểm đến!')
+      alert(error.message || 'Có lỗi xảy ra!')
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleAdd = async () => {
-    if (!newName.trim()) {
-      alert('Tên điểm đến không được để trống!')
-      return
-    }
-    
-    const isExist = destinations.some(
-      (d) => d.name.toLowerCase() === newName.trim().toLowerCase()
-    )
-    if (isExist) {
-      alert('Điểm đến này đã tồn tại!')
-      return
-    }
-
-    const isInternational = categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes('quốc tế') || categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes('ngoài nước')
-
-    if (isInternational && !newCountryId) {
-      alert('Vui lòng chọn Quốc gia!')
-      return
-    }
-
-    if (!isInternational && !newRegionId) {
-      alert('Vui lòng chọn Vùng miền!')
-      return
-    }
-
-    setIsSavingNew(true)
-    try {
-      const res = await fetchApi('/admin/destinations', {
-        method: 'POST',
-        data: {
-          name: newName.trim(),
-          region_id: isInternational ? null : newRegionId,
-          country_id: isInternational ? newCountryId : null
-        }
-      })
-      
-      if (res && res.id) {
-        setDestinations(prev => [res, ...prev])
-        setIsAdding(false)
-        setNewName('')
-        setNewRegionId(0)
-        setNewCountryId(0)
-        alert('Đã thêm điểm đến mới thành công!')
-      }
-    } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra khi thêm điểm đến mới!')
-    } finally {
-      setIsSavingNew(false)
+  const getTypeLabel = (type: NodeType) => {
+    switch (type) {
+      case 'category': return 'Phân loại'
+      case 'region': return 'Vùng miền'
+      case 'country': return 'Quốc gia'
+      case 'destination': return 'Điểm đến'
     }
   }
 
-  const filteredDestinations = destinations.filter(d => {
-    const region = regions.find(r => r.id === d.region_id)
-    const categoryId = region ? region.category_id : 0
-    return d.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (filterRegionId === 0 || d.region_id === filterRegionId) &&
-      (filterCategoryId === 0 || categoryId === filterCategoryId)
-  }).sort((a, b) => b.id - a.id) // Show newest first
+  const filterTree = (nodes: TreeNode[], term: string): TreeNode[] => {
+    if (!term) return nodes
+    const lowerTerm = term.toLowerCase()
+    
+    return nodes.reduce<TreeNode[]>((acc, node) => {
+      const filteredChildren = filterTree(node.children, term)
+      const isMatch = node.name.toLowerCase().includes(lowerTerm)
+      
+      if (isMatch || filteredChildren.length > 0) {
+        acc.push({
+          ...node,
+          children: filteredChildren
+        })
+      }
+      return acc
+    }, [])
+  }
 
-  const totalPages = Math.ceil(filteredDestinations.length / itemsPerPage)
-  const paginatedDestinations = filteredDestinations.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const filteredTreeData = filterTree(treeData, searchTerm)
 
   if (isLoading) {
     return (
@@ -247,51 +361,21 @@ export default function DestinationsAdminPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-20">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div className="shrink-0">
+        <div>
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <MapPin className="w-6 h-6 text-blue-500" /> Quản lý Điểm đến
+            <MapPin className="w-6 h-6 text-blue-500" /> Quản lý Khu vực & Điểm đến
           </h1>
+          <p className="text-sm text-slate-400 mt-1">Quản lý phân cấp địa lý (Phân loại {'>'} Vùng miền {'>'} Quốc gia {'>'} Điểm đến)</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-          <select
-            value={filterCategoryId}
-            onChange={(e) => {
-              setFilterCategoryId(Number(e.target.value))
-              setFilterRegionId(0)
-            }}
-            className="w-full sm:w-auto bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value={0}>Loại Tour</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <select
-            value={filterRegionId}
-            onChange={(e) => setFilterRegionId(Number(e.target.value))}
-            className="w-full sm:w-auto bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"
-          >
-            <option value={0}>Tất cả Vùng miền</option>
-            {regions.filter(r => filterCategoryId === 0 || r.category_id === filterCategoryId).map(r => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Tìm điểm đến..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#1e293b] border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 w-full sm:w-auto justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-all shadow-lg shadow-blue-900/20 whitespace-nowrap"
-          >
-            <Plus className="w-4 h-4" /> Thêm mới
-          </button>
+        <div className="relative w-full sm:w-72 shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm khu vực, điểm đến..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-[#1e293b] border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm"
+          />
         </div>
       </div>
 
@@ -300,247 +384,73 @@ export default function DestinationsAdminPage() {
           <table className="w-full text-sm text-left text-slate-300">
             <thead className="text-xs text-slate-400 uppercase bg-[#0f172a]/50">
               <tr>
-                <th className="px-6 py-4 font-semibold w-16">ID</th>
-                <th className="px-6 py-4 font-semibold">Tên Điểm đến</th>
-                <th className="px-6 py-4 font-semibold">Thuộc Vùng miền</th>
+                <th className="px-6 py-4 font-semibold">Tên Khu Vực / Điểm Đến</th>
                 <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              {isAdding && (
-                <tr className="border-b border-slate-800 bg-blue-900/10">
-                  <td className="px-6 py-4 font-medium text-blue-400 text-xs">MỚI</td>
-                  <td className="px-6 py-4">
-                    <input 
-                      type="text"
-                      placeholder="Nhập tên điểm đến mới..."
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      className="bg-[#0f172a] border border-blue-500 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                      autoFocus
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <select 
-                        value={newCategoryId}
-                        onChange={(e) => {
-                          setNewCategoryId(Number(e.target.value))
-                          setNewRegionId(0)
-                          setNewCountryId(0)
-                        }}
-                        className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                      >
-                        <option value={0}>-- Phân loại --</option>
-                        {categories.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                      <select 
-                        value={newRegionId}
-                        onChange={(e) => {
-                          setNewRegionId(Number(e.target.value))
-                          setNewCountryId(0)
-                        }}
-                        className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                        disabled={!newCategoryId}
-                      >
-                        <option value={0}>-- Chọn Vùng --</option>
-                        {regions.filter(r => r.category_id === newCategoryId).map(r => (
-                          <option key={r.id} value={r.id}>{r.name}</option>
-                        ))}
-                      </select>
-                      {(categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes('quốc tế') || categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes('ngoài nước')) && (
-                        <select 
-                          value={newCountryId}
-                          onChange={(e) => setNewCountryId(Number(e.target.value))}
-                          className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                          disabled={!newRegionId}
-                        >
-                          <option value={0}>-- Chọn Quốc gia --</option>
-                          {countries.filter(c => c.region_id === newRegionId).map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={handleAdd}
-                        disabled={isSavingNew}
-                        className="p-1.5 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors"
-                        title="Lưu"
-                      >
-                        {isSavingNew ? <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div> : <Check className="w-4 h-4" />}
-                      </button>
-                      <button 
-                        onClick={() => setIsAdding(false)}
-                        disabled={isSavingNew}
-                        className="p-1.5 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
-                        title="Hủy"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )}
-              {filteredDestinations.length === 0 && !isAdding ? (
+              {filteredTreeData.map(node => (
+                <TreeRow 
+                  key={node.uid} 
+                  node={node} 
+                  onAdd={handleAdd}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  searchTerm={searchTerm}
+                />
+              ))}
+              {filteredTreeData.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-500">
-                    Không tìm thấy điểm đến nào.
+                  <td colSpan={2} className="px-6 py-8 text-center text-slate-500">
+                    Chưa có dữ liệu.
                   </td>
                 </tr>
-              ) : (
-                paginatedDestinations.map(dest => {
-                  const isEditing = editingId === dest.id
-                  const country = countries.find(c => c.id === dest.country_id)
-                  const region = regions.find(r => r.id === (country ? country.region_id : dest.region_id))
-                  const locationName = country ? `${country.name} (${region?.name || 'Không rõ'})` : (region?.name || 'Không rõ')
-
-                  return (
-                    <tr key={dest.id} className="border-b border-slate-800 hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4 font-medium text-slate-500">#{dest.id}</td>
-                      
-                      <td className="px-6 py-4">
-                        {isEditing ? (
-                          <input 
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="bg-[#0f172a] border border-blue-500 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                            autoFocus
-                          />
-                        ) : (
-                          <span className="font-semibold text-white">{dest.name}</span>
-                        )}
-                      </td>
-                      
-                      <td className="px-6 py-4">
-                        {isEditing ? (
-                          <div className="flex gap-2">
-                            <select 
-                              value={editCategoryId}
-                              onChange={(e) => {
-                                setEditCategoryId(Number(e.target.value))
-                                setEditRegionId(0)
-                                setEditCountryId(0)
-                              }}
-                              className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                            >
-                              <option value={0}>-- Phân loại --</option>
-                              {categories.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </select>
-                            <select 
-                              value={editRegionId}
-                              onChange={(e) => {
-                                setEditRegionId(Number(e.target.value))
-                                setEditCountryId(0)
-                              }}
-                              className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                              disabled={!editCategoryId}
-                            >
-                              <option value={0}>-- Chọn Vùng --</option>
-                              {regions.filter(r => r.category_id === editCategoryId).map(r => (
-                                <option key={r.id} value={r.id}>{r.name}</option>
-                              ))}
-                            </select>
-                            {(categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes('quốc tế') || categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes('ngoài nước')) && (
-                              <select 
-                                value={editCountryId}
-                                onChange={(e) => setEditCountryId(Number(e.target.value))}
-                                className="bg-[#0f172a] border border-slate-600 rounded px-3 py-1.5 text-white w-full outline-none focus:ring-2 focus:ring-blue-500/50"
-                                disabled={!editRegionId}
-                              >
-                                <option value={0}>-- Chọn Quốc gia --</option>
-                                {countries.filter(c => c.region_id === editRegionId).map(c => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 text-xs font-medium">
-                            {locationName}
-                          </span>
-                        )}
-                      </td>
-                      
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {isEditing ? (
-                            <>
-                              <button 
-                                onClick={() => handleSave(dest.id)}
-                                disabled={isSaving}
-                                className="p-1.5 rounded bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors"
-                                title="Lưu"
-                              >
-                                {isSaving ? <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div> : <Check className="w-4 h-4" />}
-                              </button>
-                              <button 
-                                onClick={cancelEdit}
-                                disabled={isSaving}
-                                className="p-1.5 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors"
-                                title="Hủy"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button 
-                                onClick={() => startEdit(dest)}
-                                className="p-1.5 rounded hover:bg-blue-500/10 text-slate-400 hover:text-blue-400 transition-colors"
-                                title="Sửa"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDelete(dest.id)}
-                                className="p-1.5 rounded hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors"
-                                title="Xóa"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-[#1e293b] p-4 rounded-xl border border-slate-800 shadow-sm">
-          <p className="text-sm text-slate-400">
-            Hiển thị trang <span className="font-semibold text-white">{currentPage}</span> / <span className="font-semibold text-white">{totalPages}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg bg-[#0f172a] text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 transition-colors"
-            >
-              Trước
-            </button>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg bg-[#0f172a] text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 transition-colors"
-            >
-              Sau
-            </button>
+      {/* Modal Add/Edit */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[#1e293b] rounded-2xl border border-slate-700 p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-lg font-bold text-white mb-4">
+              {modalMode === 'add' 
+                ? `Thêm ${getTypeLabel(modalType)} (vào ${modalParentNode?.name})`
+                : `Sửa ${getTypeLabel(modalType)}`}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Tên {getTypeLabel(modalType)}</label>
+                <input 
+                  type="text"
+                  value={modalName}
+                  onChange={(e) => setModalName(e.target.value)}
+                  className="w-full bg-[#0f172a] border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Nhập tên..."
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6">
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+                >
+                  Hủy
+                </button>
+                <button 
+                  onClick={submitModal}
+                  disabled={isSaving}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-50"
+                >
+                  {isSaving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <Check className="w-4 h-4" />}
+                  Lưu lại
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

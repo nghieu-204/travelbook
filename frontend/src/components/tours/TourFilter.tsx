@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
@@ -49,7 +49,7 @@ const DualRangeSlider = ({ value, onChange }: { value: [number, number], onChang
       <div className="slider relative h-1.5 rounded-full bg-gray-200">
         <div 
           className="absolute h-1.5 bg-blue-600 rounded-full"
-          style={{ left: \`\${minPercent}%\`, right: \`\${100 - maxPercent}%\` }}
+          style={{ left: `${minPercent}%`, right: `${100 - maxPercent}%` }}
         />
       </div>
       <div className="relative">
@@ -83,7 +83,7 @@ const TreeCheckbox = ({ node, isRoot = false, selected, onChange }: { node: any,
       <div className="flex items-center gap-2 py-1.5 group">
         {hasChildren ? (
           <button onClick={() => setIsOpen(!isOpen)} className="text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center">
-            <ChevronRight className={\`w-4 h-4 transition-transform \${isOpen ? 'rotate-90' : ''}\`} />
+            <ChevronRight className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
           </button>
         ) : (
           <div className="w-5 h-5"></div>
@@ -95,7 +95,7 @@ const TreeCheckbox = ({ node, isRoot = false, selected, onChange }: { node: any,
             onChange={() => onChange(node.name)}
             className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
           />
-          <span className={\`text-sm transition-colors \${isChecked ? 'font-semibold text-blue-700' : 'font-medium text-slate-700 group-hover:text-blue-600'}\`}>
+          <span className={`text-sm transition-colors ${isChecked ? 'font-semibold text-blue-700' : 'font-medium text-slate-700 group-hover:text-blue-600'}`}>
             {node.name}
           </span>
         </label>
@@ -136,7 +136,10 @@ export default function TourFilter() {
           // Transform domestic and international to Tree format
           const domesticTree = data.domestic.map((r: any) => ({
             name: r.region,
-            children: r.destinations.map((d: string) => ({ name: d, children: [] }))
+            children: r.provinces ? r.provinces.map((p: any) => ({
+              name: p.name,
+              children: p.destinations.map((d: string) => ({ name: d, children: [] }))
+            })) : []
           }));
           const intlTree = data.international.map((r: any) => ({
             name: r.region,
@@ -198,15 +201,15 @@ export default function TourFilter() {
   }
 
   const clearAll = () => {
-    setFilterParams({
-      category: '',
+    setFilterParams(prev => ({
+      category: prev.category,
       priceRange: [0, 99990000],
       destinations: [],
       tourTypes: [], 
       departureLocations: [],
       durations: [], 
       rating: 0
-    })
+    }))
   }
 
   const isInitialMount = useRef(true);
@@ -253,7 +256,8 @@ export default function TourFilter() {
       const sort = searchParamsRef.current.get('sort')
       if (sort) params.set('sort', sort)
 
-      router.push(\`/tours?\${params.toString()}\`, { scroll: false })
+      console.log('PUSHING URL:', `/tours?${params.toString()}`);
+      router.push(`/tours?${params.toString()}`, { scroll: false })
     }, 500)
     
     return () => clearTimeout(timer)
@@ -371,7 +375,7 @@ export default function TourFilter() {
                 />
                 <div className="flex items-center gap-1">
                   {Array.from({length: 5}).map((_, i) => (
-                    <Star key={i} className={\`w-4 h-4 \${i < star ? 'fill-yellow-400 text-yellow-400' : 'fill-slate-200 text-slate-200'}\`} />
+                    <Star key={i} className={`w-4 h-4 ${i < star ? 'fill-yellow-400 text-yellow-400' : 'fill-slate-200 text-slate-200'}`} />
                   ))}
                   <span className="text-sm font-medium text-slate-600 ml-1">{star < 5 && 'trở lên'}</span>
                 </div>

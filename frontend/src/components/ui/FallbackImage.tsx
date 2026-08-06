@@ -16,7 +16,8 @@ export default function FallbackImage({ src, alt, className, fallbackSrc, ...pro
       src={imgSrc as string} 
       alt={alt || "Image"} 
       className={className} 
-      onError={() => setImgSrc(fallbackSrc || defaultFallback)} 
+      onError={() => setImgSrc(fallbackSrc || defaultFallback)}
+      suppressHydrationWarning
     />
   );
 }

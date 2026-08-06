@@ -24,6 +24,7 @@ const userPaymentRoutes = require('./routes/user/paymentRoutes');
 const userRecommendRoutes = require('./routes/user/recommendRoutes');
 const userReviewRoutes = require('./routes/user/reviewRoutes');
 const userRoutes = require('./routes/user/userRoutes');
+const userChatRoutes = require('./routes/user/chatRoutes');
 
 app.use('/api', userAuthRoutes);
 app.use('/api', userTourRoutes);
@@ -33,6 +34,7 @@ app.use('/api', userPaymentRoutes);
 app.use('/api', userRecommendRoutes);
 app.use('/api', userReviewRoutes);
 app.use('/api', userRoutes);
+app.use('/api', userChatRoutes);
 
 // Admin Routes
 const adminAuthRoutes = require('./routes/admin/authRoutes');
