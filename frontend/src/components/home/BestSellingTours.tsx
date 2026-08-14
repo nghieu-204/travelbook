@@ -1,10 +1,11 @@
 import TourCard from '@/components/tours/TourCard'
 import type { Tour } from '@/components/tours/TourCard'
+import TourCarousel from '@/components/tours/TourCarousel'
 
 export default async function BestSellingTours() {
   let tours = [];
   try {
-    const res = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=4&sort=bestselling`, { cache: 'no-store' });
+    const res = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=8&sort=bestselling`, { cache: 'no-store' });
     if (res.ok) {
       tours = await res.json();
     }
@@ -22,11 +23,7 @@ export default async function BestSellingTours() {
           <p className="text-slate-500 mt-2 text-lg">Những hành trình được du khách săn đón và đặt chỗ nhiều nhất trong tháng.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[10px]">
-          {tours.map((tour: Tour) => (
-            <TourCard key={tour.id} tour={tour} />
-          ))}
-        </div>
+        <TourCarousel tours={tours} />
       </div>
     </section>
   )

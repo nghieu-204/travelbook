@@ -6,52 +6,38 @@ exports.getRecommendations = async (req, res) => {
         const { userId, email } = req.query;
 
         let recommendedTours = [];
-        let matchReason = '⭐ Tour phổ biến được yêu thích nhất';
+        let matchReason = '';
 
-        if (userId || email) {
-            // Tìm các tour người dùng từng đặt trong bookings
-            const [userBookings] = await pool.query(
-                `SELECT DISTINCT t.region, t.category 
-                 FROM bookings b 
-                 JOIN tours t ON b.tour_id = t.id 
-                 WHERE b.user_id = ? OR b.user_email = ?`,
-                [userId || 0, email || '']
-            );
+        if (userId) {
+            // Gọi AI Microservice (Python)
+            try {
+                const aiResponse = await fetch(`http://127.0.0.1:8000/recommend/user/${userId}`);
+                if (aiResponse.ok) {
+                    const aiData = await aiResponse.json();
+                    const recommendedIds = aiData.tours || [];
 
-            if (userBookings.length > 0) {
-                const regions = [...new Set(userBookings.map(b => b.region).filter(Boolean))];
-                const categories = [...new Set(userBookings.map(b => b.category).filter(Boolean))];
-
-                let queryConditions = [];
-                let queryParams = [];
-
-                if (regions.length > 0) {
-                    queryConditions.push(`region IN (${regions.map(() => '?').join(',')})`);
-                    queryParams.push(...regions);
-                }
-                if (categories.length > 0) {
-                    queryConditions.push(`category IN (${categories.map(() => '?').join(',')})`);
-                    queryParams.push(...categories);
-                }
-
-                if (queryConditions.length > 0) {
-                    const [personalized] = await pool.query(
-                        `SELECT * FROM tours WHERE ${queryConditions.join(' OR ')} ORDER BY rating DESC, reviews_count DESC LIMIT 6`,
-                        queryParams
-                    );
-
-                    if (personalized.length >= 2) {
-                        recommendedTours = personalized;
-                        matchReason = `✨ Phù hợp với sở thích (${categories[0] || regions[0]}) của bạn`;
+                    if (recommendedIds.length > 0) {
+                        const placeholders = recommendedIds.map(() => '?').join(',');
+                        const [aiTours] = await pool.query(
+                            `SELECT * FROM tours WHERE id IN (${placeholders})`,
+                            recommendedIds
+                        );
+                        
+                        // Sắp xếp lại theo đúng thứ tự AI trả về
+                        recommendedTours = aiTours.sort((a, b) => recommendedIds.indexOf(a.id) - recommendedIds.indexOf(b.id));
+                        matchReason = '✨ Gợi ý riêng cho bạn (AI Personalized)';
                     }
                 }
+            } catch (aiError) {
+                console.error('❌ Lỗi kết nối AI cho getRecommendations:', aiError.message);
+                // Fallback nếu AI lỗi sẽ xử lý ở bên dưới
             }
         }
 
         // Nếu chưa đủ tour cá nhân hóa, lấy top tour rating cao nhất
         if (recommendedTours.length < 3) {
             const [popular] = await pool.query(
-                'SELECT * FROM tours ORDER BY rating DESC, reviews_count DESC LIMIT 6'
+                'SELECT * FROM tours ORDER BY rating DESC, reviews_count DESC LIMIT 4'
             );
             recommendedTours = popular;
         }
@@ -70,7 +56,7 @@ exports.getRecommendations = async (req, res) => {
 exports.getPopularRecommendations = async (req, res) => {
     try {
         const [popular] = await pool.query(
-            'SELECT * FROM tours ORDER BY rating DESC, reviews_count DESC LIMIT 6'
+            'SELECT * FROM tours ORDER BY rating DESC, reviews_count DESC LIMIT 4'
         );
         res.json({
             tours: popular,
@@ -82,25 +68,110 @@ exports.getPopularRecommendations = async (req, res) => {
     }
 };
 
-// Lấy danh sách tour liên quan cùng khu vực hoặc thể loại
+// Lấy danh sách tour liên quan cùng khu vực hoặc thể loại (Fallback & Proxy to AI Service)
 exports.getRelatedTours = async (req, res) => {
     try {
         const { tourId } = req.params;
-        const [current] = await pool.query('SELECT category, region FROM tours WHERE id = ?', [tourId]);
+        const { userId } = req.query; // Có thể có hoặc không
+
+        // Thử gọi AI Microservice (Python)
+        try {
+            let aiUrl = `http://127.0.0.1:8000/recommend/tour/${tourId}`;
+            if (userId) {
+                // Ưu tiên gợi ý cá nhân hóa nếu có userId
+                aiUrl = `http://127.0.0.1:8000/recommend/user/${userId}`;
+            }
+
+            const response = await fetch(aiUrl);
+            if (response.ok) {
+                const aiData = await response.json();
+                const recommendedIds = aiData.tours || [];
+
+                if (recommendedIds.length > 0) {
+                    // Lấy đầy đủ thông tin của các tour từ database
+                    const placeholders = recommendedIds.map(() => '?').join(',');
+                    // Đảm bảo thứ tự gợi ý bằng FIELD()
+                    const query = `SELECT * FROM tours WHERE id IN (${placeholders}) ORDER BY FIELD(id, ${placeholders})`;
+                    const [tours] = await pool.query(query, [...recommendedIds, ...recommendedIds]);
+                    
+                    if (tours.length > 0) {
+                        return res.json({
+                            tours,
+                            method: aiData.method || 'AI Recommendation'
+                        });
+                    }
+                }
+            }
+        } catch (aiError) {
+            console.error('⚠️ AI Service không phản hồi (Fallback sang SQL tĩnh):', aiError.message);
+        }
+
+        // Fallback: Tìm bằng SQL thuần nếu AI chết hoặc không tìm ra
+        const [current] = await pool.query(`
+            SELECT c.name as category, r.name as region
+            FROM tours t
+            LEFT JOIN Tour_Destination td ON t.id = td.tour_id AND td.is_primary = TRUE
+            LEFT JOIN destination d ON td.destination_id = d.id
+            LEFT JOIN country co ON d.country_id = co.id
+            LEFT JOIN region r ON r.id = COALESCE(d.region_id, co.region_id)
+            LEFT JOIN tourcategory c ON r.category_id = c.id
+            WHERE t.id = ?
+        `, [tourId]);
 
         if (current.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy tour.' });
         }
 
         const { category, region } = current[0];
-        const [related] = await pool.query(
-            'SELECT * FROM tours WHERE id != ? AND (category = ? OR region = ?) ORDER BY rating DESC LIMIT 4',
-            [tourId, category || '', region || '']
-        );
+        
+        // Tìm tour liên quan dựa trên category hoặc region mới
+        const [related] = await pool.query(`
+            SELECT t.* 
+            FROM tours t
+            LEFT JOIN Tour_Destination td ON t.id = td.tour_id AND td.is_primary = TRUE
+            LEFT JOIN destination d ON td.destination_id = d.id
+            LEFT JOIN country co ON d.country_id = co.id
+            LEFT JOIN region r ON r.id = COALESCE(d.region_id, co.region_id)
+            LEFT JOIN tourcategory c ON r.category_id = c.id
+            WHERE t.id != ? AND (c.name = ? OR r.name = ?)
+            ORDER BY t.rating DESC LIMIT 4
+        `, [tourId, category || '', region || '']);
 
-        res.json(related);
+        res.json({ tours: related, method: 'SQL Fallback' });
     } catch (error) {
         console.error('❌ Lỗi lấy tour liên quan:', error.message);
         res.status(500).json({ message: 'Lỗi máy chủ khi tải tour liên quan.' });
+    }
+};
+
+// Ghi nhận hành vi người dùng (Tracking)
+exports.trackInteraction = async (req, res) => {
+    try {
+        const { userId, tourId, interactionType } = req.body;
+        
+        if (!tourId || !interactionType) {
+            return res.status(400).json({ message: 'Thiếu thông tin tourId hoặc interactionType' });
+        }
+
+        // Nếu không có userId (khách vãng lai), tạm thời có thể lưu session_id hoặc bỏ qua
+        // Ở đây ta ưu tiên lưu khi có user đăng nhập để học hành vi
+        if (!userId) {
+            return res.status(200).json({ message: 'Bỏ qua tracking khách vãng lai' });
+        }
+
+        let weight = 1;
+        if (interactionType === 'wishlist') weight = 3;
+        else if (interactionType === 'book') weight = 10;
+        
+        await pool.query(
+            `INSERT INTO user_interactions (user_id, tour_id, interaction_type, weight) 
+             VALUES (?, ?, ?, ?)`,
+            [userId, tourId, interactionType, weight]
+        );
+
+        res.status(200).json({ message: 'Đã ghi nhận hành vi.' });
+    } catch (error) {
+        console.error('❌ Lỗi tracking hành vi:', error.message);
+        res.status(500).json({ message: 'Lỗi máy chủ khi tracking hành vi.' });
     }
 };

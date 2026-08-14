@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '@/store/useAuthStore';
 
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -19,12 +20,18 @@ export default function Chatbot() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [history, setHistory] = useState<ChatMessage[]>([{
     role: 'model',
-    content: 'Chào bạn! Tôi là trợ lý ảo của TravelBook. Bạn cần tìm tour du lịch nào?'
+    content: 'Hi, Mình là Leo - Trợ lý ảo của TravelBook! Bạn cần tìm tour du lịch nào?'
   }]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    const handleOpenChatbot = () => setIsOpen(true);
+    window.addEventListener('openChatbot', handleOpenChatbot);
+    return () => window.removeEventListener('openChatbot', handleOpenChatbot);
+  }, []);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -37,7 +44,7 @@ export default function Chatbot() {
     setSessionId(null);
     setHistory([{
       role: 'model',
-      content: 'Chào bạn! Tôi là trợ lý ảo của TravelBook. Bạn cần tìm tour du lịch nào?'
+      content: 'Hi, Mình là Leo - Trợ lý ảo của TravelBook! Bạn cần tìm tour du lịch nào?'
     }]);
 
     if (!user) return; // Không tải lịch sử nếu chưa đăng nhập
@@ -129,12 +136,21 @@ export default function Chatbot() {
   return (
     <>
       {/* Nút bật/tắt Chatbot */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-xl hover:bg-blue-700 transition-all z-50 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100 hover:scale-110'}`}
-      >
-        <MessageCircle className="w-7 h-7" />
-      </button>
+      <div className={`fixed bottom-6 right-6 z-50 flex flex-col items-end group transition-all duration-300 ${isOpen ? 'scale-0 opacity-0 pointer-events-none' : 'scale-100 opacity-100'}`}>
+        {/* Tooltip */}
+        <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white text-slate-800 text-sm font-semibold px-4 py-2.5 rounded-xl shadow-xl border border-slate-100 whitespace-nowrap pointer-events-none">
+          Gửi yêu cầu hỗ trợ ngay
+          <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-b border-r border-slate-100 transform rotate-45"></div>
+        </div>
+        
+        {/* Avatar Button */}
+        <button
+          onClick={() => setIsOpen(true)}
+          className="w-16 h-16 rounded-full overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-blue-500/30 hover:scale-110 transition-all duration-300 border-[3px] border-white bg-white focus:outline-none"
+        >
+          <Image src="/images/chatbot-avatar.png" alt="Chatbot Hỗ Trợ" width={64} height={64} className="object-cover w-full h-full" />
+        </button>
+      </div>
 
       {/* Cửa sổ Chat */}
       <div 
@@ -145,11 +161,11 @@ export default function Chatbot() {
         {/* Header */}
         <div className="bg-blue-600 p-4 flex items-center justify-between text-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <Bot className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-white border border-blue-400/30">
+              <Image src="/images/chatbot-avatar.png" alt="Leo Avatar" width={40} height={40} className="object-cover w-full h-full" />
             </div>
             <div>
-              <h3 className="font-bold text-lg leading-tight">TravelBook AI</h3>
+              <h3 className="font-bold text-lg leading-tight">Leo</h3>
               <p className="text-blue-100 text-xs">Sẵn sàng tư vấn 24/7</p>
             </div>
           </div>
@@ -165,8 +181,8 @@ export default function Chatbot() {
         <div className="flex-1 overflow-y-auto p-4 bg-slate-50 flex flex-col gap-4">
           {history.map((msg, index) => (
             <div key={index} className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'self-end flex-row-reverse' : 'self-start'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user' ? 'bg-blue-100 text-blue-600' : 'bg-white border border-slate-200 text-slate-500 shadow-sm'}`}>
-                {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 overflow-hidden ${msg.role === 'user' ? 'bg-blue-100 text-blue-600' : 'bg-white border border-slate-200 text-slate-500 shadow-sm'}`}>
+                {msg.role === 'user' ? <User className="w-4 h-4" /> : <Image src="/images/chatbot-avatar.png" alt="Leo" width={32} height={32} className="object-cover w-full h-full" />}
               </div>
               <div className={`p-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm whitespace-pre-wrap' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm chat-markdown prose-sm [&>p]:mb-2 [&>ul]:pl-4 [&>ul]:list-disc [&>ul]:mb-2 [&>strong]:font-bold'}`}>
                 {msg.role === 'model' ? (
@@ -180,8 +196,8 @@ export default function Chatbot() {
           
           {isLoading && (
             <div className="flex gap-3 max-w-[85%] self-start">
-              <div className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 shadow-sm flex items-center justify-center shrink-0">
-                <Bot className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center shrink-0 overflow-hidden">
+                <Image src="/images/chatbot-avatar.png" alt="Leo" width={32} height={32} className="object-cover w-full h-full" />
               </div>
               <div className="p-3 bg-white text-slate-700 border border-slate-100 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin text-blue-600" />

@@ -9,8 +9,9 @@ const getTours = async (req, res) => {
         let query = `
             SELECT t.*, 
                    d.name AS location, 
-                   r.name AS region, 
+                   r.name AS region,
                    c.name AS category,
+                   (SELECT l.name FROM landmarks l WHERE l.id = t.landmark_id LIMIT 1) AS landmark_name,
                    (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('id', dest.id, 'name', dest.name, 'is_primary', td.is_primary)), ']') FROM tour_destination td JOIN destination dest ON td.destination_id = dest.id WHERE td.tour_id = t.id) AS destinations
             FROM tours t
             LEFT JOIN region r ON r.id = (SELECT r2.id FROM tour_destination td2 JOIN destination d2 ON td2.destination_id = d2.id LEFT JOIN country co2 ON d2.country_id = co2.id JOIN region r2 ON r2.id = COALESCE(d2.region_id, co2.region_id) WHERE td2.tour_id = t.id AND td2.is_primary = TRUE LIMIT 1)
@@ -92,8 +93,9 @@ const getTourById = async (req, res) => {
         let query = `
             SELECT t.*, 
                    d.name AS location, 
-                   r.name AS region, 
+                   r.name AS region,
                    c.name AS category,
+                   (SELECT l.name FROM landmarks l WHERE l.id = t.landmark_id LIMIT 1) AS landmark_name,
                    (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('id', dest.id, 'name', dest.name, 'is_primary', td.is_primary)), ']') FROM tour_destination td JOIN destination dest ON td.destination_id = dest.id WHERE td.tour_id = t.id) AS destinations
             FROM tours t
             LEFT JOIN region r ON r.id = (SELECT r2.id FROM tour_destination td2 JOIN destination d2 ON td2.destination_id = d2.id LEFT JOIN country co2 ON d2.country_id = co2.id JOIN region r2 ON r2.id = COALESCE(d2.region_id, co2.region_id) WHERE td2.tour_id = t.id AND td2.is_primary = TRUE LIMIT 1)
@@ -130,7 +132,7 @@ const getTourById = async (req, res) => {
 // 3. Admin: Thêm tour mới (Lưu ID thay vì chuỗi)
 const createTour = async (req, res) => {
     try {
-        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, destinations, tourTypes, occasions, tour_code, notes } = req.body;
+        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, destinations, tourTypes, occasions, tour_code, notes, landmarks, departure_destination_id } = req.body;
         
         const galleryJson = typeof gallery === 'string' && gallery.startsWith('[') ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' && itinerary.startsWith('[') ? itinerary : JSON.stringify(itinerary || []);
@@ -139,9 +141,9 @@ const createTour = async (req, res) => {
         const notesJson = typeof notes === 'string' && notes.startsWith('[') ? notes : JSON.stringify(notes || []);
 
         const [result] = await pool.query(
-            `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, tour_code, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge || 'Mới', description, itineraryJson, includedJson, excludedJson, tour_code || null, notesJson]
+            `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, tour_code, notes, landmarks, departure_destination_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge || 'Mới', description, itineraryJson, includedJson, excludedJson, tour_code || null, notesJson, landmarks || null, departure_destination_id || null]
         );
 
         const tourId = result.insertId;
@@ -180,7 +182,7 @@ const createTour = async (req, res) => {
 const updateTour = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, destinations, tourTypes, occasions, tour_code, notes } = req.body;
+        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, destinations, tourTypes, occasions, tour_code, notes, landmarks, departure_destination_id } = req.body;
 
         const galleryJson = typeof gallery === 'string' && gallery.startsWith('[') ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' && itinerary.startsWith('[') ? itinerary : JSON.stringify(itinerary || []);
@@ -189,9 +191,9 @@ const updateTour = async (req, res) => {
         const notesJson = typeof notes === 'string' && notes.startsWith('[') ? notes : JSON.stringify(notes || []);
 
         await pool.query(
-            `UPDATE tours SET name=?, price=?, original_price=?, child_price=?, available_spots=?, departure_date=?, duration=?, image=?, gallery=?, badge=?, description=?, itinerary=?, included=?, excluded=?, tour_code=?, notes=?
+            `UPDATE tours SET name=?, price=?, original_price=?, child_price=?, available_spots=?, departure_date=?, duration=?, image=?, gallery=?, badge=?, description=?, itinerary=?, included=?, excluded=?, tour_code=?, notes=?, landmarks=?, departure_destination_id=?
              WHERE id=?`,
-            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge, description, itineraryJson, includedJson, excludedJson, tour_code || null, notesJson, id]
+            [name, price, original_price || Math.round(price * 1.2), child_price || Math.round(price * 0.7), available_spots || 30, departure_date || '2026-08-15', duration, image, galleryJson, badge, description, itineraryJson, includedJson, excludedJson, tour_code || null, notesJson, landmarks || null, departure_destination_id || null, id]
         );
 
         // Update Destinations
@@ -400,6 +402,42 @@ const deleteDestination = async (req, res) => {
     }
 };
 
+// --- CÁC HÀM QUẢN LÝ ĐỊA DANH (CẤP 4) ---
+const createLandmark = async (req, res) => {
+    try {
+        const { name, destination_id } = req.body;
+        if (!name || !destination_id) return res.status(400).json({ message: "Thiếu tên địa danh hoặc id điểm đến" });
+        const [result] = await pool.query('INSERT INTO landmarks (name, destination_id) VALUES (?, ?)', [name, destination_id]);
+        res.status(201).json({ id: result.insertId, name, destination_id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi tạo địa danh" });
+    }
+};
+
+const updateLandmark = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, destination_id } = req.body;
+        await pool.query('UPDATE landmarks SET name=?, destination_id=? WHERE id=?', [name, destination_id, id]);
+        res.json({ id, name, destination_id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi sửa địa danh" });
+    }
+};
+
+const deleteLandmark = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await pool.query('DELETE FROM landmarks WHERE id=?', [id]);
+        res.json({ message: "Xóa địa danh thành công" });
+    } catch (error) {
+        console.error("Lỗi xóa địa danh:", error);
+        res.status(500).json({ message: "Lỗi khi xóa địa danh" });
+    }
+};
+
 // --- CÁC HÀM QUẢN LÝ TAGS (TourType, Occasion) ---
 const createTag = async (req, res) => {
     try {
@@ -445,5 +483,6 @@ module.exports = {
     createRegion, updateRegion, deleteRegion,
     createCountry, updateCountry, deleteCountry,
     createDestination, updateDestination, deleteDestination,
+    createLandmark, updateLandmark, deleteLandmark,
     createTag, updateTag, deleteTag
 };

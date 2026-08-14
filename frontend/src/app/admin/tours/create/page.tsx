@@ -3,10 +3,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  ArrowLeft, CheckCircle2, Plus, Trash2,
-  Map, Tag, Image as ImageIcon, FileText, Settings, Calendar, RefreshCw, Info
-} from 'lucide-react'
+import { FileUp, Save, LayoutDashboard, Plus, Trash2, MapPin, AlignLeft, Tags, Settings, Calendar, Globe, Target, Image as ImageIcon, CheckCircle, Flame, Tag, RefreshCw, ArrowLeft, CheckCircle2, Map, FileText, Info } from 'lucide-react'
+import SearchableAdminDropdown from '@/components/ui/SearchableAdminDropdown'
 import { fetchApi } from '@/lib/api'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import MultiSelectDropdown from '@/components/ui/MultiSelectDropdown'
@@ -33,6 +31,7 @@ export default function CreateTourV2() {
   const [countryId, setCountryId] = useState('')
   const [selectedDestinations, setSelectedDestinations] = useState<number[]>([])
   const [primaryDestinationId, setPrimaryDestinationId] = useState<number | null>(null)
+  const [selectedLandmarks, setSelectedLandmarks] = useState<number[]>([])
 
   const [title, setTitle] = useState('')
   const [tourCode, setTourCode] = useState('')
@@ -44,7 +43,7 @@ export default function CreateTourV2() {
   const [priceAdultStr, setPriceAdultStr] = useState('')
   const [priceChildStr, setPriceChildStr] = useState('')
   const [maxSeats, setMaxSeats] = useState('30')
-  const [departureLocation, setDepartureLocation] = useState('TP. Hồ Chí Minh')
+  const [departureDestinationId, setDepartureDestinationId] = useState('')
 
   const [selectedTypes, setSelectedTypes] = useState<number[]>([])
   const [selectedOccasions, setSelectedOccasions] = useState<number[]>([])
@@ -230,7 +229,8 @@ export default function CreateTourV2() {
         gallery: JSON.stringify(galleryArr),
         tourTypes: JSON.stringify(selectedTypes),
         occasions: JSON.stringify(selectedOccasions),
-        departure_location: departureLocation
+        departure_destination_id: departureDestinationId ? Number(departureDestinationId) : null,
+        landmarks: selectedLandmarks.length > 0 ? JSON.stringify(selectedLandmarks) : null
       }
 
       await fetchApi('/admin/tours', { method: 'POST', data: payload })
@@ -252,7 +252,7 @@ export default function CreateTourV2() {
     if (isInternational) {
        return d.country_id?.toString() === countryId
     } else {
-       return d.region_id?.toString() === regionId
+       return d.region_id?.toString() === regionId && !d.country_id
     }
   }) || []
 
@@ -286,7 +286,7 @@ export default function CreateTourV2() {
               <Map className="w-5 h-5 text-blue-500" />
               <h2 className="text-lg font-bold text-white">Khối 1: Phân loại & Vị trí</h2>
             </div>
-            <div className={`p-6 grid gap-6 ${isInternational ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            <div className={`p-6 grid gap-6 ${isInternational ? 'grid-cols-5' : 'grid-cols-4'}`}>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Loại Tour (Cấp 1)</label>
                 <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
@@ -341,6 +341,16 @@ export default function CreateTourV2() {
                   </div>
                 )}
               </div>
+              
+              <div>
+                <MultiSelectDropdown
+                  label="Địa danh (Cấp 4) - Tùy chọn"
+                  placeholder="Khám phá toàn tỉnh/thành"
+                  options={metadata.landmarks?.filter((l: any) => l.destination_id === (primaryDestinationId || selectedDestinations[0])).map((l: any) => ({ id: l.id, label: l.name })) || []}
+                  selectedIds={selectedLandmarks}
+                  onChange={(ids) => setSelectedLandmarks(ids as number[])}
+                />
+              </div>
             </div>
           </section>
 
@@ -391,7 +401,12 @@ export default function CreateTourV2() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Điểm khởi hành</label>
-                <input type="text" value={departureLocation} onChange={(e) => setDepartureLocation(e.target.value)} placeholder="VD: TP. Hồ Chí Minh" className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+                <SearchableAdminDropdown
+                  options={metadata.destinations || []}
+                  value={departureDestinationId}
+                  onChange={(val) => setDepartureDestinationId(String(val))}
+                  placeholder="Chọn điểm khởi hành..."
+                />
               </div>
               <div className="flex gap-4">
                 <div className="flex-1">

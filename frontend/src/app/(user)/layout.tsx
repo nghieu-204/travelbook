@@ -1,6 +1,5 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import ChatWidget from "@/components/ChatWidget";
 
 export default function UserLayout({
   children,
@@ -14,7 +13,6 @@ export default function UserLayout({
         {children}
       </main>
       <Footer />
-      <ChatWidget />
     </>
   );
 }

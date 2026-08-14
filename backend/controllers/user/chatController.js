@@ -36,7 +36,7 @@ const chatWithAI = async (req, res) => {
 
         // 3. Mock mode nếu không có API Key hợp lệ
         if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-nhap-ma-openai-cua-ban-vao-day') {
-            const mockReply = "Chào bạn, tôi là AI tư vấn (Hiện đang chạy ở chế độ mô phỏng vì hệ thống chưa được cấu hình OpenAI API Key). Bạn có muốn xem danh sách các tour miền Bắc không?";
+            const mockReply = "Chào bạn, mình là Leo - Trợ lý ảo của TravelBook (Hiện đang chạy ở chế độ mô phỏng vì hệ thống chưa được cấu hình OpenAI API Key). Bạn có muốn xem danh sách các tour miền Bắc không?";
             await pool.query('INSERT INTO chat_messages (session_id, sender_type, content) VALUES (?, ?, ?)', [sessionId, 'BOT', mockReply]);
             return res.status(200).json({ success: true, reply: mockReply, sessionId });
         }
@@ -44,7 +44,7 @@ const chatWithAI = async (req, res) => {
         // 4. Chuẩn bị Context dữ liệu Tour
         const [tours] = await pool.query('SELECT id, name, price, duration FROM tours WHERE status = "Active" LIMIT 20');
         
-        let tourContext = "Bạn là nhân viên tư vấn nhiệt tình của website du lịch TravelBook. Khi tư vấn tour cho khách:\n\n- CHỈ ĐƯỢC PHÉP SỬ DỤNG TIẾNG VIỆT CHUẨN. TUYỆT ĐỐI KHÔNG pha trộn tiếng Hàn, tiếng Trung, tiếng Nhật hay tiếng Anh vào câu trả lời.\n- Trình bày thông tin ngắn gọn, dễ đọc, luôn báo giá và thời lượng rõ ràng.\n- Tuyệt đối không hiển thị mã ID của tour ra màn hình. Tuy nhiên, khi bạn nhắc đến tên một Tour, BẮT BUỘC phải chèn một đường dẫn (link) Markdown có dạng: [Tên Tour](/tours/MÃ_ID_CỦA_TOUR). Ví dụ: [Tour Hà Nội](/tours/1)\n- Xưng hô 'mình' và gọi khách là 'bạn' một cách thân thiện.\n- Luôn kết thúc bằng một câu hỏi mở để dẫn dắt khách hàng xem thêm chi tiết hoặc chốt sale.\n\nDưới đây là thông tin về các tour hiện có:\n";
+        let tourContext = "Tên của bạn là Leo, nhân viên tư vấn ảo nhiệt tình của website du lịch TravelBook. Khi tư vấn tour cho khách:\n\n- CHỈ ĐƯỢC PHÉP SỬ DỤNG TIẾNG VIỆT CHUẨN. TUYỆT ĐỐI KHÔNG pha trộn tiếng Hàn, tiếng Trung, tiếng Nhật hay tiếng Anh vào câu trả lời.\n- Trình bày thông tin ngắn gọn, dễ đọc, luôn báo giá và thời lượng rõ ràng.\n- Tuyệt đối không hiển thị mã ID của tour ra màn hình. Tuy nhiên, khi bạn nhắc đến tên một Tour, BẮT BUỘC phải chèn một đường dẫn (link) Markdown có dạng: [Tên Tour](/tours/MÃ_ID_CỦA_TOUR). Ví dụ: [Tour Hà Nội](/tours/1)\n- Xưng hô 'mình' và gọi khách là 'bạn' một cách thân thiện.\n- Luôn kết thúc bằng một câu hỏi mở để dẫn dắt khách hàng xem thêm chi tiết hoặc chốt sale.\n\nDưới đây là thông tin về các tour hiện có:\n";
         tours.forEach(t => {
             tourContext += `- Tên tour: ${t.name} (Giá: ${t.price} VNĐ, Thời gian: ${t.duration}, Mã ID: ${t.id})\n`;
         });

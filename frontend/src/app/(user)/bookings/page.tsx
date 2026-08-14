@@ -2,6 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, MapPin, Calendar, Users, ChevronRight, Download, Ticket, ArrowRight, Loader2, MessageSquare, Star, X, CheckCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -10,7 +11,10 @@ import { fetchApi } from '@/lib/api'
 export default function BookingsPage() {
   const { user, isLoginModalOpen, setLoginModalOpen } = useAuthStore()
   const [bookings, setBookings] = useState<any[]>([])
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
+  const [paymentStatus, setPaymentStatus] = useState<{status: 'success' | 'error', message: string} | null>(null)
 
   // Review states
   const [reviewBooking, setReviewBooking] = useState<any>(null)
@@ -37,7 +41,20 @@ export default function BookingsPage() {
     }
 
     fetchBookings()
-  }, [user])
+
+    // Handle VNPay return
+    const vnp_ResponseCode = searchParams.get('vnp_ResponseCode')
+    if (vnp_ResponseCode) {
+      if (vnp_ResponseCode === '00') {
+        setPaymentStatus({ status: 'success', message: 'Thanh toán thành công! Đơn đặt tour của bạn đã được xác nhận.' })
+      } else {
+        setPaymentStatus({ status: 'error', message: 'Thanh toán thất bại hoặc đã bị hủy. Vui lòng thử lại.' })
+      }
+      
+      // Clean up URL
+      router.replace('/bookings')
+    }
+  }, [user, searchParams, router])
 
   const submitReview = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,6 +100,8 @@ export default function BookingsPage() {
         return <span className="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đã xác nhận</span>
       case 'Đang chờ xác nhận':
         return <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đang chờ xác nhận</span>
+      case 'Đang chờ thanh toán':
+        return <span className="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đang chờ thanh toán</span>
       case 'Đang diễn ra':
         return <span className="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1.5 rounded-full shrink-0">Đang diễn ra</span>
       case 'Hủy':
@@ -175,6 +194,28 @@ export default function BookingsPage() {
             <h3 className="text-xl font-bold text-slate-900 mb-2">Cảm ơn bạn!</h3>
             <p className="text-slate-600 mb-6">Đánh giá của bạn đã được ghi nhận và sẽ giúp ích rất nhiều cho các du khách khác.</p>
             <button onClick={() => setShowThanksModal(false)} className="w-full px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Status Modal */}
+      {paymentStatus && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 p-8 text-center">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${paymentStatus.status === 'success' ? 'bg-emerald-100' : 'bg-red-100'}`}>
+              {paymentStatus.status === 'success' ? (
+                <CheckCircle className="w-8 h-8 text-emerald-600" />
+              ) : (
+                <X className="w-8 h-8 text-red-600" />
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
+              {paymentStatus.status === 'success' ? 'Thanh toán thành công!' : 'Thanh toán thất bại!'}
+            </h3>
+            <p className="text-slate-600 mb-6">{paymentStatus.message}</p>
+            <button onClick={() => setPaymentStatus(null)} className={`w-full px-5 py-2.5 rounded-xl font-bold text-white transition-colors ${paymentStatus.status === 'success' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}>
               Đóng
             </button>
           </div>

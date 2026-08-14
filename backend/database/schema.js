@@ -99,6 +99,18 @@ async function initSchema() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
+        // 5. Bảng order_logs (Audit Trail)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS order_logs(
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                booking_id INT NOT NULL,
+                action VARCHAR(100) NOT NULL,
+                description TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
         // 5. Bảng reviews
         await pool.query(`
             CREATE TABLE IF NOT EXISTS reviews (
@@ -137,6 +149,21 @@ async function initSchema() {
                 FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
+
+        // 8. Bảng user_interactions (Tracking cho Recommendation System)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_interactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                tour_id INT NOT NULL,
+                interaction_type VARCHAR(50) NOT NULL, -- 'view', 'wishlist', 'book'
+                weight INT DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
 
         // ================= SCHEMA V2 (HIERARCHICAL & TAGGING) =================
         // 1. Bảng TourCategory (Cấp 1 - Trong nước / Ngoài nước)
@@ -202,21 +229,15 @@ async function initSchema() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
-        // 6. Bảng Tour_v2 (Bảng chính chứa thông tin Tour)
-        // Lưu ý: Đặt tên là Tour_v2 để không đụng chạm bảng tours cũ
+        // 6. Bảng trung gian tour_destination (Nhiều-Nhiều)
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS Tour_v2 (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+            CREATE TABLE IF NOT EXISTS tour_destination (
+                tour_id INT NOT NULL,
                 destination_id INT NOT NULL,
-                title VARCHAR(255) NOT NULL,
-                price_adult DECIMAL(10, 2) NOT NULL,
-                price_child DECIMAL(10, 2) NOT NULL,
-                start_date DATE NOT NULL,
-                max_seats INT DEFAULT 30,
-                status VARCHAR(50) DEFAULT 'Active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (destination_id) REFERENCES Destination(id) ON DELETE RESTRICT
+                is_primary BOOLEAN DEFAULT FALSE,
+                PRIMARY KEY (tour_id, destination_id),
+                FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE,
+                FOREIGN KEY (destination_id) REFERENCES Destination(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 
@@ -226,7 +247,7 @@ async function initSchema() {
                 tour_id INT NOT NULL,
                 type_id INT NOT NULL,
                 PRIMARY KEY (tour_id, type_id),
-                FOREIGN KEY (tour_id) REFERENCES Tour_v2(id) ON DELETE CASCADE,
+                FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE,
                 FOREIGN KEY (type_id) REFERENCES TourType(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
@@ -237,20 +258,8 @@ async function initSchema() {
                 tour_id INT NOT NULL,
                 occasion_id INT NOT NULL,
                 PRIMARY KEY (tour_id, occasion_id),
-                FOREIGN KEY (tour_id) REFERENCES Tour_v2(id) ON DELETE CASCADE,
+                FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE,
                 FOREIGN KEY (occasion_id) REFERENCES Occasion(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        `);
-
-        // 9. Bảng TourImages (Thư viện ảnh của tour)
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS TourImages (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                tour_id INT NOT NULL,
-                image_url VARCHAR(500) NOT NULL,
-                is_main BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (tour_id) REFERENCES Tour_v2(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `);
 

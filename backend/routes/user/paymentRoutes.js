@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const paymentController = require('../../controllers/user/paymentController');
 
-// Route tạo mã QR thanh toán MoMo
-router.post('/payments/momo-qr', paymentController.createMoMoPayment);
-
-// Route xác nhận thanh toán trực tuyến thành công
-router.post('/payments/confirm', paymentController.confirmOnlinePayment);
+// VNPay Routes
+router.post('/payments/vnpay-url', paymentController.createVNPayPayment);
+router.post('/payments/vnpay-ipn', paymentController.vnpayIpn);
+router.get('/payments/vnpay-ipn', paymentController.vnpayIpn);
+router.get('/payments/vnpay-return', paymentController.vnpayReturn);
 
 module.exports = router;

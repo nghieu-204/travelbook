@@ -13,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, logout } = useAdminAuthStore()
   const [isMounted, setIsMounted] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
@@ -48,15 +49,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
-  const links = [
-    { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
-    { href: '/admin/tours', label: 'Quản lý Tour', icon: Map },
-    { href: '/admin/destinations', label: 'Khu vực & Điểm đến', icon: MapPin },
-    { href: '/admin/tags', label: 'Quản lý Nhãn', icon: Tag },
-    { href: '/admin/bookings', label: 'Quản lý Đơn đặt', icon: ShoppingBag },
-    { href: '/admin/users', label: 'Người dùng', icon: Users },
-    { href: '/admin/contacts', label: 'Liên hệ', icon: MessageSquare },
+  const linkGroups = [
+    {
+      label: 'VẬN HÀNH',
+      links: [
+        { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
+        { href: '/admin/bookings', label: 'Quản lý Đơn đặt', icon: ShoppingBag },
+        { href: '/admin/contacts', label: 'Liên hệ', icon: MessageSquare },
+      ]
+    },
+    {
+      label: 'DỊCH VỤ',
+      links: [
+        { href: '/admin/tours', label: 'Quản lý Tour', icon: Map },
+        { href: '/admin/destinations', label: 'Khu vực & Điểm đến', icon: MapPin },
+        { href: '/admin/tags', label: 'Quản lý Nhãn', icon: Tag },
+      ]
+    },
+    {
+      label: 'HỆ THỐNG',
+      links: [
+        { href: '/admin/users', label: 'Người dùng', icon: Users },
+      ]
+    }
   ]
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  }
 
   return (
     <div className="flex w-full h-full min-h-screen bg-[#0f172a] text-slate-300 font-sans">
@@ -68,24 +89,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="h-16 flex items-center px-6 border-b border-slate-800 shrink-0 whitespace-nowrap">
           <span className="text-xl font-black text-white tracking-tighter">ADMIN<span className="text-emerald-500">PANEL</span></span>
         </div>
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto whitespace-nowrap min-w-[256px]">
-          {links.map(link => {
-            const Icon = link.icon
-            const isActive = pathname === link.href
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn("flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors", isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-400 hover:bg-[#334155] hover:text-white")}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                {link.label}
-              </Link>
-            )
-          })}
+        <nav className="flex-1 p-4 space-y-6 overflow-y-auto whitespace-nowrap min-w-[256px]">
+          {linkGroups.map((group, idx) => (
+            <div key={idx} className="space-y-2">
+              <div className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {group.label}
+              </div>
+              <div className="space-y-1">
+                {group.links.map(link => {
+                  const Icon = link.icon
+                  const isActive = pathname === link.href
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn("flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors", isActive ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-400 hover:bg-[#334155] hover:text-white")}
+                    >
+                      <Icon className="w-5 h-5 shrink-0" />
+                      {link.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
         <div className="p-4 border-t border-slate-800 whitespace-nowrap min-w-[256px]">
-          <button onClick={() => { logout(); router.push('/'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-slate-400 hover:bg-[#334155] hover:text-white transition-colors">
+          <button onClick={() => setIsLogoutModalOpen(true)} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-slate-400 hover:bg-[#334155] hover:text-white transition-colors">
             <LogOut className="w-5 h-5 shrink-0" />
             Đăng xuất
           </button>
@@ -120,6 +150,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </div>
       </main>
+
+      {/* Logout Confirmation Modal */}
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1e293b] border border-slate-700 rounded-xl p-6 w-[400px] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-white mb-2">Đăng xuất</h3>
+            <p className="text-slate-400 mb-6">Bạn có chắc chắn muốn đăng xuất khỏi hệ thống quản trị?</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setIsLogoutModalOpen(false)}
+                className="px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ const {
     createCountry, updateCountry, deleteCountry,
     createRegion, updateRegion, deleteRegion,
     createDestination, updateDestination, deleteDestination,
+    createLandmark, updateLandmark, deleteLandmark,
     createTag, updateTag, deleteTag
 } = require('../../controllers/admin/tourController');
 const { verifyAdmin } = require('../../middlewares/adminAuth');
@@ -29,6 +30,11 @@ router.delete('/countries/:id', verifyAdmin, deleteCountry);
 router.post('/destinations', verifyAdmin, createDestination);
 router.put('/destinations/:id', verifyAdmin, updateDestination);
 router.delete('/destinations/:id', verifyAdmin, deleteDestination);
+
+// Location / Landmark routes
+router.post('/landmarks', verifyAdmin, createLandmark);
+router.put('/landmarks/:id', verifyAdmin, updateLandmark);
+router.delete('/landmarks/:id', verifyAdmin, deleteLandmark);
 
 // Tags routes
 router.post('/tags', verifyAdmin, createTag);

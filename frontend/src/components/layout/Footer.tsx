@@ -8,7 +8,7 @@ export default function Footer() {
         {/* Col 1 */}
         <div>
           <Link href="/" className="inline-block mb-4">
-            <span className="text-2xl font-black text-white tracking-tighter">TRAVEL<span className="text-emerald-500">BOOK</span></span>
+            <span className="text-2xl font-black text-blue-500 tracking-tighter">TRAVEL<span className="text-emerald-500">BOOK</span></span>
           </Link>
           <p className="text-sm text-slate-400 mb-6 leading-relaxed">
             Nền tảng đặt tour du lịch hàng đầu Việt Nam. Khám phá hàng ngàn điểm đến hấp dẫn với giá tốt nhất và dịch vụ chu đáo.
@@ -64,7 +64,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="container mx-auto px-4 mt-12 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
-        &copy; {new Date().getFullYear()} TravelBooking. All rights reserved.
+        &copy; {new Date().getFullYear()} TravelBook. All rights reserved.
       </div>
     </footer>
   )

@@ -39,7 +39,7 @@ export default function BookingsPage() {
       const data = await fetchApi('/admin/bookings')
       const mappedData = data.map((b: any) => ({
         id: b.id,
-        tourCode: b.tour_code || `T-${b.tour_id}`,
+        tourCode: b.tour_code || `TB-${b.tour_id}`,
         tourName: b.tour_name,
         customerName: b.user_name,
         email: b.user_email,
@@ -544,7 +544,7 @@ export default function BookingsPage() {
                       <div className="flex flex-col items-center justify-center gap-1">
                         {getPaymentStatusBadge(booking.paymentStatus)}
                         <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                          {booking.paymentMethod === 'Thanh toán tại văn phòng' ? 'Thanh toán trực tiếp' : booking.paymentMethod}
+                          {booking.paymentMethod === 'Thanh toán tại văn phòng' ? 'Thanh toán trực tiếp' : (booking.paymentMethod === 'Thanh toán qua VNPay' || booking.paymentMethod === 'VNPAY' ? 'VNPay' : booking.paymentMethod)}
                         </span>
                       </div>
                     </td>
@@ -652,7 +652,7 @@ export default function BookingsPage() {
                 <div><span className="text-slate-500 block mb-1">Số lượng khách</span><strong className="text-white">{selectedBooking.adults} Người lớn, {selectedBooking.children} Trẻ em</strong></div>
                 <div><span className="text-slate-500 block mb-1">Tổng tiền</span><strong className="text-amber-400 text-lg">{formatCurrency(selectedBooking.totalPrice)} VNĐ</strong></div>
                 <div className="col-span-2"><span className="text-slate-500 block mb-1">Tên Tour</span><strong className="text-white">{selectedBooking.tourName}</strong></div>
-                <div><span className="text-slate-500 block mb-1">Phương thức thanh toán</span><strong className="text-white">{selectedBooking.paymentMethod}</strong></div>
+                <div><span className="text-slate-500 block mb-1">Phương thức thanh toán</span><strong className="text-white">{selectedBooking.paymentMethod === 'Thanh toán tại văn phòng' ? 'Thanh toán trực tiếp' : (selectedBooking.paymentMethod === 'Thanh toán qua VNPay' || selectedBooking.paymentMethod === 'VNPAY' ? 'VNPay' : selectedBooking.paymentMethod)}</strong></div>
                 <div><span className="text-slate-500 block mb-1">Trạng thái thanh toán</span><strong className="text-white">{selectedBooking.paymentStatus}</strong></div>
               </div>
             </div>

@@ -2,6 +2,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Clock, MapPin, Ticket, Users, Edit3, Phone } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 
@@ -21,7 +22,7 @@ export default function BookingWidget({ tour }: { tour: any }) {
 
   if (!tour) return null;
 
-  const tourCode = tour.tour_code || `NDSGN846-132-${tour.id?.toString().padStart(6, '0')}XE-V`
+  const tourCode = tour.tour_code || `TB-${tour.id}`
   const availableSpots = tour.available_spots !== undefined && tour.available_spots !== null ? tour.available_spots : 2
   const departureDate = tour.departure_date ? new Date(tour.departure_date).toLocaleDateString('vi-VN') : '23/07/2026'
 
@@ -102,9 +103,18 @@ export default function BookingWidget({ tour }: { tour: any }) {
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <button className="w-12 h-12 shrink-0 bg-blue-700 hover:bg-blue-800 text-white rounded-full flex items-center justify-center transition-colors shadow-md">
-          <Phone className="w-5 h-5 fill-current" />
-        </button>
+        <div className="relative group shrink-0">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white text-slate-800 text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-lg border border-slate-200 whitespace-nowrap pointer-events-none z-10">
+            Gửi yêu cầu hỗ trợ ngay
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
+          </div>
+          <button 
+            onClick={() => window.dispatchEvent(new Event('openChatbot'))}
+            className="w-12 h-12 shrink-0 rounded-full flex items-center justify-center transition-all shadow-md overflow-hidden hover:scale-105 border-2 border-slate-100 hover:border-blue-400 focus:outline-none"
+          >
+            <Image src="/images/chatbot-avatar.png" alt="Chatbot Hỗ Trợ" width={48} height={48} className="object-cover w-full h-full" />
+          </button>
+        </div>
         <button 
           onClick={handleBook}
           className="flex-1 bg-red-600 hover:bg-red-700 text-white text-base font-bold rounded-full transition-colors shadow-md flex items-center justify-center"

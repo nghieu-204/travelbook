@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { MapPin, Users, Calendar, ShieldCheck, CheckCircle2, CreditCard, Wallet, Banknote, ChevronLeft, Minus, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { fetchApi } from '@/lib/api'
+import { toast } from 'react-hot-toast'
 
 export default function CheckoutClient({ tour }: { tour: any }) {
   const router = useRouter()
@@ -14,14 +15,14 @@ export default function CheckoutClient({ tour }: { tour: any }) {
 
   const [adults, setAdults] = useState(1)
   const [children, setChildren] = useState(0)
-  
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
     address: ''
   })
-  
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -48,11 +49,10 @@ export default function CheckoutClient({ tour }: { tour: any }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
+
     try {
       let paymentLabel = 'Thanh toán trực tiếp';
-      if (paymentMethod === 'paypal') paymentLabel = 'PayPal';
-      if (paymentMethod === 'momo') paymentLabel = 'MoMo';
+      if (paymentMethod === 'vnpay') paymentLabel = 'Thanh toán qua VNPay';
 
       const bookingData = {
         user_id: user?.id || null,
@@ -68,15 +68,34 @@ export default function CheckoutClient({ tour }: { tour: any }) {
         payment_method: paymentLabel
       }
 
-      await fetchApi('/bookings', {
+      const res = await fetchApi('/bookings', {
         method: 'POST',
         data: bookingData
       })
       
+      if (paymentMethod === 'vnpay' && res.bookingId) {
+        try {
+          const paymentRes = await fetchApi('/payments/vnpay-url', {
+            method: 'POST',
+            data: { bookingId: res.bookingId, amount: total, orderInfo: `Thanh toan don dat tour TB-${res.bookingId}` }
+          });
+          if (paymentRes.payUrl) {
+            window.location.href = paymentRes.payUrl;
+            return;
+          }
+        } catch (err) {
+          console.error("Lỗi tạo thanh toán VNPay:", err);
+          toast.error("Không thể khởi tạo thanh toán VNPay. Vui lòng thử lại hoặc chọn phương thức khác.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      toast.success("Đặt tour thành công!");
       router.push('/bookings')
     } catch (error) {
       console.error("Lỗi đặt tour:", error);
-      alert("Đã xảy ra lỗi khi đặt tour. Vui lòng thử lại!");
+      toast.error("Đã xảy ra lỗi khi đặt tour. Vui lòng thử lại!");
     } finally {
       setIsSubmitting(false)
     }
@@ -90,21 +109,21 @@ export default function CheckoutClient({ tour }: { tour: any }) {
         <Link href={`/tours/${tour.id}`} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-blue-600 font-medium mb-6 transition-colors">
           <ChevronLeft className="w-4 h-4" /> Quay lại chi tiết tour
         </Link>
-        
+
         <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-8">Thanh toán & Đặt tour</h1>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Main Content - Left Side */}
           <div className="flex-1 space-y-6">
             <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
-              
+
               {/* Departure & Guests */}
               <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm">
                 <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                   <Calendar className="w-6 h-6 text-blue-600" />
                   Thông tin chuyến đi
                 </h2>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Ngày khởi hành</label>
@@ -112,7 +131,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                       {departureDate}
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Số lượng khách</label>
                     <div className="flex flex-col gap-3">
@@ -128,7 +147,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-4 py-2">
                         <span className="text-sm font-medium text-slate-700">Trẻ em <span className="text-xs text-slate-400 font-normal">(dưới 11 tuổi)</span></span>
                         <div className="flex items-center gap-3">
@@ -152,7 +171,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                   <Users className="w-6 h-6 text-blue-600" />
                   Thông tin liên hệ
                 </h2>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Họ và tên *</label>
@@ -179,7 +198,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                   <CreditCard className="w-6 h-6 text-blue-600" />
                   Phương thức thanh toán
                 </h2>
-                
+
                 <div className="space-y-4">
                   <label className={`flex items-start p-4 border rounded-2xl cursor-pointer transition-all ${paymentMethod === 'office' ? 'border-blue-600 bg-blue-50/50' : 'border-slate-200 hover:border-blue-300'}`}>
                     <div className="flex-1 flex items-center gap-4">
@@ -194,35 +213,19 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                     <input type="radio" name="payment" value="office" checked={paymentMethod === 'office'} onChange={() => setPaymentMethod('office')} className="w-5 h-5 mt-2 text-blue-600 focus:ring-blue-500" />
                   </label>
 
-                  <label className={`flex items-start p-4 border rounded-2xl cursor-pointer transition-all ${paymentMethod === 'paypal' ? 'border-blue-600 bg-blue-50/50' : 'border-slate-200 hover:border-blue-300'}`}>
-                    <div className="flex-1 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-[#00457C]/10 flex items-center justify-center shrink-0">
-                        <Wallet className="w-5 h-5 text-[#00457C]" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900">Thanh toán qua PayPal</h3>
-                        <p className="text-sm text-slate-500 mt-0.5">Thanh toán an toàn bằng tài khoản PayPal hoặc thẻ quốc tế</p>
-                        {paymentMethod === 'paypal' && (
-                          <div className="mt-2 text-sm font-medium text-blue-700 bg-white inline-block px-3 py-1 rounded-lg border border-blue-100">
-                            Tỉ giá ước tính: 1 USD = 25,000 VND
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <input type="radio" name="payment" value="paypal" checked={paymentMethod === 'paypal'} onChange={() => setPaymentMethod('paypal')} className="w-5 h-5 mt-2 text-blue-600 focus:ring-blue-500" />
-                  </label>
 
-                  <label className={`flex items-start p-4 border rounded-2xl cursor-pointer transition-all ${paymentMethod === 'momo' ? 'border-blue-600 bg-blue-50/50' : 'border-slate-200 hover:border-blue-300'}`}>
+
+                  <label className={`flex items-start p-4 border rounded-2xl cursor-pointer transition-all ${paymentMethod === 'vnpay' ? 'border-blue-600 bg-blue-50/50' : 'border-slate-200 hover:border-blue-300'}`}>
                     <div className="flex-1 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-[#A50064]/10 flex items-center justify-center shrink-0">
-                        <svg className="w-5 h-5 text-[#A50064]" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6H7v6H5V9h2v4h2V9h2v8zm5 0h-2V9h2v8z"/></svg>
+                      <div className="w-10 h-10 rounded-full bg-[#005BAA]/10 flex items-center justify-center shrink-0">
+                        <svg className="w-5 h-5 text-[#005BAA]" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v2h16V5H4zm0 4v10h16V9H4zm2 2h4v2H6v-2zm0 4h8v2H6v-2z"/></svg>
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-900">Thanh toán qua Ví MoMo</h3>
-                        <p className="text-sm text-slate-500 mt-0.5">Quét mã QR tiện lợi qua ứng dụng MoMo</p>
+                        <h3 className="font-bold text-slate-900">Thanh toán qua VNPay</h3>
+                        <p className="text-sm text-slate-500 mt-0.5">Thanh toán qua thẻ ATM, Internet Banking hoặc VNPay-QR</p>
                       </div>
                     </div>
-                    <input type="radio" name="payment" value="momo" checked={paymentMethod === 'momo'} onChange={() => setPaymentMethod('momo')} className="w-5 h-5 mt-2 text-blue-600 focus:ring-blue-500" />
+                    <input type="radio" name="payment" value="vnpay" checked={paymentMethod === 'vnpay'} onChange={() => setPaymentMethod('vnpay')} className="w-5 h-5 mt-2 text-blue-600 focus:ring-blue-500" />
                   </label>
                 </div>
               </div>
@@ -233,7 +236,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
           <div className="w-full lg:w-[380px] shrink-0">
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm sticky top-24">
               <h2 className="text-xl font-bold text-slate-900 mb-6">Tóm tắt đơn hàng</h2>
-              
+
               <div className="flex gap-4 mb-6 pb-6 border-b border-slate-100">
                 <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
                   <img src={tour.image || "https://images.unsplash.com/photo-1596422846543-74c6e271abb1?auto=format&fit=crop&w=600&q=80"} alt={tour.name} className="w-full h-full object-cover" />
@@ -258,7 +261,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                     <span className="font-semibold text-slate-900">{(children * priceChild).toLocaleString('vi-VN')}đ</span>
                   </div>
                 )}
-                
+
                 <div className="flex justify-between items-center text-emerald-600 font-medium">
                   <span>Giảm giá</span>
                   <span>-0đ</span>
@@ -270,7 +273,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                   <span className="font-bold text-slate-900">Tổng cộng</span>
                   <span className="text-2xl font-black text-blue-600 tracking-tight">{total.toLocaleString('vi-VN')}đ</span>
                 </div>
-                
+
                 {paymentMethod === 'paypal' && (
                   <div className="text-right text-sm font-medium text-slate-500 mt-2 animate-in fade-in">
                     ≈ <span className="text-slate-900">${totalUSD} USD</span>
@@ -278,8 +281,8 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                 )}
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 form="checkout-form"
                 disabled={isSubmitting}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all shadow-sm shadow-blue-200 flex flex-col items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
@@ -293,7 +296,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                   <span>Xác nhận & Thanh toán</span>
                 )}
               </button>
-              
+
               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 <span>Thanh toán bảo mật và mã hóa an toàn</span>

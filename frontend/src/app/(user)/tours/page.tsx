@@ -23,7 +23,9 @@ export default async function ToursPage({
   const maxPrice = maxPriceStr ? Number(maxPriceStr) : 99990000
   const minPriceStr = typeof params.minPrice === 'string' ? params.minPrice : ''
   const minPrice = minPriceStr ? Number(minPriceStr) : 0
-  const destinations = Array.isArray(params.location) ? params.location : params.location ? [params.location] : []
+  const locationParams = Array.isArray(params.location) ? params.location : params.location ? [params.location] : []
+  const destinationParams = Array.isArray(params.destination) ? params.destination : params.destination ? [params.destination] : []
+  const destinations = [...locationParams, ...destinationParams]
   console.log('[page.tsx] params.location:', params.location, 'parsed destinations:', destinations);
   const tourTypes = Array.isArray(params.tourType) ? params.tourType : params.tourType ? [params.tourType] : []
   const departureLocations = Array.isArray(params.departureLocation) ? params.departureLocation : params.departureLocation ? [params.departureLocation] : []
@@ -241,10 +243,7 @@ export default async function ToursPage({
               {/* Mục Gợi ý: Các tour nổi bật */}
               {recommendedTours.length > 0 && (
                 <div className="mt-12">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5" />
-                    </div>
+                  <div className="mb-6">
                     <h2 className="text-2xl font-black text-slate-900">Các tour nổi bật nhất tuần</h2>
                   </div>
 

@@ -74,6 +74,7 @@ const getAllBookings = async (req, res) => {
             SELECT b.*, t.tour_code, t.duration
             FROM bookings b 
             LEFT JOIN tours t ON b.tour_id = t.id 
+            WHERE b.status != 'Đang chờ thanh toán'
             ORDER BY b.created_at DESC
         `;
         const [rows] = await pool.query(query);
@@ -82,7 +83,7 @@ const getAllBookings = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         const processedRows = rows.map(booking => {
-            if (booking.status === 'Hủy' || booking.status === 'Đang chờ xác nhận') {
+            if (booking.status === 'Hủy' || booking.status === 'Đang chờ xác nhận' || booking.status === 'Đang chờ thanh toán') {
                 return booking;
             }
 
@@ -124,6 +125,15 @@ const updateBookingStatus = async (req, res) => {
         const { status } = req.body; // 'Đã xác nhận', 'Hủy', 'Đang chờ xác nhận'
 
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', [status, id]);
+
+        let actionCode = 'UPDATED_STATUS';
+        if (status === 'Đã xác nhận') actionCode = 'CONFIRMED_BY_ADMIN';
+        if (status === 'Hủy') actionCode = 'CANCELLED_BY_ADMIN';
+
+        await pool.query(
+            `INSERT INTO order_logs (booking_id, action, description) VALUES (?, ?, ?)`,
+            [id, actionCode, `Admin đã đổi trạng thái đơn hàng thành: ${status}`]
+        );
 
         const [rows] = await pool.query('SELECT * FROM bookings WHERE id = ?', [id]);
         if (rows.length === 0) {

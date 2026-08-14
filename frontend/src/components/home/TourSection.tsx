@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { useState } from 'react'
 import TourCard, { Tour } from '@/components/tours/TourCard'
+import TourCarousel from '@/components/tours/TourCarousel'
 
 interface TourSectionProps {
   title: string
@@ -26,8 +27,8 @@ export default function TourSection({ title, category, pills, tours }: TourSecti
     });
   }
   
-  // Take max 4
-  displayTours = displayTours.slice(0, 4);
+  // Take max 8
+  displayTours = displayTours.slice(0, 8);
 
   return (
     <section className="py-8 bg-white">
@@ -62,13 +63,9 @@ export default function TourSection({ title, category, pills, tours }: TourSecti
           })}
         </div>
 
-        {/* Tour Grid */}
+        {/* Tour Carousel */}
         {displayTours.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[10px]">
-            {displayTours.map(tour => (
-              <TourCard key={tour.id} tour={tour} />
-            ))}
-          </div>
+          <TourCarousel tours={displayTours} />
         ) : (
           <div className="text-center py-16 text-slate-500 font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center">
             <span className="text-4xl mb-3">🗺️</span>

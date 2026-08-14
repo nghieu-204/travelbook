@@ -63,7 +63,7 @@ export default function AdminTours() {
   const filteredTours = tours.filter(tour => {
     const tourName = (tour.name || tour.title || '').toLowerCase()
     const tourId = String(tour.id)
-    const tourCode = (tour.tour_code || '').toLowerCase()
+    const tourCode = (tour.tour_code || `TB-${tour.id}`).toLowerCase()
     const searchLower = searchTerm.toLowerCase()
     const matchesSearch = tourName.includes(searchLower) || tourId.includes(searchTerm) || tourCode.includes(searchLower)
     
@@ -181,7 +181,7 @@ export default function AdminTours() {
                 
                 return (
                   <tr key={tour.id} className={`border-b border-slate-800/50 hover:bg-slate-700/50 transition-colors ${index % 2 === 0 ? 'bg-transparent' : 'bg-[#0f172a]/40'}`}>
-                    <td className="p-4 text-blue-400 font-medium whitespace-nowrap">{tour.tour_code || `#${tour.id}`}</td>
+                    <td className="p-4 text-blue-400 font-medium whitespace-nowrap">{tour.tour_code || `TB-${tour.id}`}</td>
                     <td className="p-4 font-medium text-white max-w-[300px] truncate" title={tour.name || tour.title}>
                       {tour.name || tour.title}
                     </td>

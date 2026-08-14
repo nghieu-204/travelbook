@@ -1,5 +1,6 @@
 const { pool } = require('../../config/db');
 const nodemailer = require('nodemailer');
+const { schedulePaymentTimeout } = require('../../queue/orderQueue');
 
 // Cấu hình Nodemailer gửi hóa đơn email (sử dụng Gmail App Password 16 ký tự)
 const transporter = nodemailer.createTransport({
@@ -70,11 +71,43 @@ const createBooking = async (req, res) => {
     try {
         const { user_id, tour_id, tour_name, user_name, user_email, user_phone, departure_date, adults, children, total_price, payment_method } = req.body;
 
+        let initialStatus = 'Đang chờ xác nhận';
+        if (payment_method === 'VNPay') {
+            initialStatus = 'Đang chờ thanh toán';
+        }
+
+        const totalPeople = parseInt(adults || 1) + parseInt(children || 0);
+
+        // Kiểm tra chỗ trống
+        const [tourRows] = await pool.query('SELECT available_spots FROM tours WHERE id = ?', [tour_id]);
+        if (tourRows.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy tour này.' });
+        }
+        if (tourRows[0].available_spots < totalPeople) {
+            return res.status(400).json({ message: 'Xin lỗi, tour không còn đủ chỗ trống!' });
+        }
+
+        // Tạm giữ chỗ
+        await pool.query('UPDATE tours SET available_spots = available_spots - ? WHERE id = ?', [totalPeople, tour_id]);
+
         const [result] = await pool.query(
             `INSERT INTO bookings (user_id, tour_id, tour_name, user_name, user_email, user_phone, departure_date, adults, children, total_price, payment_method, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Đang chờ xác nhận')`,
-            [user_id || null, tour_id, tour_name, user_name, user_email, user_phone, departure_date, adults || 1, children || 0, total_price, payment_method || 'Chuyển khoản ngân hàng / QR Code']
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [user_id || null, tour_id, tour_name, user_name, user_email, user_phone, departure_date, adults || 1, children || 0, total_price, payment_method || 'Chuyển khoản ngân hàng / QR Code', initialStatus]
         );
+
+        const bookingId = result.insertId;
+
+        // Lưu Audit Trail
+        await pool.query(
+            `INSERT INTO order_logs (booking_id, action, description) VALUES (?, ?, ?)`,
+            [bookingId, 'CREATED', `Khách hàng tạo đơn hàng qua phương thức ${payment_method || 'Chuyển khoản / Tiền mặt'}. Trạng thái: ${initialStatus}`]
+        );
+
+        // Nếu VNPay, đẩy vào Queue chờ 15 phút
+        if (payment_method === 'VNPay') {
+            schedulePaymentTimeout(bookingId, totalPeople, tour_id);
+        }
 
         res.status(201).json({
             message: "🎉 Đặt tour thành công! Chúng tôi sẽ liên hệ sớm nhất để xác nhận.",
@@ -135,7 +168,7 @@ const getBookingsByUser = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         const processedRows = rows.map(booking => {
-            if (booking.status === 'Hủy' || booking.status === 'Đang chờ xác nhận') {
+            if (booking.status === 'Hủy' || booking.status === 'Đang chờ xác nhận' || booking.status === 'Đang chờ thanh toán') {
                 return booking;
             }
 
@@ -170,10 +203,76 @@ const getBookingsByUser = async (req, res) => {
     }
 };
 
+// Hủy đặt tour (Cancel Booking)
+const cancelBooking = async (req, res) => {
+    try {
+        const bookingId = req.params.id;
+        const { user_id, cancel_reason } = req.body;
 
+        // 1. Fetch booking
+        const [bookings] = await pool.query('SELECT * FROM bookings WHERE id = ?', [bookingId]);
+        if (bookings.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy đơn đặt tour.' });
+        }
+
+        const booking = bookings[0];
+
+        // 2. Validate user (security)
+        if (booking.user_id !== parseInt(user_id)) {
+            return res.status(403).json({ message: 'Không có quyền hủy đơn này.' });
+        }
+
+        // 3. Time-based rule
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const departureDate = new Date(booking.departure_date);
+        departureDate.setHours(0, 0, 0, 0);
+
+        const diffTime = departureDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 3) {
+            return res.status(400).json({ message: 'Sắp đến giờ khởi hành (dưới 3 ngày). Vui lòng liên hệ Hotline 1900 8888 để được hỗ trợ.' });
+        }
+
+        const totalPeople = (booking.adults || 1) + (booking.children || 0);
+
+        // 4. Payment status rule
+        // Sometimes payment_status might be null/empty, we should also check if status is 'Đang chờ thanh toán'
+        const isPending = booking.payment_status === 'Chưa thanh toán' || booking.status === 'Đang chờ xác nhận' || booking.status === 'Đang chờ thanh toán';
+
+        if (isPending) {
+            // Pending: Cancel immediately
+            await pool.query('UPDATE bookings SET status = ?, cancel_reason = ? WHERE id = ?', ['Hủy', cancel_reason, bookingId]);
+            // Restore spots
+            await pool.query('UPDATE tours SET available_spots = available_spots + ? WHERE id = ?', [totalPeople, booking.tour_id]);
+            // Log
+            await pool.query(
+                `INSERT INTO order_logs (booking_id, action, description) VALUES (?, ?, ?)`,
+                [bookingId, 'CANCELED_PENDING', `Khách hàng tự hủy đơn chưa thanh toán. Lý do: ${cancel_reason}`]
+            );
+            return res.json({ message: 'Hủy đơn thành công.' });
+        } else {
+            // Paid: Change status to 'Yêu cầu hủy'
+            await pool.query('UPDATE bookings SET status = ?, cancel_reason = ? WHERE id = ?', ['Yêu cầu hủy', cancel_reason, bookingId]);
+            // Do not restore spots yet
+            // Log
+            await pool.query(
+                `INSERT INTO order_logs (booking_id, action, description) VALUES (?, ?, ?)`,
+                [bookingId, 'CANCELLATION_REQUESTED', `Khách hàng yêu cầu hủy đơn đã thanh toán. Lý do: ${cancel_reason}`]
+            );
+            return res.json({ message: 'Đã gửi yêu cầu hủy. Hệ thống sẽ xử lý hoàn tiền theo chính sách.' });
+        }
+
+    } catch (error) {
+        console.error("Lỗi hủy tour:", error);
+        res.status(500).json({ message: "Lỗi kết nối khi hủy tour. Vui lòng thử lại!" });
+    }
+};
 
 module.exports = {
     createBooking,
     getBookingsByUser,
+    cancelBooking,
     sendInvoiceEmail
 };

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import AuthModal from "@/components/auth/AuthModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Travel Booking | Nền tảng đặt tour số 1",
+  title: "TravelBook | Nền tảng đặt tour số 1",
   description: "Khám phá thế giới với các tour du lịch đa dạng và hấp dẫn.",
 };
 
@@ -20,6 +21,17 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 antialiased`}>
+        <Toaster 
+          position="top-right" 
+          toastOptions={{ 
+            duration: 3000,
+            style: {
+              fontSize: '16px',
+              padding: '16px 24px',
+              maxWidth: '500px'
+            }
+          }} 
+        />
         {children}
         <AuthModal />
         <Chatbot />

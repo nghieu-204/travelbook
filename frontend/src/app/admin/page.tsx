@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Map, ShoppingBag, DollarSign, CheckCircle2, MoreHorizontal, Calendar, Download, UserPlus, TrendingDown, ChevronRight, Loader2 } from 'lucide-react'
+import { Map, ShoppingBag, DollarSign, CheckCircle2, MoreHorizontal, Calendar, Download, UserPlus, TrendingDown, ChevronRight, Loader2, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import Link from 'next/link'
 import { fetchApi } from '@/lib/api'
 import { 
@@ -28,9 +28,11 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
   const [pieChartMode, setPieChartMode] = useState<'all' | 'domestic' | 'international'>('all')
+  const [timeFilter, setTimeFilter] = useState('month')
 
   useEffect(() => {
-    fetchApi('/admin/stats')
+    setIsLoading(true)
+    fetchApi(`/admin/stats?time=${timeFilter}`)
       .then(data => {
         setStats(data)
       })
@@ -38,7 +40,7 @@ export default function AdminDashboard() {
         console.error('Lỗi lấy thống kê:', err)
       })
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [timeFilter])
 
   if (isLoading) {
     return (
@@ -92,12 +94,56 @@ export default function AdminDashboard() {
 
   // 3. Phương thức thanh toán phổ biến
   const paymentTotal = stats.payment_analytics?.reduce((acc: number, curr: any) => acc + curr.count, 0) || 1;
-  const topPayments = stats.payment_analytics?.map((p: any, index: number) => ({
-    name: p.method,
-    count: p.count,
-    percent: Math.round((p.count / paymentTotal) * 100),
-    color: COLORS[index % COLORS.length]
-  })) || []
+  
+  const aggregatedPayments: Record<string, number> = {};
+  stats.payment_analytics?.forEach((p: any) => {
+    let methodName = p.method || 'Khác';
+    if (methodName === 'Thanh toán tại văn phòng') methodName = 'Thanh toán trực tiếp';
+    else if (methodName === 'Thanh toán qua VNPay' || methodName === 'VNPAY') methodName = 'VNPay';
+    
+    aggregatedPayments[methodName] = (aggregatedPayments[methodName] || 0) + p.count;
+  });
+
+  const topPayments = Object.entries(aggregatedPayments)
+    .sort((a, b) => b[1] - a[1]) // Sort by count desc
+    .map(([name, count], index) => ({
+      name,
+      count,
+      percent: Math.round((count / paymentTotal) * 100),
+      color: COLORS[index % COLORS.length]
+    }))
+
+  const handleExportReport = async () => {
+    try {
+      let token = '';
+      const authStorage = localStorage.getItem('admin-auth-storage');
+      if (authStorage) {
+        const { state } = JSON.parse(authStorage);
+        token = state?.token || '';
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/admin/reports/dashboard-summary`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error("Lỗi tải file");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Bao_Cao_Tong_Quan_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Lỗi xuất báo cáo:", error);
+      alert("Đã xảy ra lỗi khi xuất báo cáo!");
+    }
+  }
 
   return (
     <div className="p-8 pb-20 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 overflow-y-auto">
@@ -108,7 +154,7 @@ export default function AdminDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <select defaultValue="month" className="appearance-none bg-[#1e293b] border border-slate-700 text-slate-200 py-2.5 pl-10 pr-8 rounded-xl font-medium focus:outline-none focus:border-blue-500 hover:border-slate-600 transition-colors shadow-sm cursor-pointer">
+            <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)} className="appearance-none bg-[#1e293b] border border-slate-700 text-slate-200 py-2.5 pl-10 pr-8 rounded-xl font-medium focus:outline-none focus:border-blue-500 hover:border-slate-600 transition-colors shadow-sm cursor-pointer">
               <option value="today">Hôm nay</option>
               <option value="week">Tuần này</option>
               <option value="month">Tháng này</option>
@@ -117,7 +163,7 @@ export default function AdminDashboard() {
             </select>
             <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors shadow-sm">
+          <button onClick={handleExportReport} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors shadow-sm">
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Xuất báo cáo</span>
           </button>
@@ -134,7 +180,13 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-400 font-medium mb-1">Tổng doanh thu</p>
-            <h3 className="text-3xl font-black text-white">{(Number(stats.kpi?.total_revenue) || 0).toLocaleString('vi-VN')} <span className="text-sm font-medium text-slate-500">VND</span></h3>
+            <h3 className="text-3xl font-black text-white flex items-baseline gap-1">{(Number(stats.kpi?.total_revenue) || 0).toLocaleString('vi-VN')} <span className="text-sm font-medium text-slate-500">VND</span></h3>
+            {timeFilter !== 'all' && stats.kpi_trends && (
+              <div className={`mt-2 text-sm font-medium flex items-center gap-1 ${stats.kpi_trends.total_revenue >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                {stats.kpi_trends.total_revenue >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                <span>{Math.abs(stats.kpi_trends.total_revenue)}% so với kỳ trước</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -147,6 +199,12 @@ export default function AdminDashboard() {
           <div>
             <p className="text-slate-400 font-medium mb-1">Tổng lượt đặt</p>
             <h3 className="text-3xl font-black text-white">{stats.kpi?.total_bookings || 0}</h3>
+            {timeFilter !== 'all' && stats.kpi_trends && (
+              <div className={`mt-2 text-sm font-medium flex items-center gap-1 ${stats.kpi_trends.total_bookings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                {stats.kpi_trends.total_bookings >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                <span>{Math.abs(stats.kpi_trends.total_bookings)}% so với kỳ trước</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -159,6 +217,12 @@ export default function AdminDashboard() {
           <div>
             <p className="text-slate-400 font-medium mb-1">Người dùng hệ thống</p>
             <h3 className="text-3xl font-black text-white">{stats.kpi?.total_users || 0}</h3>
+            {timeFilter !== 'all' && stats.kpi_trends && (
+              <div className={`mt-2 text-sm font-medium flex items-center gap-1 ${stats.kpi_trends.total_users >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                {stats.kpi_trends.total_users >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                <span>{Math.abs(stats.kpi_trends.total_users)}% so với kỳ trước</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -171,6 +235,12 @@ export default function AdminDashboard() {
           <div>
             <p className="text-slate-400 font-medium mb-1">Tour đang hoạt động</p>
             <h3 className="text-3xl font-black text-white">{stats.kpi?.active_tours || 0}</h3>
+            {timeFilter !== 'all' && stats.kpi_trends && (
+              <div className={`mt-2 text-sm font-medium flex items-center gap-1 ${stats.kpi_trends.active_tours >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                {stats.kpi_trends.active_tours >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                <span>{Math.abs(stats.kpi_trends.active_tours)}% so với kỳ trước</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -239,7 +309,7 @@ export default function AdminDashboard() {
                 <BarChart data={revenueData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                   <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                  <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000000}tr`} dx={-10} />
+                  <YAxis stroke="#64748b" tick={{ fill: '#94a3b8' }} fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000000}tr`} dx={-10} />
                   <Tooltip 
                     formatter={(value: any) => [`${Number(value).toLocaleString('vi-VN')} đ`, 'Doanh thu']}
                     contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)' }}
@@ -292,7 +362,7 @@ export default function AdminDashboard() {
                 <tr>
                   <th className="px-4 py-3.5 rounded-l-lg font-semibold">Tên Tour</th>
                   <th className="px-4 py-3.5 font-semibold text-center">Đã đặt</th>
-                  <th className="px-4 py-3.5 rounded-r-lg font-semibold text-center">Tổng chỗ</th>
+                  <th className="px-4 py-3.5 rounded-r-lg font-semibold text-center">Còn trống</th>
                 </tr>
               </thead>
               <tbody>

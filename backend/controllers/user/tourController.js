@@ -13,7 +13,9 @@ const getTours = async (req, res) => {
                    (SELECT r.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS region, 
                    (SELECT c.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id JOIN tourcategory c ON r.category_id = c.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS category,
                    (SELECT d.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS province,
-                   (SELECT co.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS country
+                   (SELECT co.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS country,
+                   (SELECT GROUP_CONCAT(l.name SEPARATOR ', ') FROM landmarks l WHERE JSON_CONTAINS(t.landmarks, CAST(l.id AS CHAR))) AS landmark_name,
+                   (SELECT d.name FROM destination d WHERE d.id = t.departure_destination_id) AS departure_location
             FROM tours t
             WHERE 1=1
         `;
@@ -26,9 +28,9 @@ const getTours = async (req, res) => {
         }
 
         if (keyword && keyword.trim() !== '') {
-            query += ' AND (t.name LIKE ? OR t.id IN (SELECT td.tour_id FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE d.name LIKE ?) OR t.description LIKE ?)';
+            query += ' AND (t.name LIKE ? OR t.id IN (SELECT td.tour_id FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE d.name LIKE ?) OR t.id IN (SELECT t2.id FROM tours t2 JOIN landmarks l ON t2.landmark_id = l.id WHERE l.name LIKE ?) OR t.description LIKE ?)';
             const searchTerm = `%${keyword.trim()}%`;
-            params.push(searchTerm, searchTerm, searchTerm);
+            params.push(searchTerm, searchTerm, searchTerm, searchTerm);
         }
         
         const ensureArray = (val) => {
@@ -103,7 +105,7 @@ const getTours = async (req, res) => {
         const departureLocs = ensureArray(departureLocation);
         if (departureLocs.length > 0) {
             const placeholders = departureLocs.map(() => '?').join(',');
-            query += ` AND t.departure_location IN (${placeholders})`;
+            query += ` AND t.departure_destination_id IN (SELECT id FROM destination WHERE name IN (${placeholders}))`;
             params.push(...departureLocs);
         }
 
@@ -140,7 +142,9 @@ const getTourById = async (req, res) => {
                    (SELECT r.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS region, 
                    (SELECT c.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON COALESCE(d.region_id, co.region_id) = r.id JOIN tourcategory c ON r.category_id = c.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS category,
                    (SELECT d.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS province,
-                   (SELECT co.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS country
+                   (SELECT co.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS country,
+                   (SELECT GROUP_CONCAT(l.name SEPARATOR ', ') FROM landmarks l WHERE JSON_CONTAINS(t.landmarks, CAST(l.id AS CHAR))) AS landmark_name,
+                   (SELECT d.name FROM destination d WHERE d.id = t.departure_destination_id) AS departure_location
             FROM tours t
             WHERE t.id = ?
         `;
@@ -293,17 +297,11 @@ const getMetadata = async (req, res) => {
         const [regions] = await pool.query('SELECT * FROM region');
         const [countries] = await pool.query('SELECT * FROM country');
         const [destinations] = await pool.query('SELECT * FROM destination');
+        const [tourTypes] = await pool.query('SELECT * FROM TourType');
+        const [occasions] = await pool.query('SELECT * FROM Occasion');
+        const [landmarks] = await pool.query('SELECT * FROM landmarks');
         
-        let tourTypes = [];
-        let occasions = [];
-        try {
-            const [typesRes] = await pool.query('SELECT * FROM TourType');
-            tourTypes = typesRes;
-            const [occasionsRes] = await pool.query('SELECT * FROM Occasion');
-            occasions = occasionsRes;
-        } catch(e) { console.error("Could not fetch tags", e.message); }
-        
-        res.json({ categories, regions, countries, destinations, tourTypes, occasions });
+        res.status(200).json({ categories, regions, countries, destinations, tourTypes, occasions, landmarks });
     } catch (error) {
         console.error("Lỗi getMetadata:", error);
         res.status(500).json({ message: "Lỗi tải metadata" });
@@ -390,7 +388,7 @@ const getFiltersMetadata = async (req, res) => {
         const [countries] = await pool.query('SELECT * FROM country');
         const [destinations] = await pool.query('SELECT id, name, region_id, country_id FROM destination');
         const [tourTypes] = await pool.query('SELECT name FROM tourtype');
-        const [departureLocations] = await pool.query('SELECT DISTINCT departure_location FROM tours WHERE departure_location IS NOT NULL AND departure_location != ""');
+        const [departureLocations] = await pool.query('SELECT DISTINCT d.name AS departure_location FROM tours t JOIN destination d ON t.departure_destination_id = d.id WHERE t.departure_destination_id IS NOT NULL');
 
         const domesticCat = categories.find(c => c.name.toLowerCase().includes('trong nước'));
         const intlCat = categories.find(c => c.name.toLowerCase().includes('quốc tế') || c.name.toLowerCase().includes('ngoài nước'));

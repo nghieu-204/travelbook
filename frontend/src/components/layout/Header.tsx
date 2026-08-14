@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, User as UserIcon, LogOut, Menu, Mic } from 'lucide-react'
@@ -13,6 +13,15 @@ export default function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -23,11 +32,11 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur shadow-md border-b border-slate-200' : 'bg-white/80 border-b border-transparent'}`}>
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-black text-blue-600 tracking-tighter">TRAVEL<span className="text-emerald-500">BOOK</span></span>
+          <span className="text-2xl font-black text-blue-500 tracking-tighter">TRAVEL<span className="text-emerald-500">BOOK</span></span>
         </Link>
 
         {/* Desktop Nav */}

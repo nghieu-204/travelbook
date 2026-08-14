@@ -11,4 +11,7 @@ router.get('/recommendations/popular', recommendController.getPopularRecommendat
 // Route lấy các tour liên quan đến 1 tour cụ thể
 router.get('/recommendations/related/:tourId', recommendController.getRelatedTours);
 
+// Route API Tracking hành vi người dùng
+router.post('/recommendations/tracking', recommendController.trackInteraction);
+
 module.exports = router;

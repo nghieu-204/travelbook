@@ -53,7 +53,12 @@ app.use('/api/admin', verifyToken, adminContactRoutes);
 app.use('/api/admin', verifyToken, adminStatRoutes);
 app.use('/api/admin', verifyToken, adminUserRoutes);
 
+const { recoverPendingOrders } = require('./queue/orderQueue');
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
+    
+    // Khôi phục các Timeout Queue (Thay cho Redis TTL)
+    recoverPendingOrders();
 });

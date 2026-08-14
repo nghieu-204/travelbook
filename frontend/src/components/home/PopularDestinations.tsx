@@ -45,7 +45,7 @@ export default function PopularDestinations() {
           {destinations.map((dest) => (
             <Link 
               key={dest.id} 
-              href={`/tours?destination=${encodeURIComponent(dest.name)}`}
+              href={`/tours?destination=${encodeURIComponent(dest.name === 'Sapa' ? 'Lào Cai' : dest.name)}`}
               className="group rounded-xl overflow-hidden relative aspect-[3/4] block shadow-md hover:shadow-xl transition-all duration-300"
             >
               <div className="absolute inset-0 bg-slate-900/20 group-hover:bg-slate-900/40 transition-colors duration-300 z-10" />

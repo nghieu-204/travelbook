@@ -4,6 +4,7 @@ import BestSellingTours from '@/components/home/BestSellingTours'
 import Testimonials from '@/components/home/Testimonials'
 import CTABanner from '@/components/home/CTABanner'
 import PopularDestinations from '@/components/home/PopularDestinations'
+import PersonalizedHomeTours from '@/components/home/PersonalizedHomeTours'
 
 export default function Home() {
   return (
@@ -18,6 +19,9 @@ export default function Home() {
         <div className="bg-white rounded-3xl overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-slate-100">
           <BestSellingTours />
         </div>
+
+        {/* Khối Tour dành riêng cho bạn (AI Cá nhân hóa) */}
+        <PersonalizedHomeTours />
         
         <div className="bg-white rounded-3xl overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-slate-100">
           <PopularDestinations />

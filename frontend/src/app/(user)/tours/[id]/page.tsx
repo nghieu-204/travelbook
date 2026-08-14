@@ -5,6 +5,8 @@ import TourGallery from '@/components/tour-detail/TourGallery'
 import TourInfo from '@/components/tour-detail/TourInfo'
 import BookingWidget from '@/components/tour-detail/BookingWidget'
 import TourCard, { Tour } from '@/components/tours/TourCard'
+import TourTracker from '@/components/tour-detail/TourTracker'
+import RelatedTours from '@/components/tour-detail/RelatedTours'
 import { fetchApi } from '@/lib/api'
 import { generateSlug } from '@/lib/utils'
 
@@ -12,8 +14,6 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
   const resolvedParams = await params;
   
   let tour: any = null;
-  let relatedTours: Tour[] = [];
-  
   try {
     const response = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours/${resolvedParams.id}`, { cache: 'no-store' });
     if (response.ok) {
@@ -21,16 +21,6 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
     }
   } catch (error) {
     console.error("Lỗi lấy thông tin tour:", error);
-  }
-
-  try {
-    const response = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=5`, { next: { revalidate: 3600 } });
-    if (response.ok) {
-      const all: Tour[] = await response.json();
-      relatedTours = all.filter(t => t.id !== Number(resolvedParams.id)).slice(0, 4);
-    }
-  } catch (error) {
-    console.error("Lỗi lấy tour tương tự:", error);
   }
 
   if (!tour) {
@@ -52,6 +42,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="bg-slate-50 pb-20">
+      <TourTracker tourId={Number(resolvedParams.id)} />
       <div className="container mx-auto px-4 py-6">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-6 px-2 flex-wrap">
@@ -108,19 +99,8 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* Related Tours */}
-      {relatedTours.length > 0 && (
-        <div className="bg-slate-50 py-16 mt-16 border-t border-slate-100">
-          <div className="container mx-auto px-4">
-            <h2 className="text-2xl font-black text-slate-900 mb-8">Các tour tương tự có thể bạn quan tâm</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedTours.map(t => (
-                <TourCard key={t.id} tour={t} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Related Tours (Personalized via Client Component) */}
+      <RelatedTours tourId={resolvedParams.id} />
     </div>
   )
 }

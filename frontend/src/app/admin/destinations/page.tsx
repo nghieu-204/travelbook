@@ -10,7 +10,7 @@ interface Region { id: number; category_id: number; name: string }
 interface Country { id: number; region_id: number; name: string }
 interface Destination { id: number; region_id: number | null; country_id: number | null; name: string }
 
-type NodeType = 'category' | 'region' | 'country' | 'destination'
+type NodeType = 'category' | 'region' | 'country' | 'destination' | 'landmark'
 
 interface TreeNode {
   uid: string;
@@ -21,6 +21,7 @@ interface TreeNode {
   categoryId?: number;
   regionId?: number;
   countryId?: number;
+  destinationId?: number;
   isInternational?: boolean;
 }
 
@@ -56,6 +57,7 @@ const TreeRow = ({
       case 'region': return <Map className="w-4 h-4 text-emerald-500" />
       case 'country': return <Folder className="w-4 h-4 text-amber-500" />
       case 'destination': return <MapPin className="w-4 h-4 text-rose-500" />
+      case 'landmark': return <MapPin className="w-3 h-3 text-purple-400" />
     }
   }
 
@@ -65,6 +67,7 @@ const TreeRow = ({
       case 'region': return 'Vùng miền'
       case 'country': return 'Quốc gia'
       case 'destination': return 'Điểm đến'
+      case 'landmark': return 'Địa danh (Cấp 4)'
     }
   }
 
@@ -111,6 +114,11 @@ const TreeRow = ({
             {node.type === 'country' && (
               <button onClick={() => onAdd('destination', node)} className="px-2 py-1 text-xs font-medium rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-colors">
                 + Thêm Điểm đến
+              </button>
+            )}
+            {node.type === 'destination' && (
+              <button onClick={() => onAdd('landmark', node)} className="px-2 py-1 text-xs font-medium rounded bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white transition-colors">
+                + Thêm Địa danh
               </button>
             )}
             
@@ -165,6 +173,7 @@ export default function DestinationsAdminPage() {
       const regions: Region[] = data.regions || []
       const countries: Country[] = data.countries || []
       const destinations: Destination[] = data.destinations || []
+      const landmarks: any[] = data.landmarks || []
 
       // Build Tree
       const tree: TreeNode[] = categories.map(cat => {
@@ -205,7 +214,18 @@ export default function DestinationsAdminPage() {
                       regionId: reg.id,
                       countryId: country.id,
                       isInternational,
-                      children: []
+                      children: landmarks.filter(l => l.destination_id === dest.id).map(land => ({
+                        uid: `land-${land.id}`,
+                        id: land.id,
+                        name: land.name,
+                        type: 'landmark',
+                        categoryId: cat.id,
+                        regionId: reg.id,
+                        countryId: country.id,
+                        destinationId: dest.id,
+                        isInternational,
+                        children: []
+                      }))
                     }))
                   }))
                 : destinations.filter(d => d.region_id === reg.id && !d.country_id).map(dest => ({
@@ -216,7 +236,17 @@ export default function DestinationsAdminPage() {
                     categoryId: cat.id,
                     regionId: reg.id,
                     isInternational,
-                    children: []
+                    children: landmarks.filter(l => l.destination_id === dest.id).map(land => ({
+                        uid: `land-${land.id}`,
+                        id: land.id,
+                        name: land.name,
+                        type: 'landmark',
+                        categoryId: cat.id,
+                        regionId: reg.id,
+                        destinationId: dest.id,
+                        isInternational,
+                        children: []
+                    }))
                   }))
             }
           })
@@ -253,7 +283,11 @@ export default function DestinationsAdminPage() {
 
   const handleDelete = async (node: TreeNode) => {
     if (node.children && node.children.length > 0) {
-      alert(`Không thể xóa vì mục này đang chứa các ${node.children[0].type === 'country' ? 'quốc gia' : 'điểm đến'} bên trong. Vui lòng xóa chúng trước.`)
+      let childTypeLabel = 'mục con';
+      if (node.children[0].type === 'country') childTypeLabel = 'quốc gia';
+      else if (node.children[0].type === 'destination') childTypeLabel = 'điểm đến';
+      else if (node.children[0].type === 'landmark') childTypeLabel = 'địa danh';
+      alert(`Không thể xóa vì mục này đang chứa các ${childTypeLabel} bên trong. Vui lòng xóa chúng trước.`)
       return
     }
 
@@ -264,6 +298,7 @@ export default function DestinationsAdminPage() {
       if (node.type === 'region') endpoint = `/admin/regions/${node.id}`
       else if (node.type === 'country') endpoint = `/admin/countries/${node.id}`
       else if (node.type === 'destination') endpoint = `/admin/destinations/${node.id}`
+      else if (node.type === 'landmark') endpoint = `/admin/landmarks/${node.id}`
       
       await fetchApi(endpoint, { method: 'DELETE' })
       loadData()
@@ -298,6 +333,13 @@ export default function DestinationsAdminPage() {
            payload.region_id = modalNodeToEdit?.regionId || null
            payload.country_id = modalNodeToEdit?.countryId || null
         }
+      } else if (modalType === 'landmark') {
+        endpoint = '/admin/landmarks'
+        if (modalMode === 'add') {
+           payload.destination_id = modalParentNode?.id || null
+        } else {
+           payload.destination_id = modalNodeToEdit?.destinationId || null
+        }
       }
 
       if (modalMode === 'edit') {
@@ -327,6 +369,7 @@ export default function DestinationsAdminPage() {
       case 'region': return 'Vùng miền'
       case 'country': return 'Quốc gia'
       case 'destination': return 'Điểm đến'
+      case 'landmark': return 'Địa danh (Cấp 4)'
     }
   }
 
@@ -335,13 +378,13 @@ export default function DestinationsAdminPage() {
     const lowerTerm = term.toLowerCase()
     
     return nodes.reduce<TreeNode[]>((acc, node) => {
-      const filteredChildren = filterTree(node.children, term)
       const isMatch = node.name.toLowerCase().includes(lowerTerm)
+      const filteredChildren = filterTree(node.children, term)
       
       if (isMatch || filteredChildren.length > 0) {
         acc.push({
           ...node,
-          children: filteredChildren
+          children: isMatch ? node.children : filteredChildren
         })
       }
       return acc
