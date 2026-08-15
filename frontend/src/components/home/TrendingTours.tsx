@@ -1,5 +1,3 @@
-import TourCard from '@/components/tours/TourCard'
-import type { Tour } from '@/components/tours/TourCard'
 import TourCarousel from '@/components/tours/TourCarousel'
 
 export default async function TrendingTours() {

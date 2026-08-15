@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { fetchApi } from '@/lib/api'
+import { tourService } from '@/services/tourService'
 import { Tag, Edit, Trash2, X, Check, Search, Plus } from 'lucide-react'
 
 interface TagItem {
@@ -34,7 +34,7 @@ export default function TagsAdminPage() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const data = await fetchApi('/metadata')
+      const data = await tourService.getMetadata()
       const types = (data.tourTypes || []).map((t: any) => ({ ...t, category: 'type' }))
       const occasions = (data.occasions || []).map((o: any) => ({ ...o, category: 'occasion' }))
       setTags([...types, ...occasions])
@@ -57,7 +57,7 @@ export default function TagsAdminPage() {
     if (!confirm('Bạn có chắc chắn muốn xóa nhãn này?')) return
     
     try {
-      await fetchApi(`/admin/tags/${id}?category=${category}`, { method: 'DELETE' })
+      await tourService.deleteMetadata(`/admin/tags/${id}?category=${category}`)
       setTags(prev => prev.filter(t => !(t.id === id && t.category === category)))
       alert('Đã xóa nhãn thành công!')
     } catch (error: any) {
@@ -84,12 +84,9 @@ export default function TagsAdminPage() {
 
     setIsSaving(true)
     try {
-      await fetchApi(`/admin/tags/${id}`, {
-        method: 'PUT',
-        data: {
-          name: editName.trim(),
-          category: editCategory
-        }
+      await tourService.updateMetadata('/admin/tags', id, {
+        name: editName.trim(),
+        category: editCategory
       })
       
       setTags(prev => prev.map(t => 
@@ -111,12 +108,9 @@ export default function TagsAdminPage() {
 
     setIsSavingNew(true)
     try {
-      const res = await fetchApi('/admin/tags', {
-        method: 'POST',
-        data: {
-          name: newName.trim(),
-          category: newCategory
-        }
+      const res = await tourService.createMetadata('/admin/tags', {
+        name: newName.trim(),
+        category: newCategory
       })
       
       if (res && res.tag) {

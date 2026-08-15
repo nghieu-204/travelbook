@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { fetchApi } from '@/lib/api'
+import { tourService } from '@/services/tourService'
 import { MapPin, Edit, Trash2, X, Check, Search, Plus, ChevronRight, ChevronDown, Folder, File, Globe, Map } from 'lucide-react'
 
 interface Category { id: number; name: string }
@@ -167,7 +167,7 @@ export default function DestinationsAdminPage() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const data = await fetchApi('/metadata')
+      const data = await tourService.getMetadata()
       
       const categories: Category[] = data.categories || []
       const regions: Region[] = data.regions || []
@@ -300,7 +300,7 @@ export default function DestinationsAdminPage() {
       else if (node.type === 'destination') endpoint = `/admin/destinations/${node.id}`
       else if (node.type === 'landmark') endpoint = `/admin/landmarks/${node.id}`
       
-      await fetchApi(endpoint, { method: 'DELETE' })
+      await tourService.deleteMetadata(endpoint)
       loadData()
     } catch (error: any) {
       alert(error.message || 'Có lỗi xảy ra khi xóa!')
@@ -343,15 +343,9 @@ export default function DestinationsAdminPage() {
       }
 
       if (modalMode === 'edit') {
-        await fetchApi(`${endpoint}/${modalNodeToEdit?.id}`, {
-          method: 'PUT',
-          data: payload
-        })
+        await tourService.updateMetadata(endpoint, modalNodeToEdit?.id || 0, payload)
       } else {
-        await fetchApi(endpoint, {
-          method: 'POST',
-          data: payload
-        })
+        await tourService.createMetadata(endpoint, payload)
       }
       
       setIsModalOpen(false)

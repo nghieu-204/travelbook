@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, User, Bot, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, User, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '@/store/useAuthStore';
+import { chatService } from '@/services/chatService';
 
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -56,8 +57,7 @@ export default function Chatbot() {
       if (!savedSessionId) return;
       
       setSessionId(savedSessionId);
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/chat/${savedSessionId}`)
-        .then(res => res.json())
+      chatService.getChatHistory(savedSessionId)
         .then(data => {
            if (data.success && data.history && data.history.length > 0) {
              const loadedHistory: ChatMessage[] = data.history.map((msg: any) => ({
@@ -97,17 +97,7 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: userMsg,
-          sessionId: sessionId,
-          userId: user?.id
-        })
-      });
-
-      const data = await response.json();
+      const data = await chatService.sendMessage(userMsg, sessionId, user?.id);
       
       if (data.success) {
         setHistory(prev => [...prev, { role: 'model', content: data.reply }]);

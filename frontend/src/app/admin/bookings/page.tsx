@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { Search, ChevronDown, ArrowUpDown, Copy, FileText, FileSpreadsheet, FileIcon, Printer, Eye, CheckCircle2, XCircle, Phone, Mail, Filter, Banknote, RefreshCw, Edit3, Rocket, Flag } from 'lucide-react'
-import { fetchApi } from '@/lib/api'
+import { bookingService } from '@/services/bookingService'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -36,7 +36,7 @@ export default function BookingsPage() {
   const fetchBookings = async () => {
     try {
       setLoading(true)
-      const data = await fetchApi('/admin/bookings')
+      const data = await bookingService.getAdminBookings()
       const mappedData = data.map((b: any) => ({
         id: b.id,
         tourCode: b.tour_code || `TB-${b.tour_id}`,
@@ -73,7 +73,7 @@ export default function BookingsPage() {
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase()
       filtered = filtered.filter(b =>
-        (b.id && b.id.toLowerCase().includes(lowerSearch)) ||
+        (b.id && b.id.toString().toLowerCase().includes(lowerSearch)) ||
         (b.tourCode && b.tourCode.toLowerCase().includes(lowerSearch)) ||
         (b.tourName && b.tourName.toLowerCase().includes(lowerSearch)) ||
         (b.customerName && b.customerName.toLowerCase().includes(lowerSearch)) ||
@@ -127,10 +127,7 @@ export default function BookingsPage() {
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
       setOpenDropdownId(null) // Đóng ngay lập tức để phản hồi click và tránh click đúp
-      await fetchApi(`/admin/bookings/${id}/status`, {
-        method: 'PUT',
-        data: { status }
-      })
+      await bookingService.updateBookingStatus(Number(id), status)
       // Cập nhật state nội bộ
       setAllBookings(prev => prev.map(b => b.id === id ? { ...b, bookingStatus: status } : b))
       alert(`Đã cập nhật đơn hàng thành: ${status}`)
@@ -142,10 +139,7 @@ export default function BookingsPage() {
   const handleUpdatePaymentStatus = async (id: string, payment_status: string) => {
     try {
       setOpenDropdownId(null) // Đóng ngay lập tức để phản hồi click và tránh click đúp
-      await fetchApi(`/admin/bookings/${id}/payment-status`, {
-        method: 'PUT',
-        data: { payment_status }
-      })
+      await bookingService.updatePaymentStatus(Number(id), payment_status)
       // Cập nhật state nội bộ
       setAllBookings(prev => prev.map(b => b.id === id ? { ...b, paymentStatus: payment_status } : b))
       alert(`Đã xác nhận thanh toán thành công!`)
@@ -178,10 +172,7 @@ export default function BookingsPage() {
     e.preventDefault()
     if (!selectedBooking) return
     try {
-      await fetchApi(`/admin/bookings/${selectedBooking.id}`, {
-        method: 'PUT',
-        data: editForm
-      })
+      await bookingService.updateBooking(Number(selectedBooking.id), editForm)
       alert('Cập nhật thành công!')
       setEditModalOpen(false)
       fetchBookings() // refresh data

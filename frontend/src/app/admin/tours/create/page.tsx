@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { FileUp, Save, LayoutDashboard, Plus, Trash2, MapPin, AlignLeft, Tags, Settings, Calendar, Globe, Target, Image as ImageIcon, CheckCircle, Flame, Tag, RefreshCw, ArrowLeft, CheckCircle2, Map, FileText, Info } from 'lucide-react'
 import SearchableAdminDropdown from '@/components/ui/SearchableAdminDropdown'
-import { fetchApi } from '@/lib/api'
+import { tourService } from '@/services/tourService'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import MultiSelectDropdown from '@/components/ui/MultiSelectDropdown'
 
@@ -55,7 +55,7 @@ export default function CreateTourV2() {
   const [notes, setNotes] = useState(DEFAULT_NOTES)
 
   const loadMetadata = () => {
-    fetchApi('/metadata').then(data => {
+    tourService.getMetadata().then(data => {
       setMetadata(data)
       if (data.categories?.length > 0 && !categoryId) setCategoryId(data.categories[0].id.toString())
     }).catch(err => console.error('Lỗi tải metadata:', err))
@@ -233,7 +233,7 @@ export default function CreateTourV2() {
         landmarks: selectedLandmarks.length > 0 ? JSON.stringify(selectedLandmarks) : null
       }
 
-      await fetchApi('/admin/tours', { method: 'POST', data: payload })
+      await tourService.createTour(payload)
       alert('🎉 Tạo Tour thành công!')
       router.push('/admin/tours')
     } catch (error) {

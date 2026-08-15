@@ -1,8 +1,9 @@
 import TourFilter from '@/components/tours/TourFilter'
 import TourCard, { Tour } from '@/components/tours/TourCard'
+import { tourService } from '@/services/tourService'
 import TourSection from '@/components/home/TourSection'
 import PopularDestinations from '@/components/home/PopularDestinations'
-import { ChevronLeft, ChevronRight, SearchX, TrendingUp } from 'lucide-react'
+import { ChevronLeft, ChevronRight, SearchX } from 'lucide-react'
 import Link from 'next/link'
 import TourSort from '@/components/tours/TourSort'
 
@@ -26,7 +27,6 @@ export default async function ToursPage({
   const locationParams = Array.isArray(params.location) ? params.location : params.location ? [params.location] : []
   const destinationParams = Array.isArray(params.destination) ? params.destination : params.destination ? [params.destination] : []
   const destinations = [...locationParams, ...destinationParams]
-  console.log('[page.tsx] params.location:', params.location, 'parsed destinations:', destinations);
   const tourTypes = Array.isArray(params.tourType) ? params.tourType : params.tourType ? [params.tourType] : []
   const departureLocations = Array.isArray(params.departureLocation) ? params.departureLocation : params.departureLocation ? [params.departureLocation] : []
 
@@ -70,12 +70,11 @@ export default async function ToursPage({
   // Gọi API lấy danh sách tours
   let filteredTours: Tour[] = [];
   try {
-    const response = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?${apiParams.toString()}`, { cache: 'no-store' });
-    if (response.ok) {
-      filteredTours = await response.json();
-    }
+    const params: Record<string, string> = {};
+    apiParams.forEach((value, key) => { params[key] = value });
+    filteredTours = await tourService.getTours(params);
   } catch (error) {
-    console.error("Lỗi khi lấy danh sách tour:", error);
+    console.error("Lỗi gọi API tours:", error);
   }
   if (rating > 0) {
     filteredTours = filteredTours.filter(tour => tour.rating >= rating)
@@ -88,15 +87,13 @@ export default async function ToursPage({
     filteredTours.sort((a, b) => b.price - a.price)
   }
 
+  // Luôn lấy gợi ý (ví dụ top 4 tours)
   let recommendedTours: Tour[] = [];
   try {
-    const response = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?limit=4`, { cache: 'no-store' });
-    if (response.ok) {
-      const all: Tour[] = await response.json();
-      recommendedTours = all.slice(0, 4);
-    }
+    const all = await tourService.getTours({ limit: '4' });
+    recommendedTours = all.slice(0, 4);
   } catch (error) {
-    console.error("Lỗi lấy tour nổi bật:", error);
+    console.error("Lỗi gọi API recommend:", error);
   }
 
   // --- LOGIC: IS LANDING MODE? ---
@@ -108,11 +105,8 @@ export default async function ToursPage({
 
   if (isLandingMode) {
     try {
-      const resDom = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?category=Trong+nước`, { cache: 'no-store' });
-      if (resDom.ok) domesticTours = await resDom.json();
-
-      const resInt = await fetch(`${process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'}/tours?category=Quốc+tế`, { cache: 'no-store' });
-      if (resInt.ok) internationalTours = await resInt.json();
+      domesticTours = await tourService.getTours({ category: 'Trong nước' });
+      internationalTours = await tourService.getTours({ category: 'Quốc tế' });
     } catch (error) {
       console.error("Lỗi lấy danh sách landing tour:", error);
     }

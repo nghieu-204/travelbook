@@ -1,4 +1,5 @@
-require('dotenv').config();
+require('dotenv').config({ override: true });
+require('dotenv').config({ path: '../.env', override: true }); // Đọc thêm cấu hình từ thư mục gốc nếu chạy chay (không Docker)
 const express = require('express');
 const cors = require('cors');
 const { initSchema } = require('./database/schema');
@@ -16,46 +17,40 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 })();
 
 // User Routes
-const userAuthRoutes = require('./routes/user/authRoutes');
-const userTourRoutes = require('./routes/user/tourRoutes');
-const userBookingRoutes = require('./routes/user/bookingRoutes');
-const userContactRoutes = require('./routes/user/contactRoutes');
-const userPaymentRoutes = require('./routes/user/paymentRoutes');
-const userRecommendRoutes = require('./routes/user/recommendRoutes');
-const userReviewRoutes = require('./routes/user/reviewRoutes');
-const userRoutes = require('./routes/user/userRoutes');
-const userChatRoutes = require('./routes/user/chatRoutes');
+const authRoutes = require('./modules/auth/auth.routes');
+const tourRoutes = require('./modules/tours/tour.user.routes');
+const bookingRoutes = require('./modules/bookings/booking.user.routes');
+const contactRoutes = require('./modules/contacts/contact.routes');
+const paymentRoutes = require('./modules/payments/payment.routes');
+const recommendRoutes = require('./modules/recommend/recommend.routes');
+const reviewRoutes = require('./modules/reviews/review.routes');
+const userRoutes = require('./modules/users/user.routes');
+const chatRoutes = require('./modules/chat/chat.routes');
 
-app.use('/api', userAuthRoutes);
-app.use('/api', userTourRoutes);
-app.use('/api', userBookingRoutes);
-app.use('/api', userContactRoutes);
-app.use('/api', userPaymentRoutes);
-app.use('/api', userRecommendRoutes);
-app.use('/api', userReviewRoutes);
+app.use('/api', authRoutes);
+app.use('/api', tourRoutes);
+app.use('/api', bookingRoutes);
+app.use('/api', contactRoutes);
+app.use('/api', paymentRoutes);
+app.use('/api', recommendRoutes);
+app.use('/api', reviewRoutes);
 app.use('/api', userRoutes);
-app.use('/api', userChatRoutes);
+app.use('/api', chatRoutes);
 
-// Admin Routes
-const adminAuthRoutes = require('./routes/admin/authRoutes');
-const adminTourRoutes = require('./routes/admin/tourRoutes');
-const adminBookingRoutes = require('./routes/admin/bookingRoutes');
-const adminContactRoutes = require('./routes/admin/contactRoutes');
-const adminStatRoutes = require('./routes/admin/statRoutes');
-const adminUserRoutes = require('./routes/admin/userRoutes');
+// Admin Routes (for those not combined into modules)
+const adminTourRoutes = require('./modules/tours/tour.admin.routes');
+const adminBookingRoutes = require('./modules/bookings/booking.admin.routes');
+const statRoutes = require('./modules/stats/stat.routes');
 
 const { verifyToken } = require('./middlewares/userAuth');
 
-app.use('/api/admin', adminAuthRoutes);
 app.use('/api/admin', verifyToken, adminTourRoutes);
 app.use('/api/admin', verifyToken, adminBookingRoutes);
-app.use('/api/admin', verifyToken, adminContactRoutes);
-app.use('/api/admin', verifyToken, adminStatRoutes);
-app.use('/api/admin', verifyToken, adminUserRoutes);
+app.use('/api/admin', verifyToken, statRoutes);
 
 const { recoverPendingOrders } = require('./queue/orderQueue');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || process.env.API_PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
     

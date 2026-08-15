@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { MapPin, Phone, Mail, Send, CheckCircle, ChevronRight, Plus } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
-import { fetchApi } from '@/lib/api'
+import { contactService } from '@/services/contactService'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -66,16 +66,13 @@ export default function ContactPage() {
     }
     setIsSubmitting(true)
     try {
-      await fetchApi('/contacts', {
-        method: 'POST',
-        body: JSON.stringify({
-          user_name: formData.name,
-          user_email: formData.email,
-          user_phone: formData.phone,
-          contact_date: formData.date || null,
-          subject: formData.subject || 'Liên hệ từ khách hàng',
-          message: formData.message
-        })
+      await contactService.createContact({
+        user_name: formData.name,
+        user_email: formData.email,
+        user_phone: formData.phone,
+        contact_date: formData.date || null,
+        subject: formData.subject || 'Liên hệ từ khách hàng',
+        message: formData.message
       })
       setShowToast(true)
       setFormData({ name: user?.name || '', email: user?.email || '', phone: '', date: '', subject: '', message: '' })

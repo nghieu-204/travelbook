@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import { fetchApi } from '@/lib/api';
+import { authService } from '@/services/authService';
 import { useAuthStore } from '@/store/useAuthStore';
 
 function ResetPasswordForm() {
@@ -41,7 +41,7 @@ function ResetPasswordForm() {
 
     setLoading(true);
     try {
-      await fetchApi('/reset-password', { data: { token, newPassword } });
+      await authService.resetPassword({ token, newPassword });
 
       // Nếu thành công
       setIsSuccess(true);

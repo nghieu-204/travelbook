@@ -9,7 +9,7 @@ import { X, Mail, Lock, User as UserIcon, ShieldCheck, Loader2 } from 'lucide-re
 import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
 import { cn } from '@/lib/utils'
-import { fetchApi } from '@/lib/api'
+import { authService } from '@/services/authService'
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -48,7 +48,7 @@ export default function AuthModal() {
 
   const onLogin = async (data: LoginFormData) => {
     try {
-      const result = await fetchApi('/login', { data })
+      const result = await authService.login(data)
       login(result.user, result.token)
     } catch (error: unknown) {
       alert((error as Error).message || 'Đăng nhập thất bại')
@@ -59,7 +59,7 @@ export default function AuthModal() {
     if (!otpSent) {
       try {
         setIsSendingOtp(true)
-        const result = await fetchApi('/send-otp', { data: { email: data.email } })
+        const result = await authService.sendOtp(data.email)
         setOtpSent(true)
         alert(result.message || 'Mã OTP đã được gửi đến email của bạn!')
       } catch (error: unknown) {
@@ -76,7 +76,7 @@ export default function AuthModal() {
     }
 
     try {
-      const result = await fetchApi('/register', { data: { ...data, otp } })
+      const result = await authService.register({ ...data, otp })
       alert(result.message || 'Đăng ký thành công! Bạn có thể đăng nhập ngay.')
       setMode('login')
       setOtpSent(false)

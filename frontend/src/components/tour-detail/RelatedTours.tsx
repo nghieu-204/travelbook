@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import TourCard, { Tour } from '@/components/tours/TourCard'
+import type { Tour } from '@/components/tours/TourCard'
 import TourCarousel from '@/components/tours/TourCarousel'
 import { Sparkles, Flame } from 'lucide-react'
 

@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react-hooks/set-state-in-effect, @next/next/no-img-element */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, MapPin, Calendar, Users, ChevronRight, Download, Ticket, ArrowRight, Loader2, MessageSquare, Star, X, CheckCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
-import { fetchApi } from '@/lib/api'
+import { bookingService } from '@/services/bookingService'
+import { reviewService } from '@/services/reviewService'
 
-export default function BookingsPage() {
+function BookingsContent() {
   const { user, isLoginModalOpen, setLoginModalOpen } = useAuthStore()
   const [bookings, setBookings] = useState<any[]>([])
   const router = useRouter()
@@ -31,7 +32,7 @@ export default function BookingsPage() {
 
     const fetchBookings = async () => {
       try {
-        const data = await fetchApi(`/bookings/user/${user.id}`)
+        const data = await bookingService.getUserBookings(user.id)
         setBookings(data)
       } catch (err) {
         console.error('Lỗi khi lấy đơn đặt:', err)
@@ -61,17 +62,14 @@ export default function BookingsPage() {
     if (!reviewBooking) return
     setIsSubmittingReview(true)
     try {
-      await fetchApi('/reviews', {
-        method: 'POST',
-        body: JSON.stringify({
-          tour_id: reviewBooking.tour_id,
-          user_id: user?.id,
-          user_email: user?.email,
-          user_name: user?.name,
-          user_avatar: user?.avatar,
-          rating,
-          comment
-        })
+      await reviewService.submitReview({
+        tour_id: reviewBooking.tour_id,
+        user_id: user?.id,
+        user_email: user?.email,
+        user_name: user?.name,
+        user_avatar: user?.avatar,
+        rating,
+        comment
       })
       
       // Update local state to hide the button immediately
@@ -367,5 +365,17 @@ export default function BookingsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function BookingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="bg-slate-50 min-h-screen py-12 flex justify-center items-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    }>
+      <BookingsContent />
+    </Suspense>
   )
 }

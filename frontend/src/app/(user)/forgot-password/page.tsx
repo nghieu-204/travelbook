@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
-import { fetchApi } from '@/lib/api';
+import { authService } from '@/services/authService';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export default function ForgotPasswordPage() {
@@ -21,9 +21,9 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      await fetchApi('/forgot-password', { data: { email } });
+      await authService.forgotPassword(email);
       
-      // Nếu thành công (fetchApi ném lỗi nếu response.ok = false)
+      // Nếu thành công
       setIsSuccess(true);
     } catch (err: unknown) {
       console.error(err);

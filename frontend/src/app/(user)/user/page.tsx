@@ -4,7 +4,7 @@
 import { Camera, X, Loader2, CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useState, useEffect, useRef } from 'react'
-import { fetchApi } from '@/lib/api'
+import { userService } from '@/services/userService'
 
 export default function UserProfilePage() {
   const { user, token, login } = useAuthStore()
@@ -29,7 +29,7 @@ export default function UserProfilePage() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const data = await fetchApi('/profile')
+        const data = await userService.getProfile()
         setProfile(data)
         setName(data.name || '')
         setPhone(data.phone || '')
@@ -60,13 +60,12 @@ export default function UserProfilePage() {
     
     try {
       setIsUpdating(true)
-      const res = await fetchApi('/profile', {
-        method: 'PUT',
-        data: {
-          name: profile?.name,
-          email: profile?.email,
-          new_password: newPassword
-        }
+      await userService.updateProfile({
+        name: profile?.name,
+        email: profile?.email,
+        phone: profile?.phone,
+        address: profile?.address,
+        new_password: newPassword
       })
 
       setPasswordSuccess('Cập nhật mật khẩu thành công!')
@@ -84,14 +83,10 @@ export default function UserProfilePage() {
     e.preventDefault()
     try {
       setIsSaving(true)
-      const res = await fetchApi('/profile', {
-        method: 'PUT',
-        data: {
-          name,
-          email: profile?.email,
-          phone,
-          avatar
-        }
+      const res = await userService.updateProfile({
+        name,
+        phone,
+        avatar
       })
       
       setProfile(res.user)

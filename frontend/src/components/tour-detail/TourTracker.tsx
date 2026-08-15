@@ -2,22 +2,21 @@
 
 import { useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
-import { fetchApi } from '@/lib/api'
+import { recommendService } from '@/services/recommendService'
 
 export default function TourTracker({ tourId }: { tourId: number }) {
   const { user } = useAuthStore()
 
   useEffect(() => {
     if (user?.id) {
-      // Gọi API tracking ghi nhận hành vi "view"
-      fetchApi('/recommendations/tracking', {
-        method: 'POST',
-        body: JSON.stringify({
-          userId: user.id,
-          tourId,
-          interactionType: 'view'
-        })
-      }).catch(err => console.error("Lỗi tracking:", err))
+      const trackView = async () => {
+        try {
+          await recommendService.trackTourView(tourId, user.id)
+        } catch (err) {
+          console.error("Lỗi tracking:", err)
+        }
+      }
+      trackView()
     }
   }, [user, tourId])
 

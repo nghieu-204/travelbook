@@ -10,7 +10,7 @@ import { Mail, Lock, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAdminAuthStore } from '@/store/useAdminAuthStore'
 import { cn } from '@/lib/utils'
-import { fetchApi } from '@/lib/api'
+import { authService } from '@/services/authService'
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
   const onLogin = async (data: any) => {
     try {
       setIsLoading(true)
-      const result = await fetchApi('/admin/login', { data })
+      const result = await authService.adminLogin(data)
       login(result.user, result.token)
       router.push('/admin')
     } catch (error: any) {

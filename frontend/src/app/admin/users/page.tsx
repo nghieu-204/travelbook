@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { MoreVertical, Shield, User as UserIcon, Loader2, Key, Search, ChevronLeft, ChevronRight, UserPlus, Filter } from 'lucide-react'
-import { fetchApi } from '@/lib/api'
+import { userService } from '@/services/userService'
 import { useDebounce } from 'use-debounce'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -38,7 +38,7 @@ export default function AdminUsers() {
       if (roleFilter) url += `&role=${roleFilter}`
       if (statusFilter) url += `&status=${statusFilter}`
 
-      const response = await fetchApi(url)
+      const response = await userService.getUsers(url)
       setUsers(response.data || [])
       setTotalUsers(response.total || 0)
       setTotalPages(response.totalPages || 1)
@@ -66,11 +66,8 @@ export default function AdminUsers() {
     if (!confirm(`Bạn có chắc chắn muốn ${currentStatus === 'Hoạt động' || !currentStatus ? 'khóa' : 'mở khóa'} người dùng này?`)) return;
     try {
       const newStatus = currentStatus === 'Hoạt động' || !currentStatus ? 'Bị khóa' : 'Hoạt động';
-      await fetchApi(`/admin/users/${id}/status`, { 
-        method: 'PUT',
-        data: { status: newStatus }
-      })
-      loadUsers()
+      await userService.updateUserStatus(id, newStatus)
+      setUsers(users.map(u => u.id === id ? { ...u, status: newStatus } : u))
     } catch (error: any) {
       alert(error.message || 'Có lỗi xảy ra');
     }
@@ -79,7 +76,7 @@ export default function AdminUsers() {
   const handleResetPassword = async (id: number) => {
     if (!confirm('Bạn có chắc chắn muốn gửi link đặt lại mật khẩu cho người dùng này?')) return;
     try {
-      const res = await fetchApi(`/admin/users/${id}/reset-password`, { method: 'POST' })
+      const res = await userService.resetUserPassword(id)
       alert(res.message || 'Đã gửi link đặt lại mật khẩu qua email cho người dùng này.');
       setActiveDropdown(null);
     } catch (error: any) {
@@ -105,16 +102,14 @@ export default function AdminUsers() {
 
     try {
       setIsSaving(true);
-      await fetchApi(`/admin/users/${editingUser.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: editingUser.name,
-          phone: editingUser.phone,
-          address: editingUser.address,
-          role: editingUser.role,
-          status: editingUser.status
-        })
-      });
+      await userService.updateUser(editingUser.id, {
+        name: editingUser.name,
+        email: editingUser.email,
+        phone: editingUser.phone,
+        address: editingUser.address,
+        role: editingUser.role,
+        status: editingUser.status
+      })
       alert('Cập nhật người dùng thành công!');
       setEditingUser(null);
       loadUsers();

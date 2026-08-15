@@ -5,7 +5,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Calendar, Users, Download, ChevronRight, Ticket, Loader2, MessageSquare, Star, X, CheckCircle, AlertTriangle } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
-import { fetchApi } from '@/lib/api'
+import { bookingService } from '@/services/bookingService'
+import { reviewService } from '@/services/reviewService'
 
 export default function UserBookingsPage() {
   const { user } = useAuthStore()
@@ -33,7 +34,7 @@ export default function UserBookingsPage() {
 
     const fetchBookings = async () => {
       try {
-        const data = await fetchApi(`/bookings/user/${user.id}`)
+        const data = await bookingService.getUserBookings(user.id)
         setBookings(data)
       } catch (err) {
         console.error('Lỗi khi lấy đơn đặt:', err)
@@ -50,17 +51,14 @@ export default function UserBookingsPage() {
     if (!reviewBooking) return
     setIsSubmittingReview(true)
     try {
-      await fetchApi('/reviews', {
-        method: 'POST',
-        body: JSON.stringify({
-          tour_id: reviewBooking.tour_id,
-          user_id: user?.id,
-          user_email: user?.email,
-          user_name: user?.name,
-          user_avatar: user?.avatar,
-          rating,
-          comment
-        })
+      await reviewService.submitReview({
+        tour_id: reviewBooking.tour_id,
+        user_id: user?.id,
+        user_email: user?.email,
+        user_name: user?.name,
+        user_avatar: user?.avatar,
+        rating,
+        comment
       })
       
       // Update local state to hide the button immediately
@@ -111,13 +109,7 @@ export default function UserBookingsPage() {
 
     setIsSubmittingCancel(true)
     try {
-      const res = await fetchApi(`/bookings/cancel/${cancelBookingItem.id}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          user_id: user?.id,
-          cancel_reason: cancelReason
-        })
-      })
+      const res = await bookingService.cancelBooking(cancelBookingItem.id, user?.id || '', cancelReason)
       
       alert(res.message || "Đã gửi yêu cầu hủy thành công.");
       

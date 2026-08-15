@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Edit, Search } from 'lucide-react'
 import Link from 'next/link'
-import { fetchApi } from '@/lib/api'
+import { tourService } from '@/services/tourService'
 
 export default function AdminTours() {
   const [tours, setTours] = useState<any[]>([])
@@ -18,7 +18,7 @@ export default function AdminTours() {
   useEffect(() => {
     const loadTours = async () => {
       try {
-        const data = await fetchApi('/tours?isAdmin=true')
+        const data = await tourService.getAdminTours()
         setTours(data || [])
       } catch (error) {
         console.error("Failed to load tours", error)
@@ -32,7 +32,7 @@ export default function AdminTours() {
   const handleDelete = async (id: number) => {
     if (!confirm('Bạn có chắc muốn xóa tour này?')) return;
     try {
-      await fetchApi(`/admin/tours/${id}`, { method: 'DELETE' });
+      await tourService.deleteTour(id);
       setTours(tours.filter(t => t.id !== id));
       alert('Đã xóa tour thành công!');
     } catch (error) {
@@ -45,10 +45,7 @@ export default function AdminTours() {
     // Optimistic update
     setTours(tours.map(t => t.id === tourId ? { ...t, status: newStatus } : t));
     try {
-      await fetchApi(`/admin/tours/${tourId}/status`, { 
-        method: 'PUT', 
-        body: JSON.stringify({ status: newStatus }) 
-      });
+      await tourService.updateTourStatus(tourId, newStatus)
     } catch (error) {
       // Revert on error
       setTours(tours.map(t => t.id === tourId ? { ...t, status: currentStatus } : t));

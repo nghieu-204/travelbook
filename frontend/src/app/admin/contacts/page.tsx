@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { Search, ChevronDown, CheckCircle2, XCircle, Mail, MessageSquare, Send } from 'lucide-react'
-import { fetchApi } from '@/lib/api'
+import { contactService } from '@/services/contactService'
 
 export default function AdminContactsPage() {
   const [contacts, setContacts] = useState<any[]>([])
@@ -19,7 +19,7 @@ export default function AdminContactsPage() {
   const fetchContacts = async () => {
     try {
       setLoading(true)
-      const data = await fetchApi('/admin/contacts')
+      const data = await contactService.getAdminContacts()
       setContacts(data)
     } catch (err) {
       console.error(err)
@@ -52,11 +52,8 @@ export default function AdminContactsPage() {
     
     setIsSubmitting(true)
     try {
-      await fetchApi(`/admin/contacts/${selectedContact.id}/reply`, {
-        method: 'PUT',
-        body: JSON.stringify({ admin_reply: replyText })
-      })
-      alert('Đã gửi phản hồi thành công qua Email!')
+      await contactService.replyContact(selectedContact.id, replyText)
+      alert('Đã gửi phản hồi thành công!')
       setViewModalOpen(false)
       fetchContacts() // Refresh data
     } catch (err) {

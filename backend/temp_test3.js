@@ -1,3 +1,0 @@
-const mysql = require('mysql2/promise');
-const conn = mysql.createPool({host: 'localhost', user: 'root', password: '', database: 'travel_booking'});
-conn.query("SELECT COALESCE(c.name, 'Chưa phân loại') as calc_category, COALESCE(r.name, 'Chưa phân loại') as region_name, COUNT(b.id) as count FROM bookings b JOIN tours t ON b.tour_id = t.id LEFT JOIN Tour_Destination td ON t.id = td.tour_id AND td.is_primary = TRUE LEFT JOIN destination d ON td.destination_id = d.id LEFT JOIN region r ON d.region_id = r.id LEFT JOIN tourcategory c ON r.category_id = c.id GROUP BY calc_category, region_name").then(res => {console.log(res[0]); process.exit(0)}).catch(err => console.error(err));

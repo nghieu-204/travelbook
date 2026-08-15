@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { useState } from 'react'
-import TourCard, { Tour } from '@/components/tours/TourCard'
+import { Tour } from '@/components/tours/TourCard'
 import TourCarousel from '@/components/tours/TourCarousel'
 
 interface TourSectionProps {

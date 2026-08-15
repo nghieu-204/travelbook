@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import TourCard, { Tour } from '@/components/tours/TourCard'
+import { Tour } from '@/components/tours/TourCard'
 import TourCarousel from '@/components/tours/TourCarousel'
 import { Sparkles, TrendingUp } from 'lucide-react'
 
-import { fetchApi } from '@/lib/api'
+import { recommendService } from '@/services/recommendService'
 
 export default function PersonalizedHomeTours() {
   const [tours, setTours] = useState<Tour[]>([])
@@ -18,18 +18,18 @@ export default function PersonalizedHomeTours() {
         setLoading(true)
         
         const userStr = localStorage.getItem('user')
-        let userId = ''
+        let userId: number | undefined = undefined
         if (userStr) {
           try {
             const user = JSON.parse(userStr)
-            userId = user.id ? `?userId=${user.id}` : ''
-          } catch (e) {
+            userId = user.id ? Number(user.id) : undefined
+          } catch (error) {
             console.warn('Không thể parse thông tin user từ localStorage, bỏ qua cá nhân hóa.')
             localStorage.removeItem('user') // Clear corrupted data
           }
         }
 
-        const data = await fetchApi(`/recommendations${userId}`)
+        const data = await recommendService.getRecommendations(userId)
         // Limit to 8 tours max for the carousel
         setTours((data.tours || []).slice(0, 8))
         setReason(data.matchReason || '')
