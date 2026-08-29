@@ -54,10 +54,18 @@ export default function PersonalizedHomeTours() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         <div className="flex flex-col gap-2 mb-8">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-emerald-500" />
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dành riêng cho bạn</h2>
+            {reason.includes('phổ biến') ? (
+              <TrendingUp className="w-8 h-8 text-orange-500" />
+            ) : (
+              <Sparkles className="w-8 h-8 text-emerald-500" />
+            )}
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+              {reason.includes('phổ biến') ? 'Tour Phổ Biến Nhất' : 'Dành riêng cho bạn'}
+            </h2>
           </div>
-          <p className="text-slate-600">Dựa trên những tour bạn đã quan tâm</p>
+          <p className="text-slate-600">
+            {reason.includes('phổ biến') ? 'Những tour du lịch được yêu thích nhất hiện nay' : 'Dựa trên những tour bạn đã quan tâm'}
+          </p>
         </div>
 
         <div className="mt-4">

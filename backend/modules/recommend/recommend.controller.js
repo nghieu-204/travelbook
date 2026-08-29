@@ -39,6 +39,7 @@ exports.getRecommendations = async (req, res) => {
                 'SELECT * FROM tours ORDER BY rating DESC, reviews_count DESC LIMIT 4'
             );
             recommendedTours = popular;
+            matchReason = '🔥 Top tour phổ biến';
         }
 
         res.json({
