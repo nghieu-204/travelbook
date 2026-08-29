@@ -21,7 +21,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const handleLogout = () => {
     logout()
     toast.success('Đăng xuất thành công')
-    router.replace('/')
+    window.location.href = '/'
   }
 
   return (

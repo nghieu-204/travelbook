@@ -41,7 +41,7 @@ export default function Header() {
     logout()
     setIsDropdownOpen(false)
     toast.success('Đăng xuất thành công')
-    router.replace('/')
+    window.location.href = '/'
   }
 
   return (
