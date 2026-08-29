@@ -17,15 +17,15 @@ export default function PersonalizedHomeTours() {
       try {
         setLoading(true)
         
-        const userStr = localStorage.getItem('user')
+        const authStorageStr = localStorage.getItem('auth-storage')
         let userId: number | undefined = undefined
-        if (userStr) {
+        if (authStorageStr) {
           try {
-            const user = JSON.parse(userStr)
-            userId = user.id ? Number(user.id) : undefined
+            const authStorage = JSON.parse(authStorageStr)
+            const user = authStorage?.state?.user
+            userId = user?.id ? Number(user.id) : undefined
           } catch {
             console.warn('Không thể parse thông tin user từ localStorage, bỏ qua cá nhân hóa.')
-            localStorage.removeItem('user') // Clear corrupted data
           }
         }
 

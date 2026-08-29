@@ -11,7 +11,7 @@ exports.getRecommendations = async (req, res) => {
         // Gọi AI Microservice (Python) - Hybrid Recommendation
         try {
             const fetchUserId = userId || 0;
-            const aiResponse = await fetch(`http://127.0.0.1:8000/recommend/home/${fetchUserId}`);
+            const aiResponse = await fetch(`http://ai-service:8000/recommend/home/${fetchUserId}`);
             if (aiResponse.ok) {
                     const aiData = await aiResponse.json();
                     const recommendedIds = aiData.tours || [];
@@ -75,7 +75,7 @@ exports.getRelatedTours = async (req, res) => {
 
         // Thử gọi AI Microservice (Python) - Chỉ dùng Content-Based cho section này
         try {
-            const aiUrl = `http://127.0.0.1:8000/recommend/tour/${tourId}`;
+            const aiUrl = `http://ai-service:8000/recommend/tour/${tourId}`;
             const response = await fetch(aiUrl);
             if (response.ok) {
                 const aiData = await response.json();
