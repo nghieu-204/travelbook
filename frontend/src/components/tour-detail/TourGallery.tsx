@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { Expand, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import FallbackImage from '@/components/ui/FallbackImage'
 
 export default function TourGallery({ images = [] }: { images?: string[] }) {
   // Chỉ dùng ảnh thật được truyền vào, hoặc 1 ảnh mặc định nếu không có ảnh nào
@@ -38,7 +39,7 @@ export default function TourGallery({ images = [] }: { images?: string[] }) {
           onClick={() => setIsFullScreen(true)}
           className="relative w-full h-[350px] md:h-[480px] rounded-3xl overflow-hidden group cursor-pointer shadow-sm border border-slate-100"
         >
-          <img src={displayImages[mainImageIndex]} alt="Main" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+          <FallbackImage src={displayImages[mainImageIndex]} alt="Main" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
           <button className="absolute bottom-4 right-4 bg-white/95 hover:bg-white text-slate-700 p-2.5 rounded-full shadow-lg transition-all hover:scale-110">
             <Expand className="w-5 h-5" />
           </button>
@@ -56,7 +57,7 @@ export default function TourGallery({ images = [] }: { images?: string[] }) {
                   : 'border-transparent opacity-60 hover:opacity-100'
               }`}
             >
-              <img src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+              <FallbackImage src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
             </div>
           ))}
         </div>
@@ -88,7 +89,7 @@ export default function TourGallery({ images = [] }: { images?: string[] }) {
             className="relative w-full h-full max-w-7xl max-h-[90vh] p-4 md:p-12 flex items-center justify-center cursor-default"
             onClick={() => setIsFullScreen(false)} // Bấm ra ngoài để đóng
           >
-            <img 
+            <FallbackImage 
               src={displayImages[mainImageIndex]} 
               alt="Fullscreen" 
               className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-lg"

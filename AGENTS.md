@@ -22,6 +22,7 @@ Project: travel-booking-website
 - Tự động tạo script (`.agent/scripts/`) cho các lỗi lặp đi lặp lại.
 - Kiểm tra logs ngay lập tức khi xảy ra lỗi: `docker compose logs -f <service>`.
 - **Tự động Commit**: BẮT BUỘC thực hiện git commit & push ngay sau khi hoàn thành bất kỳ tính năng hoặc tác vụ nào theo chuẩn Conventional Commits.
+- **Tự động Restart**: Mỗi khi chỉnh sửa code hoặc cấu hình của bất kỳ service nào, BẮT BUỘC tự động chạy lệnh khởi động lại container tương ứng (`docker compose restart <service>`).
 
 ## 5. ĐỒNG BỘ HÓA ĐỒNG THỜI (Chỉ Antigravity)
 - **Theo dõi tác vụ**: Sử dụng lệnh `task_boundary` để đồng bộ trạng thái với `@speckit.tasks` (tasks.md).

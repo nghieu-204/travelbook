@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useAdminAuthStore } from '@/store/useAdminAuthStore'
 import { cn } from '@/lib/utils'
 import { authService } from '@/services/authService'
+import { toast } from 'react-hot-toast'
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -31,9 +32,10 @@ export default function AdminLoginPage() {
       setIsLoading(true)
       const result = await authService.adminLogin(data)
       login(result.user, result.token)
+      toast.success('Đăng nhập thành công!')
       router.push('/admin')
     } catch (error: any) {
-      alert(error.message || 'Đăng nhập thất bại')
+      toast.error(error.message || 'Đăng nhập thất bại')
     } finally {
       setIsLoading(false)
     }

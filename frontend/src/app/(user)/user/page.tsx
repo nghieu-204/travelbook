@@ -5,6 +5,7 @@ import { Camera, X, Loader2, CheckCircle2 } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useState, useEffect, useRef } from 'react'
 import { userService } from '@/services/userService'
+import { toast } from 'react-hot-toast'
 
 export default function UserProfilePage() {
   const { user, token, login } = useAuthStore()
@@ -68,12 +69,12 @@ export default function UserProfilePage() {
         new_password: newPassword
       })
 
-      setPasswordSuccess('Cập nhật mật khẩu thành công!')
+      toast.success('Cập nhật mật khẩu thành công!', { id: 'pwd-success' })
       setNewPassword('')
       setConfirmPassword('')
-      setTimeout(() => setShowPasswordModal(false), 2000)
+      setShowPasswordModal(false)
     } catch (err: any) {
-      setPasswordError(err.message || 'Lỗi cập nhật mật khẩu')
+      toast.error(err.message || 'Lỗi cập nhật mật khẩu', { id: 'pwd-error' })
     } finally {
       setIsUpdating(false)
     }
@@ -85,12 +86,14 @@ export default function UserProfilePage() {
       setIsSaving(true)
       const res = await userService.updateProfile({
         name,
+        email: profile?.email,
+        address: profile?.address,
         phone,
         avatar
       })
       
       setProfile(res.user)
-      alert('Cập nhật hồ sơ thành công!')
+      toast.success('Cập nhật hồ sơ thành công!', { id: 'profile-success' })
       
       if (token && res.user) {
         const newUser = { 
@@ -112,7 +115,7 @@ export default function UserProfilePage() {
         })
       }
     } catch (err: any) {
-      alert(err.message || 'Lỗi cập nhật hồ sơ')
+      toast.error(err.message || 'Lỗi cập nhật hồ sơ', { id: 'profile-error' })
     } finally {
       setIsSaving(false)
     }
@@ -122,7 +125,7 @@ export default function UserProfilePage() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 2 * 1024 * 1024) { // 2MB
-        alert('Kích thước ảnh quá lớn, vui lòng chọn ảnh < 2MB')
+        toast.error('Kích thước ảnh quá lớn, vui lòng chọn ảnh < 2MB')
         return
       }
       
@@ -150,7 +153,19 @@ export default function UserProfilePage() {
         <div className="relative">
           <div className="w-28 h-28 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-4xl border-4 border-white shadow-lg overflow-hidden shrink-0">
             {avatar ? (
-              <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+              <img 
+                src={avatar.startsWith('http') || avatar.startsWith('data:') ? avatar : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902'}${avatar.startsWith('/') ? '' : '/'}${avatar}`}
+                alt="Avatar" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.parentElement) {
+                    const span = document.createElement('span');
+                    span.innerText = profile?.name?.charAt(0) || 'U';
+                    e.currentTarget.parentElement.appendChild(span);
+                  }
+                }}
+              />
             ) : (
               profile?.name?.charAt(0) || 'U'
             )}
@@ -177,7 +192,7 @@ export default function UserProfilePage() {
               <CheckCircle2 className="w-3.5 h-3.5" /> Đã xác thực
             </span>
             <span className="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg border border-blue-100">
-              Thành viên
+              {profile?.role === 'ADMIN' ? 'Quản trị viên' : 'Thành viên'}
             </span>
           </div>
           <button 
@@ -225,9 +240,13 @@ export default function UserProfilePage() {
         <button 
           type="submit" 
           disabled={isSaving}
-          className="bg-blue-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+          className="bg-blue-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full md:w-auto"
         >
-          {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Lưu thay đổi'}
+          {isSaving ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" /> Đang lưu...
+            </span>
+          ) : 'Lưu thay đổi'}
         </button>
       </form>
 
@@ -275,7 +294,11 @@ export default function UserProfilePage() {
                 disabled={isUpdating}
                 className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Cập nhật mật khẩu'}
+                {isUpdating ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" /> Đang cập nhật...
+                  </span>
+                ) : 'Cập nhật mật khẩu'}
               </button>
             </form>
           </div>

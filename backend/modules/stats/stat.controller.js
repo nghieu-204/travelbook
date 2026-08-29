@@ -1,5 +1,6 @@
 const { pool } = require('../../config/db');
 const ExcelJS = require('exceljs');
+const { BOOKING_STATUS, USER_ROLE } = require('../../config/constants');
 
 const getAdminStats = async (req, res) => {
     try {
@@ -61,19 +62,19 @@ const getAdminStats = async (req, res) => {
             }
         }
         
-        const [revRows] = await pool.query("SELECT COALESCE(SUM(total_price), 0) as val FROM bookings WHERE status IN ('Đã xác nhận', 'Đã hoàn thành')" + dateCond, params);
+        const [revRows] = await pool.query(`SELECT COALESCE(SUM(total_price), 0) as val FROM bookings WHERE status IN ('${BOOKING_STATUS.CONFIRMED}', '${BOOKING_STATUS.COMPLETED}')` + dateCond, params);
         const [bookRows] = await pool.query("SELECT COUNT(*) as val FROM bookings WHERE 1=1" + dateCond, params);
         const [tourRows] = await pool.query("SELECT COUNT(*) as val FROM tours WHERE 1=1" + cumulDateCond, cumulParams);
-        const [pendRows] = await pool.query("SELECT COUNT(*) as val FROM bookings WHERE status = 'Đang chờ xác nhận'" + dateCond, params);
-        const [userRows] = await pool.query("SELECT COUNT(*) as val FROM users WHERE role != 'admin'" + cumulDateCond, cumulParams);
+        const [pendRows] = await pool.query(`SELECT COUNT(*) as val FROM bookings WHERE status = '${BOOKING_STATUS.PENDING}'` + dateCond, params);
+        const [userRows] = await pool.query(`SELECT COUNT(*) as val FROM users WHERE role != '${USER_ROLE.ADMIN}'` + cumulDateCond, cumulParams);
 
         let kpiTrends = null;
         if (isTrend) {
-            const [pRevRows] = await pool.query("SELECT COALESCE(SUM(total_price), 0) as val FROM bookings WHERE status IN ('Đã xác nhận', 'Đã hoàn thành')" + prevDateCond, prevParams);
+            const [pRevRows] = await pool.query(`SELECT COALESCE(SUM(total_price), 0) as val FROM bookings WHERE status IN ('${BOOKING_STATUS.CONFIRMED}', '${BOOKING_STATUS.COMPLETED}')` + prevDateCond, prevParams);
             const [pBookRows] = await pool.query("SELECT COUNT(*) as val FROM bookings WHERE 1=1" + prevDateCond, prevParams);
             const [pTourRows] = await pool.query("SELECT COUNT(*) as val FROM tours WHERE 1=1" + prevCumulDateCond, prevCumulParams);
-            const [pPendRows] = await pool.query("SELECT COUNT(*) as val FROM bookings WHERE status = 'Đang chờ xác nhận'" + prevDateCond, prevParams);
-            const [pUserRows] = await pool.query("SELECT COUNT(*) as val FROM users WHERE role != 'admin'" + prevCumulDateCond, prevCumulParams);
+            const [pPendRows] = await pool.query(`SELECT COUNT(*) as val FROM bookings WHERE status = '${BOOKING_STATUS.PENDING}'` + prevDateCond, prevParams);
+            const [pUserRows] = await pool.query(`SELECT COUNT(*) as val FROM users WHERE role != '${USER_ROLE.ADMIN}'` + prevCumulDateCond, prevCumulParams);
             
             const calcPerc = (curr, prev) => {
                 const curVal = Number(curr) || 0;
@@ -97,7 +98,7 @@ const getAdminStats = async (req, res) => {
                    COALESCE(SUM(total_price), 0) as revenue,
                    COUNT(*) as bookings_count
             FROM bookings 
-            WHERE status IN ('Đã xác nhận', 'Đã hoàn thành')
+            WHERE status IN ('${BOOKING_STATUS.CONFIRMED}', '${BOOKING_STATUS.COMPLETED}')
             GROUP BY month 
             ORDER BY MIN(departure_date) ASC 
             LIMIT 12
@@ -111,12 +112,12 @@ const getAdminStats = async (req, res) => {
                 COUNT(b.id) as count
             FROM bookings b
             JOIN tours t ON b.tour_id = t.id
-            LEFT JOIN Tour_Destination td ON t.id = td.tour_id AND td.is_primary = TRUE
+            LEFT JOIN tour_destination td ON t.id = td.tour_id AND td.is_primary = TRUE
             LEFT JOIN destination d ON td.destination_id = d.id
             LEFT JOIN country co ON d.country_id = co.id
             LEFT JOIN region r ON r.id = COALESCE(d.region_id, co.region_id)
             LEFT JOIN tourcategory c ON r.category_id = c.id
-            WHERE b.status != 'Đã hủy'
+            WHERE b.status != '${BOOKING_STATUS.CANCELLED}'
             GROUP BY calc_category, region_name
         `);
 
@@ -135,9 +136,9 @@ const getAdminStats = async (req, res) => {
         // Sức chứa tour và số chỗ đã đặt (Top tours được đặt nhiều nhất)
         const [spotsRows] = await pool.query(`
             SELECT t.id, t.name, COALESCE(t.available_spots, 30) as available_spots, 
-                   COALESCE(SUM(CASE WHEN b.status != 'Đã hủy' THEN (b.adults + b.children) ELSE 0 END), 0) as booked_spots,
-                   (SELECT d.name FROM Tour_Destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS location,
-                   (SELECT r.name FROM Tour_Destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON r.id = COALESCE(d.region_id, co.region_id) WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS region
+                   COALESCE(SUM(CASE WHEN b.status != '${BOOKING_STATUS.CANCELLED}' THEN (b.adults + b.children) ELSE 0 END), 0) as booked_spots,
+                   (SELECT d.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS location,
+                   (SELECT r.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id JOIN region r ON r.id = COALESCE(d.region_id, co.region_id) WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS region
             FROM tours t
             LEFT JOIN bookings b ON t.id = b.tour_id
             GROUP BY t.id, t.name, t.available_spots
@@ -149,7 +150,7 @@ const getAdminStats = async (req, res) => {
         const [pendingList] = await pool.query(`
             SELECT b.id, b.user_name, b.tour_name, b.total_price, b.status 
             FROM bookings b 
-            WHERE b.status = 'Đang chờ xác nhận' OR b.status = 'pending' OR b.status = 'Chờ xử lý' 
+            WHERE b.status = '${BOOKING_STATUS.PENDING}' OR b.status = 'pending' OR b.status = 'Chờ xử lý' 
             ORDER BY b.created_at DESC 
             LIMIT 5
         `);
@@ -171,17 +172,17 @@ const getAdminStats = async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi lấy dữ liệu thống kê Admin:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ khi truy xuất thống kê" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
 const exportDashboardExcel = async (req, res) => {
     try {
         // 1. Lấy dữ liệu KPI
-        const [revRows] = await pool.query("SELECT COALESCE(SUM(total_price), 0) as total_revenue FROM bookings WHERE status IN ('Đã xác nhận', 'Đã hoàn thành')");
+        const [revRows] = await pool.query(`SELECT COALESCE(SUM(total_price), 0) as total_revenue FROM bookings WHERE status IN ('${BOOKING_STATUS.CONFIRMED}', '${BOOKING_STATUS.COMPLETED}')`);
         const [bookRows] = await pool.query("SELECT COUNT(*) as total_bookings FROM bookings");
         const [tourRows] = await pool.query("SELECT COUNT(*) as active_tours FROM tours");
-        const [userRows] = await pool.query("SELECT COUNT(*) as total_users FROM users WHERE role != 'admin'");
+        const [userRows] = await pool.query(`SELECT COUNT(*) as total_users FROM users WHERE role != '${USER_ROLE.ADMIN}'`);
         
         // 2. Lấy dữ liệu khu vực (Bảng 1)
         const [regionRows] = await pool.query(`
@@ -190,11 +191,11 @@ const exportDashboardExcel = async (req, res) => {
                 COUNT(b.id) as count
             FROM bookings b
             JOIN tours t ON b.tour_id = t.id
-            LEFT JOIN Tour_Destination td ON t.id = td.tour_id AND td.is_primary = TRUE
+            LEFT JOIN tour_destination td ON t.id = td.tour_id AND td.is_primary = TRUE
             LEFT JOIN destination d ON td.destination_id = d.id
             LEFT JOIN country co ON d.country_id = co.id
             LEFT JOIN region r ON r.id = COALESCE(d.region_id, co.region_id)
-            WHERE b.status != 'Đã hủy'
+            WHERE b.status != '${BOOKING_STATUS.CANCELLED}'
             GROUP BY region_name
             ORDER BY count DESC
         `);
@@ -206,7 +207,7 @@ const exportDashboardExcel = async (req, res) => {
                 COALESCE(SUM(b.total_price), 0) as total_revenue
             FROM bookings b
             JOIN tours t ON b.tour_id = t.id
-            WHERE b.status IN ('Đã xác nhận', 'Đã hoàn thành')
+            WHERE b.status IN ('${BOOKING_STATUS.CONFIRMED}', '${BOOKING_STATUS.COMPLETED}')
             GROUP BY t.id, t.name
             ORDER BY total_revenue DESC
             LIMIT 5
@@ -347,7 +348,7 @@ const exportDashboardExcel = async (req, res) => {
 
     } catch (error) {
         console.error("Lỗi xuất Excel:", error);
-        res.status(500).json({ message: "Lỗi máy chủ khi xuất báo cáo" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 

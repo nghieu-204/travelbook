@@ -2,14 +2,39 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { MoreVertical, Shield, User as UserIcon, Loader2, Key, Search, ChevronLeft, ChevronRight, UserPlus, Filter } from 'lucide-react'
+import { MoreVertical, Shield, User as UserIcon, Loader2, Key, Search, ChevronLeft, ChevronRight, UserPlus, Filter, Mail } from 'lucide-react'
 import { userService } from '@/services/userService'
+import { getImageUrl } from '@/lib/utils'
 import { useDebounce } from 'use-debounce'
 import Link from 'next/link'
-import { useAuthStore } from '@/store/useAuthStore'
+import { useAdminAuthStore } from '@/store/useAdminAuthStore'
+import { USER_STATUS, USER_ROLE } from '@/constants/status'
+import { toast } from 'react-hot-toast'
+import { useConfirm } from '@/providers/ConfirmProvider'
+
+// Component xử lý ảnh đại diện có fallback
+const AvatarFallback = ({ user }: { user: any }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!user.avatar || hasError) {
+    return user.role === USER_ROLE.ADMIN 
+      ? <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center"><Shield className="w-5 h-5 text-emerald-500" /></div>
+      : <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center"><UserIcon className="w-5 h-5 text-slate-400" /></div>;
+  }
+
+  return (
+    <img 
+      src={getImageUrl(user.avatar)} 
+      alt={user.name} 
+      className="w-10 h-10 rounded-full object-cover" 
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 export default function AdminUsers() {
-  const { user: currentUser } = useAuthStore()
+  const { user: currentUser } = useAdminAuthStore()
+  const { confirm } = useConfirm()
   const [users, setUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [totalUsers, setTotalUsers] = useState(0)
@@ -60,27 +85,38 @@ export default function AdminUsers() {
 
   const handleStatusChange = async (id: number, currentStatus: string) => {
     if (Number(currentUser?.id) === Number(id)) {
-      alert("Bạn không thể tự khóa tài khoản của chính mình!");
+      toast.error("Bạn không thể tự khóa tài khoản của chính mình!");
       return;
     }
-    if (!confirm(`Bạn có chắc chắn muốn ${currentStatus === 'Hoạt động' || !currentStatus ? 'khóa' : 'mở khóa'} người dùng này?`)) return;
+    const isConfirmed = await confirm({
+      title: "Khóa tài khoản",
+      description: `Bạn có chắc chắn muốn ${currentStatus === USER_STATUS.ACTIVE || !currentStatus ? 'khóa' : 'mở khóa'} người dùng này?`,
+      type: "warning"
+    });
+    if (!isConfirmed) return;
     try {
-      const newStatus = currentStatus === 'Hoạt động' || !currentStatus ? 'Bị khóa' : 'Hoạt động';
+      const newStatus = currentStatus === USER_STATUS.ACTIVE || !currentStatus ? USER_STATUS.BANNED : USER_STATUS.ACTIVE;
       await userService.updateUserStatus(id, newStatus)
       setUsers(users.map(u => u.id === id ? { ...u, status: newStatus } : u))
+      toast.success('Cập nhật trạng thái thành công')
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     }
   }
 
   const handleResetPassword = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn gửi link đặt lại mật khẩu cho người dùng này?')) return;
+    const isConfirmed = await confirm({
+      title: "Khôi phục mật khẩu",
+      description: "Bạn có chắc chắn muốn gửi link đặt lại mật khẩu cho người dùng này?",
+      type: "warning"
+    });
+    if (!isConfirmed) return;
     try {
       const res = await userService.resetUserPassword(id)
-      alert(res.message || 'Đã gửi link đặt lại mật khẩu qua email cho người dùng này.');
+      toast.success(res.message || 'Đã gửi link đặt lại mật khẩu qua email cho người dùng này.');
       setActiveDropdown(null);
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     }
   }
 
@@ -90,12 +126,12 @@ export default function AdminUsers() {
     
     // Prevent self-demotion or self-ban
     if (Number(editingUser.id) === Number(currentUser?.id)) {
-      if (editingUser.role !== 'admin') {
-        alert("Bạn không thể tự hạ quyền của chính mình!");
+      if (editingUser.role !== USER_ROLE.ADMIN) {
+        toast.error("Bạn không thể tự hạ quyền của chính mình!");
         return;
       }
-      if (editingUser.status !== 'Hoạt động') {
-        alert("Bạn không thể tự khóa tài khoản của chính mình!");
+      if (editingUser.status !== USER_STATUS.ACTIVE) {
+        toast.error("Bạn không thể tự khóa tài khoản của chính mình!");
         return;
       }
     }
@@ -110,11 +146,11 @@ export default function AdminUsers() {
         role: editingUser.role,
         status: editingUser.status
       })
-      alert('Cập nhật người dùng thành công!');
+      toast.success('Cập nhật người dùng thành công!');
       setEditingUser(null);
       loadUsers();
     } catch (error: any) {
-      alert(error.message || 'Lỗi khi cập nhật người dùng');
+      toast.error(error.message || 'Lỗi khi cập nhật người dùng');
     } finally {
       setIsSaving(false);
     }
@@ -154,8 +190,8 @@ export default function AdminUsers() {
               className="w-full pl-9 pr-4 py-2 bg-[#0f172a] border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 appearance-none transition-colors"
             >
               <option value="">Tất cả Vai trò</option>
-              <option value="user">Khách hàng</option>
-              <option value="admin">Admin</option>
+              <option value={USER_ROLE.USER}>Khách hàng</option>
+              <option value={USER_ROLE.ADMIN}>Admin</option>
             </select>
           </div>
           <div className="relative flex-1 md:w-48">
@@ -165,8 +201,8 @@ export default function AdminUsers() {
               className="w-full px-4 py-2 bg-[#0f172a] border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 appearance-none transition-colors"
             >
               <option value="">Tất cả Trạng thái</option>
-              <option value="Hoạt động">Hoạt động</option>
-              <option value="Bị khóa">Bị khóa</option>
+              <option value={USER_STATUS.ACTIVE}>Hoạt động</option>
+              <option value={USER_STATUS.BANNED}>Bị khóa</option>
             </select>
           </div>
         </div>
@@ -206,22 +242,20 @@ export default function AdminUsers() {
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 overflow-hidden shrink-0 border border-slate-700">
-                          {user.avatar ? (
-                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                          ) : (
-                            user.role === 'admin' ? <Shield className="w-5 h-5 text-emerald-500" /> : <UserIcon className="w-5 h-5" />
-                          )}
+                          <AvatarFallback user={user} />
                         </div>
                         <div>
-                          <div className="font-bold text-white leading-tight">{user.name}</div>
-                          <div className="text-xs text-slate-500 mt-0.5">{user.email}</div>
-                          {user.phone && <div className="text-xs text-slate-500">{user.phone}</div>}
+                          <div className="font-bold text-slate-100">{user.name}</div>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
+                            <Mail className="w-3.5 h-3.5 text-slate-500/70" />
+                            <span>{user.email}</span>
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${user.role === 'admin' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
-                        {user.role === 'admin' ? 'Admin' : 'User'}
+                      <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${user.role === USER_ROLE.ADMIN ? 'bg-purple-500/20 text-purple-400 border border-purple-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                        {user.role === USER_ROLE.ADMIN ? 'Admin' : 'User'}
                       </span>
                     </td>
                     <td className="p-4 text-slate-400 text-sm">
@@ -232,14 +266,14 @@ export default function AdminUsers() {
                         onClick={() => handleStatusChange(user.id, user.status)}
                         disabled={Number(currentUser?.id) === Number(user.id)}
                         className={`group relative inline-flex items-center justify-center ${Number(currentUser?.id) === Number(user.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        title={Number(currentUser?.id) === Number(user.id) ? 'Không thể tự khóa' : user.status === 'Hoạt động' || !user.status ? 'Nhấn để khóa tài khoản' : 'Nhấn để mở khóa'}
+                        title={Number(currentUser?.id) === Number(user.id) ? 'Không thể tự khóa' : user.status === USER_STATUS.ACTIVE || !user.status ? 'Nhấn để khóa tài khoản' : 'Nhấn để mở khóa'}
                       >
                         <span className={`relative z-10 px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                          user.status === 'Hoạt động' || !user.status
+                          user.status === USER_STATUS.ACTIVE || !user.status
                             ? 'bg-emerald-500/10 text-emerald-500 group-hover:bg-red-500/20 group-hover:text-red-500' 
                             : 'bg-red-500/10 text-red-500 group-hover:bg-emerald-500/20 group-hover:text-emerald-500'
                         }`}>
-                          {user.status === 'Hoạt động' || !user.status ? 'Active' : 'Banned'}
+                          {user.status === USER_STATUS.ACTIVE || !user.status ? 'Active' : 'Banned'}
                         </span>
                       </button>
                     </td>
@@ -267,13 +301,15 @@ export default function AdminUsers() {
                             >
                               Chỉnh sửa
                             </button>
-                            <button 
-                              onClick={() => handleResetPassword(user.id)}
-                              className="w-full text-left px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 transition-colors flex items-center justify-between"
-                            >
-                              <span>Reset mật khẩu</span>
-                              <Key className="w-4 h-4" />
-                            </button>
+                            {user.auth_provider === 'local' && (
+                              <button 
+                                onClick={() => handleResetPassword(user.id)}
+                                className="w-full text-left px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 transition-colors flex items-center justify-between"
+                              >
+                                <span>Reset mật khẩu</span>
+                                <Key className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </>
                       )}
@@ -371,26 +407,26 @@ export default function AdminUsers() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Vai trò</label>
                 <select 
-                  value={editingUser.role || 'user'} 
+                  value={editingUser.role || USER_ROLE.USER} 
                   onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
                   disabled={Number(editingUser.id) === Number(currentUser?.id)}
                   className={`w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-slate-800 ${Number(editingUser.id) === Number(currentUser?.id) ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'}`}
                 >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
+                  <option value={USER_ROLE.USER}>User</option>
+                  <option value={USER_ROLE.ADMIN}>Admin</option>
                 </select>
                 {Number(editingUser.id) === Number(currentUser?.id) && <p className="text-xs text-amber-600 mt-1">Không thể thay đổi quyền của chính mình.</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Trạng thái</label>
                 <select 
-                  value={editingUser.status || 'Hoạt động'} 
+                  value={editingUser.status || USER_STATUS.ACTIVE} 
                   onChange={(e) => setEditingUser({...editingUser, status: e.target.value})}
                   disabled={Number(editingUser.id) === Number(currentUser?.id)}
                   className={`w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-slate-800 ${Number(editingUser.id) === Number(currentUser?.id) ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'}`}
                 >
-                  <option value="Hoạt động">Hoạt động</option>
-                  <option value="Bị khóa">Bị khóa</option>
+                  <option value={USER_STATUS.ACTIVE}>Hoạt động</option>
+                  <option value={USER_STATUS.BANNED}>Bị khóa</option>
                 </select>
                 {Number(editingUser.id) === Number(currentUser?.id) && <p className="text-xs text-amber-600 mt-1">Không thể đổi trạng thái của chính mình.</p>}
               </div>

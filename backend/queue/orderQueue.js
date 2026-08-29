@@ -1,9 +1,10 @@
 const { pool } = require('../config/db');
+const { BOOKING_STATUS } = require('../config/constants');
 
 // In-memory Scheduler thay thế cho Redis Key-Space Notification
 const schedulePaymentTimeout = (bookingId, totalPeople, tourId, timeoutMs = 1 * 60 * 1000) => {
-    console.log(`⏳ [QUEUE] Đã lên lịch Timeout ${timeoutMs/60000} phút cho đơn hàng TB-${bookingId}`);
-    
+    console.log(`⏳ [QUEUE] Đã lên lịch Timeout ${timeoutMs / 60000} phút cho đơn hàng TB-${bookingId}`);
+
     setTimeout(async () => {
         try {
             // Kiểm tra trạng thái đơn hàng hiện tại
@@ -13,13 +14,13 @@ const schedulePaymentTimeout = (bookingId, totalPeople, tourId, timeoutMs = 1 * 
             const currentStatus = rows[0].status;
 
             // Nếu vẫn đang chờ thanh toán thì Hủy
-            if (currentStatus === 'Đang chờ thanh toán') {
+            if (currentStatus === BOOKING_STATUS.PENDING_PAYMENT) {
                 console.log(`⏰ [QUEUE] Đơn hàng TB-${bookingId} đã HẾT HẠN thanh toán. Đang hủy...`);
-                
+
                 // 1. Cập nhật trạng thái
                 await pool.query(`
                     UPDATE bookings 
-                    SET status = 'Hủy', payment_status = 'Thanh toán thất bại' 
+                    SET status = '${BOOKING_STATUS.CANCELLED}', payment_status = 'Thanh toán thất bại' 
                     WHERE id = ?
                 `, [bookingId]);
 
@@ -50,7 +51,7 @@ const recoverPendingOrders = async () => {
         const [pendingBookings] = await pool.query(`
             SELECT id, tour_id, (adults + children) as totalPeople, created_at 
             FROM bookings 
-            WHERE status = 'Đang chờ thanh toán'
+            WHERE status = '${BOOKING_STATUS.PENDING_PAYMENT}'
         `);
 
         for (const booking of pendingBookings) {

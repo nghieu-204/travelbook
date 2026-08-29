@@ -12,6 +12,9 @@ export default function Home() {
       <Hero />
       
       <div className="container mx-auto px-4 mt-16 flex flex-col gap-12">
+        {/* Khối Tour dành riêng cho bạn (AI Cá nhân hóa) */}
+        <PersonalizedHomeTours />
+
         <div className="bg-white rounded-3xl overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-slate-100">
           <TrendingTours />
         </div>
@@ -19,9 +22,6 @@ export default function Home() {
         <div className="bg-white rounded-3xl overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-slate-100">
           <BestSellingTours />
         </div>
-
-        {/* Khối Tour dành riêng cho bạn (AI Cá nhân hóa) */}
-        <PersonalizedHomeTours />
         
         <div className="bg-white rounded-3xl overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-slate-100">
           <PopularDestinations />

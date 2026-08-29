@@ -39,7 +39,7 @@ const getHierarchy = async (req, res) => {
         });
     } catch (error) {
         console.error('Lỗi khi lấy location hierarchy:', error);
-        res.status(500).json({ success: false, message: 'Lỗi máy chủ khi lấy dữ liệu địa lý' });
+        res.status(500).json({ success: false, message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 

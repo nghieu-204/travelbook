@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { contactService } from '@/services/contactService'
 import Image from 'next/image'
 import Link from 'next/link'
+import { toast } from 'react-hot-toast'
 
 export default function ContactPage() {
   const { user } = useAuthStore()
@@ -21,7 +22,6 @@ export default function ContactPage() {
   })
   
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showToast, setShowToast] = useState(false)
   
   // Animation states
   const [showSection2, setShowSection2] = useState(false)
@@ -61,7 +61,7 @@ export default function ContactPage() {
     // Validate Email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      alert("Định dạng email không hợp lệ. Vui lòng kiểm tra lại!");
+      toast.error("Định dạng email không hợp lệ. Vui lòng kiểm tra lại!", { id: 'contact-email-error' });
       return;
     }
     setIsSubmitting(true)
@@ -74,11 +74,10 @@ export default function ContactPage() {
         subject: formData.subject || 'Liên hệ từ khách hàng',
         message: formData.message
       })
-      setShowToast(true)
+      toast.success('Gửi yêu cầu thành công, quản trị viên sẽ liên hệ với bạn qua email.', { id: 'contact-success', duration: 4000 })
       setFormData({ name: user?.name || '', email: user?.email || '', phone: '', date: '', subject: '', message: '' })
-      setTimeout(() => setShowToast(false), 3000)
     } catch (err) {
-      alert("Có lỗi xảy ra khi gửi liên hệ, vui lòng thử lại sau.")
+      toast.error("Có lỗi xảy ra khi gửi liên hệ, vui lòng thử lại sau.", { id: 'contact-error' })
     } finally {
       setIsSubmitting(false)
     }
@@ -86,14 +85,6 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Toast Notification */}
-      {showToast && (
-        <div className="fixed top-24 right-6 bg-emerald-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
-          <CheckCircle className="w-6 h-6" />
-          <span className="font-bold">Gửi yêu cầu thành công, quản trị viên sẽ liên hệ với bạn qua email.</span>
-        </div>
-      )}
-
       {/* Hero Banner */}
       <section className="relative h-[250px] bg-slate-900 flex items-center">
         <div className="absolute inset-0 z-0">
@@ -288,7 +279,14 @@ export default function ContactPage() {
                   disabled={isSubmitting}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold flex items-center gap-2 transition-colors disabled:opacity-70"
                 >
-                  {isSubmitting ? 'Đang gửi...' : 'Gửi thông tin'} <Send className="w-4 h-4" />
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      Đang gửi...
+                    </span>
+                  ) : (
+                    <>Gửi thông tin <Send className="w-4 h-4" /></>
+                  )}
                 </button>
               </form>
             </div>

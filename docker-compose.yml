@@ -41,9 +41,13 @@ services:
       - DB_PASSWORD=root
       - DB_PORT=3306
       - DB_NAME=travel_booking
-      - JWT_SECRET=travel_booking_secret_key_2026
-      - EMAIL_USER=travelbook.cskh@gmail.com
-      - EMAIL_PASS=pihkhgjvfeswlmby
+      - JWT_SECRET=${JWT_SECRET:-travel_booking_secret_key_2026}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASS=${EMAIL_PASS}
+      - VNP_TMNCODE=${VNP_TMNCODE}
+      - VNP_HASHSECRET=${VNP_HASHSECRET}
+      - VNP_URL=${VNP_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     ports:
       - "${API_PORT:-8902}:${API_PORT:-8902}"
     depends_on:
@@ -53,6 +57,26 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: travel_ai_service
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_PORT=3306
+      - DB_NAME=travel_booking
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - app-network
+    volumes:
+      - ./ai-service:/app
 
   frontend:
     build:

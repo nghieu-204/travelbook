@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, User, Loader2 } from 'lucide-react';
+import { X, Send, User, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '@/store/useAuthStore';
 import { chatService } from '@/services/chatService';

@@ -13,14 +13,17 @@ export const metadata: Metadata = {
 
 import Chatbot from "@/components/chat/Chatbot";
 
+import { ConfirmProvider } from "@/providers/ConfirmProvider";
+import { OAuthProvider } from "@/providers/OAuthProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
-      <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 antialiased`}>
+    <html lang="vi" suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 antialiased`} suppressHydrationWarning>
         <Toaster 
           position="top-right" 
           toastOptions={{ 
@@ -32,9 +35,13 @@ export default function RootLayout({
             }
           }} 
         />
-        {children}
-        <AuthModal />
-        <Chatbot />
+        <OAuthProvider>
+          <ConfirmProvider>
+            {children}
+            <AuthModal />
+            <Chatbot />
+          </ConfirmProvider>
+        </OAuthProvider>
       </body>
     </html>
   );

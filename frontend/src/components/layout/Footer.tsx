@@ -46,20 +46,12 @@ export default function Footer() {
         {/* Col 4 */}
         <div>
           <h3 className="text-white font-bold text-lg mb-4">Thanh Toán</h3>
-          <p className="text-sm text-slate-400 mb-4">Chúng tôi chấp nhận các hình thức thanh toán an toàn và tiện lợi nhất.</p>
-          <div className="flex gap-2 flex-wrap">
-            <div className="w-16 h-10 bg-white rounded flex items-center justify-center p-1">
-              <span className="text-blue-900 font-black text-xs">VISA</span>
+          <p className="text-sm text-slate-400 mb-4">Chúng tôi hỗ trợ thanh toán trực tuyến an toàn và tiện lợi thông qua VNPay.</p>
+          <div className="flex flex-col gap-3">
+            <div className="w-24 h-9 bg-white rounded-lg flex items-center justify-center px-2 shadow-sm">
+              <span className="text-blue-700 font-black text-lg tracking-tighter">VN<span className="text-red-500">PAY</span></span>
             </div>
-            <div className="w-16 h-10 bg-white rounded flex items-center justify-center p-1">
-              <span className="text-red-600 font-black text-xs">MasterCard</span>
-            </div>
-            <div className="w-16 h-10 bg-white rounded flex items-center justify-center p-1">
-              <span className="text-blue-500 font-black text-xs">PayPal</span>
-            </div>
-            <div className="w-16 h-10 bg-pink-600 rounded flex items-center justify-center p-1 text-white font-bold text-xs">
-              MoMo
-            </div>
+            <span className="text-xs text-slate-500 font-medium">Nhanh chóng &bull; An toàn &bull; Bảo mật</span>
           </div>
         </div>
       </div>

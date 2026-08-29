@@ -15,6 +15,7 @@ interface MultiSelectDropdownProps {
   options: MultiSelectOption[]
   selectedIds: (string | number)[]
   onChange: (selectedIds: (string | number)[]) => void
+  disabled?: boolean
 }
 
 export default function MultiSelectDropdown({
@@ -22,7 +23,8 @@ export default function MultiSelectDropdown({
   placeholder = 'Chọn mục',
   options,
   selectedIds,
-  onChange
+  onChange,
+  disabled = false
 }: MultiSelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -71,7 +73,8 @@ export default function MultiSelectDropdown({
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full flex items-center justify-between bg-[#0f172a] border border-slate-700 px-5 py-3 rounded-xl transition-colors outline-none text-white focus:ring-2 focus:ring-blue-500 hover:bg-slate-800"
+        disabled={disabled}
+        className={`w-full flex items-center justify-between bg-[#0f172a] border ${disabled ? 'border-slate-800 opacity-50 cursor-not-allowed' : 'border-slate-700 hover:bg-slate-800 focus:ring-2 focus:ring-blue-500'} px-5 py-3 rounded-xl transition-colors outline-none text-white`}
       >
         <span className="truncate mr-4 text-sm font-medium">
           {selectedIds.length > 0 

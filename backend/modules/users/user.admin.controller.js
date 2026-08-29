@@ -2,6 +2,7 @@ const { pool } = require('../../config/db');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const sendEmail = require('../../utils/sendEmail');
+const { BOOKING_STATUS, PAYMENT_STATUS, USER_ROLE, USER_STATUS } = require('../../config/constants');
 
 // Admin: Lấy danh sách toàn bộ người dùng (có phân trang và tìm kiếm)
 const getAllUsers = async (req, res) => {
@@ -37,11 +38,27 @@ const getAllUsers = async (req, res) => {
         const totalPages = Math.ceil(total / limit);
 
         // Lấy dữ liệu
-        const dataQuery = `SELECT id, name, email, role, avatar, address, phone, status, is_active, created_at FROM users ${whereSQL} ORDER BY (role = 'admin') DESC, created_at DESC LIMIT ? OFFSET ?`;
+        const dataQuery = `SELECT id, name, email, role, avatar, address, phone, status, is_active, created_at, google_id, facebook_id FROM users ${whereSQL} ORDER BY (role = '${USER_ROLE.ADMIN}') DESC, created_at DESC LIMIT ? OFFSET ?`;
         const [rows] = await pool.query(dataQuery, [...queryParams, limit, offset]);
 
+        // Thêm trường auth_provider
+        const mappedRows = rows.map(row => {
+            let auth_provider = 'local';
+            if (row.google_id) auth_provider = 'google';
+            else if (row.facebook_id) auth_provider = 'facebook';
+
+            // Xóa google_id, facebook_id khỏi response cho gọn
+            delete row.google_id;
+            delete row.facebook_id;
+
+            return {
+                ...row,
+                auth_provider
+            };
+        });
+
         res.json({
-            data: rows,
+            data: mappedRows,
             total,
             page,
             limit,
@@ -49,7 +66,7 @@ const getAllUsers = async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi lấy danh sách người dùng:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ khi lấy danh sách người dùng" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -59,7 +76,7 @@ const updateUserStatus = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body; // 'Hoạt động' or 'Bị khóa'
 
-        if (Number(id) === Number(req.user.id) && status !== 'Hoạt động') {
+        if (Number(id) === Number(req.user.id) && status !== USER_STATUS.ACTIVE) {
             return res.status(400).json({ message: "Bạn không thể tự khóa tài khoản của chính mình!" });
         }
 
@@ -67,7 +84,7 @@ const updateUserStatus = async (req, res) => {
         res.json({ message: `Đã cập nhật trạng thái người dùng #${id} thành ${status}` });
     } catch (error) {
         console.error("Lỗi cập nhật trạng thái user:", error.message);
-        res.status(500).json({ message: "Lỗi xử lý tài khoản" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -76,10 +93,15 @@ const resetUserPassword = async (req, res) => {
     try {
         const { id } = req.params;
         
-        // 1. Lấy email của user
-        const [[user]] = await pool.query('SELECT email, name FROM users WHERE id = ?', [id]);
+        // 1. Lấy email và kiểm tra OAuth
+        const [[user]] = await pool.query('SELECT email, name, google_id, facebook_id FROM users WHERE id = ?', [id]);
         if (!user) {
             return res.status(404).json({ message: "Không tìm thấy người dùng" });
+        }
+
+        if (user.google_id || user.facebook_id) {
+            const provider = user.google_id ? 'Google' : 'Facebook';
+            return res.status(400).json({ message: `Tài khoản này đăng nhập thông qua ${provider} và không sử dụng mật khẩu của hệ thống TravelBook.` });
         }
 
         // 2. Tạo token ngẫu nhiên và thời hạn (15 phút)
@@ -93,7 +115,7 @@ const resetUserPassword = async (req, res) => {
         );
 
         // 4. Gửi email
-        const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
+        const resetLink = `http://localhost:8900/reset-password?token=${resetToken}`;
         const emailHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #2563eb;">TravelBooking - Đặt lại mật khẩu</h2>
@@ -113,7 +135,7 @@ const resetUserPassword = async (req, res) => {
         res.json({ message: "Đã gửi link đặt lại mật khẩu qua email cho người dùng." });
     } catch (error) {
         console.error("Lỗi reset mật khẩu:", error.message);
-        res.status(500).json({ message: "Lỗi xử lý reset mật khẩu" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -124,7 +146,7 @@ const getUserDetails = async (req, res) => {
 
         // 1. Lấy thông tin Profile cơ bản
         const [users] = await pool.query(
-            'SELECT id, name, email, phone, address, role, status, avatar, created_at FROM users WHERE id = ?', 
+            'SELECT id, name, email, phone, address, role, status, avatar, created_at, google_id, facebook_id FROM users WHERE id = ?', 
             [id]
         );
 
@@ -133,6 +155,12 @@ const getUserDetails = async (req, res) => {
         }
         
         const profile = users[0];
+        if (profile.google_id) profile.auth_provider = 'google';
+        else if (profile.facebook_id) profile.auth_provider = 'facebook';
+        else profile.auth_provider = 'local';
+        
+        delete profile.google_id;
+        delete profile.facebook_id;
 
         // 2. Lấy Lịch sử Booking (Dựa vào user_id hoặc user_email)
         const [bookings] = await pool.query(
@@ -147,10 +175,10 @@ const getUserDetails = async (req, res) => {
 
         bookings.forEach(booking => {
             // Tính các tour không bị hủy
-            if (booking.status !== 'Đã hủy') {
+            if (booking.status !== BOOKING_STATUS.CANCELLED) {
                 totalTours += 1;
                 // Có thể bạn muốn chỉ tính tiền khi thanh toán thành công, nhưng tạm tính tổng tiền các đơn không hủy
-                if (booking.payment_status === 'Đã thanh toán' || booking.payment_status === 'Đã cọc') {
+                if (booking.payment_status === PAYMENT_STATUS.PAID || booking.payment_status === 'Đã cọc') {
                     totalSpent += booking.total_price;
                 }
             } else {
@@ -176,7 +204,7 @@ const getUserDetails = async (req, res) => {
 
     } catch (error) {
         console.error("Lỗi lấy chi tiết người dùng:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ khi lấy chi tiết người dùng" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -187,10 +215,10 @@ const updateUserDetails = async (req, res) => {
         const { name, phone, address, role, status } = req.body;
         
         if (Number(id) === Number(req.user.id)) {
-            if (role !== 'admin') {
+            if (role !== USER_ROLE.ADMIN) {
                 return res.status(400).json({ message: "Bạn không thể tự hạ quyền của chính mình!" });
             }
-            if (status !== 'Hoạt động') {
+            if (status !== USER_STATUS.ACTIVE) {
                 return res.status(400).json({ message: "Bạn không thể tự khóa tài khoản của chính mình!" });
             }
         }
@@ -203,7 +231,7 @@ const updateUserDetails = async (req, res) => {
         res.json({ message: `Đã cập nhật thông tin người dùng #${id} thành công` });
     } catch (error) {
         console.error("Lỗi cập nhật người dùng:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ khi cập nhật thông tin người dùng" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 

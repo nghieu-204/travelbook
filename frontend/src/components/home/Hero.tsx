@@ -4,18 +4,21 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, MapPin, Calendar, Mic } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 
 export default function Hero() {
   const router = useRouter()
-  const [isListening, setIsListening] = useState(false)
   const [destination, setDestination] = useState('')
+  const { isListening, startListening, stopListening } = useSpeechRecognition()
 
   const handleVoiceSearch = () => {
-    setIsListening(true)
-    setTimeout(() => {
-      setDestination('Đà Nẵng')
-      setIsListening(false)
-    }, 2000)
+    if (isListening) {
+      stopListening()
+    } else {
+      startListening((text) => {
+        setDestination(text)
+      })
+    }
   }
 
   return (

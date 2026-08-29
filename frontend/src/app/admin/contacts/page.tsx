@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { Search, ChevronDown, CheckCircle2, XCircle, Mail, MessageSquare, Send } from 'lucide-react'
 import { contactService } from '@/services/contactService'
+import toast from 'react-hot-toast'
 
 export default function AdminContactsPage() {
   const [contacts, setContacts] = useState<any[]>([])
@@ -46,18 +47,18 @@ export default function AdminContactsPage() {
 
   const handleSendReply = async () => {
     if (!replyText.trim()) {
-      alert('Vui lòng nhập nội dung phản hồi!')
+      toast.error('Vui lòng nhập nội dung phản hồi!', { id: 'contact-reply-missing' })
       return
     }
     
     setIsSubmitting(true)
     try {
       await contactService.replyContact(selectedContact.id, replyText)
-      alert('Đã gửi phản hồi thành công!')
+      toast.success('Đã gửi phản hồi thành công!', { id: 'contact-reply-success' })
       setViewModalOpen(false)
       fetchContacts() // Refresh data
     } catch (err) {
-      alert('Có lỗi xảy ra khi phản hồi.')
+      toast.error('Có lỗi xảy ra khi phản hồi.', { id: 'contact-reply-error' })
     } finally {
       setIsSubmitting(false)
     }

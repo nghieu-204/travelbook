@@ -2,12 +2,12 @@ import { fetchApi } from '@/lib/api';
 
 export const recommendService = {
   getRecommendations: async (userId?: number) => {
-    const endpoint = userId ? `/recommendations?userId=${userId}` : '/recommendations';
+    const endpoint = userId ? `/suggestions?userId=${userId}` : '/suggestions';
     return fetchApi(endpoint);
   },
 
   trackTourView: async (tourId: number, userId: number | string) => {
-    return fetchApi('/recommendations/tracking', {
+    return fetchApi('/suggestions/tracking', {
       method: 'POST',
       body: JSON.stringify({
         userId,

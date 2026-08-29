@@ -8,11 +8,11 @@ exports.getRecommendations = async (req, res) => {
         let recommendedTours = [];
         let matchReason = '';
 
-        if (userId) {
-            // Gọi AI Microservice (Python)
-            try {
-                const aiResponse = await fetch(`http://127.0.0.1:8000/recommend/user/${userId}`);
-                if (aiResponse.ok) {
+        // Gọi AI Microservice (Python) - Hybrid Recommendation
+        try {
+            const fetchUserId = userId || 0;
+            const aiResponse = await fetch(`http://127.0.0.1:8000/recommend/home/${fetchUserId}`);
+            if (aiResponse.ok) {
                     const aiData = await aiResponse.json();
                     const recommendedIds = aiData.tours || [];
 
@@ -25,14 +25,13 @@ exports.getRecommendations = async (req, res) => {
                         
                         // Sắp xếp lại theo đúng thứ tự AI trả về
                         recommendedTours = aiTours.sort((a, b) => recommendedIds.indexOf(a.id) - recommendedIds.indexOf(b.id));
-                        matchReason = '✨ Gợi ý riêng cho bạn (AI Personalized)';
+                        matchReason = aiData.method === 'popular-cold-start' ? '🔥 Top tour phổ biến' : '✨ Gợi ý riêng cho bạn';
                     }
                 }
             } catch (aiError) {
                 console.error('❌ Lỗi kết nối AI cho getRecommendations:', aiError.message);
                 // Fallback nếu AI lỗi sẽ xử lý ở bên dưới
             }
-        }
 
         // Nếu chưa đủ tour cá nhân hóa, lấy top tour rating cao nhất
         if (recommendedTours.length < 3) {
@@ -48,7 +47,7 @@ exports.getRecommendations = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Lỗi lấy tour gợi ý:', error.message);
-        res.status(500).json({ message: 'Lỗi máy chủ khi tải tour gợi ý.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -64,7 +63,7 @@ exports.getPopularRecommendations = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Lỗi lấy tour phổ biến:', error.message);
-        res.status(500).json({ message: 'Lỗi máy chủ khi tải tour phổ biến.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -74,14 +73,9 @@ exports.getRelatedTours = async (req, res) => {
         const { tourId } = req.params;
         const { userId } = req.query; // Có thể có hoặc không
 
-        // Thử gọi AI Microservice (Python)
+        // Thử gọi AI Microservice (Python) - Chỉ dùng Content-Based cho section này
         try {
-            let aiUrl = `http://127.0.0.1:8000/recommend/tour/${tourId}`;
-            if (userId) {
-                // Ưu tiên gợi ý cá nhân hóa nếu có userId
-                aiUrl = `http://127.0.0.1:8000/recommend/user/${userId}`;
-            }
-
+            const aiUrl = `http://127.0.0.1:8000/recommend/tour/${tourId}`;
             const response = await fetch(aiUrl);
             if (response.ok) {
                 const aiData = await response.json();
@@ -110,7 +104,7 @@ exports.getRelatedTours = async (req, res) => {
         const [current] = await pool.query(`
             SELECT c.name as category, r.name as region
             FROM tours t
-            LEFT JOIN Tour_Destination td ON t.id = td.tour_id AND td.is_primary = TRUE
+            LEFT JOIN tour_destination td ON t.id = td.tour_id AND td.is_primary = TRUE
             LEFT JOIN destination d ON td.destination_id = d.id
             LEFT JOIN country co ON d.country_id = co.id
             LEFT JOIN region r ON r.id = COALESCE(d.region_id, co.region_id)
@@ -128,7 +122,7 @@ exports.getRelatedTours = async (req, res) => {
         const [related] = await pool.query(`
             SELECT t.* 
             FROM tours t
-            LEFT JOIN Tour_Destination td ON t.id = td.tour_id AND td.is_primary = TRUE
+            LEFT JOIN tour_destination td ON t.id = td.tour_id AND td.is_primary = TRUE
             LEFT JOIN destination d ON td.destination_id = d.id
             LEFT JOIN country co ON d.country_id = co.id
             LEFT JOIN region r ON r.id = COALESCE(d.region_id, co.region_id)
@@ -140,7 +134,7 @@ exports.getRelatedTours = async (req, res) => {
         res.json({ tours: related, method: 'SQL Fallback' });
     } catch (error) {
         console.error('❌ Lỗi lấy tour liên quan:', error.message);
-        res.status(500).json({ message: 'Lỗi máy chủ khi tải tour liên quan.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -160,8 +154,8 @@ exports.trackInteraction = async (req, res) => {
         }
 
         let weight = 1;
-        if (interactionType === 'wishlist') weight = 3;
-        else if (interactionType === 'book') weight = 10;
+        if (interactionType === 'view') weight = 1;
+        else if (interactionType === 'book') weight = 5;
         
         await pool.query(
             `INSERT INTO user_interactions (user_id, tour_id, interaction_type, weight) 
@@ -172,6 +166,6 @@ exports.trackInteraction = async (req, res) => {
         res.status(200).json({ message: 'Đã ghi nhận hành vi.' });
     } catch (error) {
         console.error('❌ Lỗi tracking hành vi:', error.message);
-        res.status(500).json({ message: 'Lỗi máy chủ khi tracking hành vi.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };

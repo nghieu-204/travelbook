@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const { BOOKING_STATUS } = require('../../config/constants');
 const nodemailer = require('nodemailer');
 const { schedulePaymentTimeout } = require('../../queue/orderQueue');
 
@@ -69,9 +70,9 @@ async function sendInvoiceEmail(booking) {
 async function createBookingProcess(data) {
     const { user_id, tour_id, tour_name, user_name, user_email, user_phone, departure_date, adults, children, total_price, payment_method } = data;
 
-    let initialStatus = 'Đang chờ xác nhận';
+    let initialStatus = BOOKING_STATUS.PENDING;
     if (payment_method === 'VNPay' || payment_method === 'Thanh toán qua VNPay') {
-        initialStatus = 'Đang chờ thanh toán';
+        initialStatus = BOOKING_STATUS.PENDING_PAYMENT;
     }
 
     const totalPeople = parseInt(adults || 1) + parseInt(children || 0);

@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const { BOOKING_STATUS } = require('../../config/constants');
 
 // Lấy danh sách đánh giá của 1 tour
 exports.getReviewsByTour = async (req, res) => {
@@ -11,7 +12,7 @@ exports.getReviewsByTour = async (req, res) => {
         res.json(reviews);
     } catch (error) {
         console.error('❌ Lỗi lấy nhận xét:', error.message);
-        res.status(500).json({ message: 'Lỗi máy chủ khi tải danh sách nhận xét.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -29,7 +30,7 @@ exports.getTestimonials = async (req, res) => {
         res.json(reviews);
     } catch (error) {
         console.error('❌ Lỗi lấy testimonials:', error.message);
-        res.status(500).json({ message: 'Lỗi máy chủ khi tải testimonials.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -58,7 +59,7 @@ exports.checkEligibility = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         bookings.forEach(b => {
-            if (b.status === 'Hủy' || b.status === 'Đang chờ xác nhận') return;
+            if (b.status === BOOKING_STATUS.CANCELLED || b.status === BOOKING_STATUS.PENDING) return;
             if (b.departure_date) {
                 const startDate = new Date(b.departure_date);
                 startDate.setHours(0, 0, 0, 0);
@@ -70,9 +71,9 @@ exports.checkEligibility = async (req, res) => {
                         endDate.setDate(endDate.getDate() + days - 1);
                     }
                 }
-                if (today < startDate) b.status = 'Đã xác nhận';
-                else if (today >= startDate && today <= endDate) b.status = 'Đang diễn ra';
-                else if (today > endDate) b.status = 'Đã hoàn thành';
+                if (today < startDate) b.status = BOOKING_STATUS.CONFIRMED;
+                else if (today >= startDate && today <= endDate) b.status = BOOKING_STATUS.ONGOING;
+                else if (today > endDate) b.status = BOOKING_STATUS.COMPLETED;
             }
         });
 
@@ -84,7 +85,7 @@ exports.checkEligibility = async (req, res) => {
         }
 
         // Kiểm tra xem có đơn hàng nào đã hoàn thành
-        const completedBookings = bookings.filter(b => b.status === 'Đã hoàn thành').length;
+        const completedBookings = bookings.filter(b => b.status === BOOKING_STATUS.COMPLETED).length;
 
         if (completedBookings === 0) {
             return res.json({ 
@@ -138,7 +139,7 @@ exports.createReview = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         bookings.forEach(b => {
-            if (b.status === 'Hủy' || b.status === 'Đang chờ xác nhận') return;
+            if (b.status === BOOKING_STATUS.CANCELLED || b.status === BOOKING_STATUS.PENDING) return;
             if (b.departure_date) {
                 const startDate = new Date(b.departure_date);
                 startDate.setHours(0, 0, 0, 0);
@@ -150,9 +151,9 @@ exports.createReview = async (req, res) => {
                         endDate.setDate(endDate.getDate() + days - 1);
                     }
                 }
-                if (today < startDate) b.status = 'Đã xác nhận';
-                else if (today >= startDate && today <= endDate) b.status = 'Đang diễn ra';
-                else if (today > endDate) b.status = 'Đã hoàn thành';
+                if (today < startDate) b.status = BOOKING_STATUS.CONFIRMED;
+                else if (today >= startDate && today <= endDate) b.status = BOOKING_STATUS.ONGOING;
+                else if (today > endDate) b.status = BOOKING_STATUS.COMPLETED;
             }
         });
 
@@ -160,7 +161,7 @@ exports.createReview = async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng đặt tour để có thể đánh giá' });
         }
 
-        const completedBookings = bookings.filter(b => b.status === 'Đã hoàn thành').length;
+        const completedBookings = bookings.filter(b => b.status === BOOKING_STATUS.COMPLETED).length;
 
         if (completedBookings === 0) {
             return res.status(400).json({ message: 'Chỉ những khách hàng đã trải nghiệm và hoàn thành tour mới có thể đánh giá.' });
@@ -207,7 +208,7 @@ exports.createReview = async (req, res) => {
         );
 
         // Đánh dấu một đơn hàng Đã hoàn thành là đã được review
-        const unreviewedBooking = bookings.find(b => b.status === 'Đã hoàn thành' && !b.is_reviewed);
+        const unreviewedBooking = bookings.find(b => b.status === BOOKING_STATUS.COMPLETED && !b.is_reviewed);
         if (unreviewedBooking) {
             await pool.query('UPDATE bookings SET is_reviewed = TRUE WHERE id = ?', [unreviewedBooking.id]);
         }
@@ -223,6 +224,6 @@ exports.createReview = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Lỗi thêm nhận xét:', error.message);
-        res.status(500).json({ message: 'Lỗi máy chủ khi lưu nhận xét.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };

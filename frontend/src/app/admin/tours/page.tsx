@@ -5,8 +5,12 @@ import { useState, useEffect } from 'react'
 import { Plus, Trash2, Edit, Search } from 'lucide-react'
 import Link from 'next/link'
 import { tourService } from '@/services/tourService'
+import { TOUR_STATUS } from '@/constants/status'
+import { toast } from 'react-hot-toast'
+import { useConfirm } from '@/providers/ConfirmProvider'
 
 export default function AdminTours() {
+  const { confirm } = useConfirm()
   const [tours, setTours] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -30,18 +34,23 @@ export default function AdminTours() {
   }, [])
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc muốn xóa tour này?')) return;
+    const isConfirmed = await confirm({
+      title: "Xóa tour",
+      description: "Bạn có chắc chắn muốn xóa tour này không?",
+      type: "danger"
+    });
+    if (!isConfirmed) return;
     try {
       await tourService.deleteTour(id);
       setTours(tours.filter(t => t.id !== id));
-      alert('Đã xóa tour thành công!');
+      toast.success('Đã xóa tour thành công!');
     } catch (error) {
-      alert('Lỗi xóa tour');
+      toast.error('Lỗi xóa tour');
     }
   }
 
   const handleToggleStatus = async (tourId: number, currentStatus: string) => {
-    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+    const newStatus = currentStatus === TOUR_STATUS.ACTIVE ? TOUR_STATUS.INACTIVE : TOUR_STATUS.ACTIVE;
     // Optimistic update
     setTours(tours.map(t => t.id === tourId ? { ...t, status: newStatus } : t));
     try {
@@ -49,7 +58,7 @@ export default function AdminTours() {
     } catch (error) {
       // Revert on error
       setTours(tours.map(t => t.id === tourId ? { ...t, status: currentStatus } : t));
-      alert('Lỗi cập nhật trạng thái');
+      toast.error('Lỗi cập nhật trạng thái');
     }
   }
 
@@ -67,15 +76,15 @@ export default function AdminTours() {
     const location = tour.destinations?.map((d: any) => d.name).join(' - ') || 'Chưa cập nhật'
     const matchesLocation = filterLocation === 'All' || location === filterLocation
 
-    const status = tour.status || 'Active'
+    const status = tour.status || TOUR_STATUS.ACTIVE
     const matchesStatus = filterStatus === 'All' || status === filterStatus
 
     return matchesSearch && matchesLocation && matchesStatus
   })
 
   const getStatusDisplay = (status: string) => {
-    if (status === 'Active') return { label: 'Hoạt động', className: 'bg-emerald-500/20 text-emerald-500' }
-    if (status === 'Inactive' || status === 'Hidden') return { label: 'Tạm dừng', className: 'bg-slate-700 text-slate-300' }
+    if (status === TOUR_STATUS.ACTIVE) return { label: 'Hoạt động', className: 'bg-emerald-500/20 text-emerald-500' }
+    if (status === TOUR_STATUS.INACTIVE || status === TOUR_STATUS.HIDDEN) return { label: 'Tạm dừng', className: 'bg-slate-700 text-slate-300' }
     return { label: status, className: 'bg-slate-700 text-slate-300' }
   }
 
@@ -119,8 +128,8 @@ export default function AdminTours() {
           className="bg-[#1e293b] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 outline-none"
         >
           <option value="All">Tất cả Trạng thái</option>
-          <option value="Active">Hoạt động</option>
-          <option value="Inactive">Tạm dừng</option>
+          <option value={TOUR_STATUS.ACTIVE}>Hoạt động</option>
+          <option value={TOUR_STATUS.INACTIVE}>Tạm dừng</option>
         </select>
       </div>
 
@@ -153,7 +162,7 @@ export default function AdminTours() {
                   <td colSpan={8} className="p-8 text-center text-slate-500">Không tìm thấy tour nào phù hợp.</td>
                 </tr>
               ) : filteredTours.map((tour, index) => {
-                const isActive = (tour.status || 'Active') === 'Active'
+                const isActive = (tour.status || TOUR_STATUS.ACTIVE) === TOUR_STATUS.ACTIVE
                 
                 const startDateStr = tour.start_date || tour.departure_date;
                 let startDate = 'Chưa xếp';
@@ -195,7 +204,7 @@ export default function AdminTours() {
                     </td>
                     <td className="p-4 text-center">
                       <button 
-                        onClick={() => handleToggleStatus(tour.id, tour.status || 'Active')}
+                        onClick={() => handleToggleStatus(tour.id, tour.status || TOUR_STATUS.ACTIVE)}
                         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isActive ? 'bg-emerald-500' : 'bg-slate-600'}`}
                         title={isActive ? 'Tạm dừng' : 'Kích hoạt'}
                       >

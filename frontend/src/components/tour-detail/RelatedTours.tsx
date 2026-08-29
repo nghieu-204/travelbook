@@ -27,7 +27,7 @@ export default function RelatedTours({ tourId }: RelatedToursProps) {
         }
 
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'
-        const response = await fetch(`${apiUrl}/recommendations/related/${tourId}${userId}`)
+        const response = await fetch(`${apiUrl}/suggestions/related/${tourId}`)
         
         if (response.ok) {
           const data = await response.json()
@@ -54,18 +54,8 @@ export default function RelatedTours({ tourId }: RelatedToursProps) {
     <div className="bg-slate-50 py-16 mt-16 border-t border-slate-100">
       <div className="container mx-auto px-4">
         <div className="flex items-center gap-2 mb-8">
-          {isPersonalized ? (
-            <>
-              <Sparkles className="w-6 h-6 text-emerald-500" />
-              <h2 className="text-2xl font-black text-slate-900">Gợi ý riêng cho bạn</h2>
-              <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full ml-2">AI Được cá nhân hóa</span>
-            </>
-          ) : (
-            <>
-              <Flame className="w-6 h-6 text-orange-500" />
-              <h2 className="text-2xl font-black text-slate-900">Các tour tương tự có thể bạn quan tâm</h2>
-            </>
-          )}
+            <Flame className="w-6 h-6 text-orange-500" />
+            <h2 className="text-2xl font-black text-slate-900">🌄 Các tour tương tự</h2>
         </div>
         <div className="mt-4">
           <TourCarousel tours={tours} />

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'react-hot-toast'
 
 const checkoutSchema = z.object({
   fullName: z.string().min(2, 'Tên phải từ 2 ký tự'),
@@ -27,7 +28,7 @@ export default function CheckoutForm() {
 
   const onSubmit = (data: z.infer<typeof checkoutSchema>) => {
     console.log(data)
-    alert('Đặt tour thành công!')
+    toast.success('Đặt tour thành công!')
   }
 
   return (

@@ -8,6 +8,7 @@ import SearchableAdminDropdown from '@/components/ui/SearchableAdminDropdown'
 import { tourService } from '@/services/tourService'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import MultiSelectDropdown from '@/components/ui/MultiSelectDropdown'
+import { toast } from 'react-hot-toast'
 
 const DEFAULT_NOTES = [
   { id: 1, title: 'Giá tour bao gồm', content: '<ul><li>- Xe đưa đón khứ hồi</li><li>- Khách sạn tiêu chuẩn</li><li>- Các bữa ăn theo chương trình</li></ul>' },
@@ -32,6 +33,7 @@ export default function CreateTourV2() {
   const [selectedDestinations, setSelectedDestinations] = useState<number[]>([])
   const [primaryDestinationId, setPrimaryDestinationId] = useState<number | null>(null)
   const [selectedLandmarks, setSelectedLandmarks] = useState<number[]>([])
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   const [title, setTitle] = useState('')
   const [tourCode, setTourCode] = useState('')
@@ -187,19 +189,27 @@ export default function CreateTourV2() {
   };
 
   const handleSave = async () => {
-    if (!title.trim()) { alert('Vui lòng nhập Tên Tour!'); return; }
-    if (!priceAdultStr) { alert('Vui lòng nhập Giá người lớn!'); return; }
-    if (selectedDestinations.length === 0) { alert('Vui lòng chọn Điểm đến!'); return; }
-    if (!mainImage) { alert('Vui lòng chọn ảnh đại diện!'); return; }
-    if (Number(nights) > Number(days)) { alert('Số đêm không thể lớn hơn số ngày!'); return; }
+    const errors: Record<string, string> = {};
+    if (!title.trim()) errors.title = 'Vui lòng nhập Tên Tour!';
+    if (!priceAdultStr) errors.priceAdultStr = 'Vui lòng nhập Giá người lớn!';
+    if (selectedDestinations.length === 0) errors.destinations = 'Vui lòng chọn Điểm đến!';
+    if (!mainImage) errors.mainImage = 'Vui lòng chọn ảnh đại diện!';
+    if (Number(nights) > Number(days)) errors.nights = 'Số đêm không thể lớn hơn số ngày!';
 
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error('Vui lòng điền đầy đủ thông tin!');
+      return;
+    }
+    
+    setFormErrors({});
     setIsSaving(true)
     try {
       let imageStr = '';
       if (mainImage?.file) {
         imageStr = await fileToBase64(mainImage.file);
       } else {
-        imageStr = mainImage.preview.replace('http://localhost:8902', '');
+        imageStr = mainImage!.preview.replace('http://localhost:8902', '');
       }
 
       const galleryArr = [];
@@ -234,11 +244,11 @@ export default function CreateTourV2() {
       }
 
       await tourService.createTour(payload)
-      alert('🎉 Tạo Tour thành công!')
+      toast.success('🎉 Tạo Tour thành công!')
       router.push('/admin/tours')
     } catch (error) {
       console.error(error)
-      alert('Có lỗi xảy ra khi lưu Tour')
+      toast.error('Có lỗi xảy ra khi lưu Tour')
     } finally {
       setIsSaving(false)
     }
@@ -286,71 +296,88 @@ export default function CreateTourV2() {
               <Map className="w-5 h-5 text-blue-500" />
               <h2 className="text-lg font-bold text-white">Khối 1: Phân loại & Vị trí</h2>
             </div>
-            <div className={`p-6 grid gap-6 ${isInternational ? 'grid-cols-5' : 'grid-cols-4'}`}>
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Loại Tour (Cấp 1)</label>
-                <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                  {metadata.categories?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-2">Châu lục / Vùng (Cấp 2)</label>
-                <select value={regionId} onChange={e => setRegionId(e.target.value)} disabled={!categoryId || filteredRegions.length === 0} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50">
-                  {filteredRegions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
-              </div>
+            <div className="p-6 flex flex-col gap-6">
               
-              {isInternational && (
+              {/* Row 1: Phạm vi, Khu vực, Quốc gia */}
+              <div className={`grid grid-cols-1 md:grid-cols-2 ${isInternational ? 'lg:grid-cols-3' : ''} gap-6`}>
                 <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Quốc gia (Cấp 3)</label>
-                  <select value={countryId} onChange={e => setCountryId(e.target.value)} disabled={!regionId || filteredCountries.length === 0} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50">
-                    {filteredCountries.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <label className="block text-sm font-semibold text-slate-400 mb-2">Phạm vi</label>
+                  <select value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none hover:bg-slate-800 transition-colors">
+                    <option value="" disabled>Chọn phạm vi...</option>
+                    {metadata.categories?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-              )}
-              
-              <div>
-                <MultiSelectDropdown
-                  label={`Điểm đến (Cấp ${isInternational ? '4' : '3'})`}
-                  placeholder="Tìm và chọn điểm đến..."
-                  options={filteredDestinations.map((d: any) => ({ id: d.id, label: d.name }))}
-                  selectedIds={selectedDestinations}
-                  onChange={(ids) => setSelectedDestinations(ids as number[])}
-                />
+                <div>
+                  <label className="block text-sm font-semibold text-slate-400 mb-2">Khu vực</label>
+                  <select value={regionId} onChange={e => setRegionId(e.target.value)} disabled={!categoryId || filteredRegions.length === 0} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800">
+                    <option value="" disabled>Chọn khu vực...</option>
+                    {filteredRegions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                </div>
                 
-                {selectedDestinations.length > 1 && (
-                  <div className="mt-3 p-3 bg-[#1e293b] border border-slate-700 rounded-xl">
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Chọn Điểm đến chính (Primary):</label>
-                    <div className="space-y-2">
-                      {selectedDestinations.map(destId => {
-                        const dest = metadata.destinations?.find((d: any) => d.id === destId);
-                        return dest ? (
-                          <label key={destId} className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white">
-                            <input 
-                              type="radio" 
-                              name="primaryDestination" 
-                              checked={primaryDestinationId === destId}
-                              onChange={() => setPrimaryDestinationId(destId)}
-                              className="text-blue-500 focus:ring-blue-500 bg-slate-700 border-slate-600"
-                            />
-                            <span className="text-sm">{dest.name}</span>
-                          </label>
-                        ) : null;
-                      })}
-                    </div>
+                {isInternational && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-400 mb-2">Quốc gia</label>
+                    <select value={countryId} onChange={e => setCountryId(e.target.value)} disabled={!regionId || filteredCountries.length === 0} className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800">
+                      <option value="" disabled>Chọn quốc gia...</option>
+                      {filteredCountries.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
                   </div>
                 )}
               </div>
-              
-              <div>
-                <MultiSelectDropdown
-                  label="Địa danh (Cấp 4) - Tùy chọn"
-                  placeholder="Khám phá toàn tỉnh/thành"
-                  options={metadata.landmarks?.filter((l: any) => l.destination_id === (primaryDestinationId || selectedDestinations[0])).map((l: any) => ({ id: l.id, label: l.name })) || []}
-                  selectedIds={selectedLandmarks}
-                  onChange={(ids) => setSelectedLandmarks(ids as number[])}
-                />
+
+              {/* Row 2: Điểm đến, Địa danh */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-8">
+                  <MultiSelectDropdown
+                    label="Điểm đến"
+                    placeholder={isInternational ? (!countryId ? 'Chọn quốc gia trước...' : '🔍 Tìm và chọn điểm đến...') : (!regionId ? 'Chọn khu vực trước...' : '🔍 Tìm và chọn điểm đến...')}
+                    options={filteredDestinations.map((d: any) => ({ id: d.id, label: d.name }))}
+                    selectedIds={selectedDestinations}
+                    onChange={(ids) => {
+                      setSelectedDestinations(ids as number[]);
+                      if (ids.length > 0) setFormErrors(prev => ({ ...prev, destinations: '' }));
+                    }}
+                    disabled={isInternational ? !countryId : !regionId}
+                  />
+                  {formErrors.destinations && <p className="text-rose-500 text-sm font-medium mt-2">{formErrors.destinations}</p>}
+                  
+                  {selectedDestinations.length > 1 && (
+                    <div className="mt-3 p-4 bg-[#0f172a] border border-slate-700 rounded-xl">
+                      <label className="block text-sm font-medium text-slate-300 mb-3">Chọn Điểm đến chính (Primary):</label>
+                      <div className="flex flex-wrap gap-4">
+                        {selectedDestinations.map(destId => {
+                          const dest = metadata.destinations?.find((d: any) => d.id === destId);
+                          return dest ? (
+                            <label key={destId} className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white transition-colors group">
+                              <input 
+                                type="radio" 
+                                name="primaryDestination" 
+                                checked={primaryDestinationId === destId}
+                                onChange={() => setPrimaryDestinationId(destId)}
+                                className="w-4 h-4 text-blue-500 focus:ring-blue-500 bg-slate-700 border-slate-600 cursor-pointer"
+                              />
+                              <span className="text-sm font-medium group-hover:text-blue-400">{dest.name}</span>
+                            </label>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="md:col-span-4">
+                  <MultiSelectDropdown
+                    label="Địa danh"
+                    placeholder={selectedDestinations.length === 0 ? 'Chọn điểm đến trước...' : 'Tất cả địa danh'}
+                    options={metadata.landmarks?.filter((l: any) => l.destination_id === (primaryDestinationId || selectedDestinations[0])).map((l: any) => ({ id: l.id, label: l.name })) || []}
+                    selectedIds={selectedLandmarks}
+                    onChange={(ids) => setSelectedLandmarks(ids as number[])}
+                    disabled={selectedDestinations.length === 0}
+                  />
+                </div>
               </div>
+
             </div>
           </section>
 

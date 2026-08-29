@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const { BOOKING_STATUS } = require('../../config/constants');
 const { sendInvoiceEmail } = require('./booking.service');
 
 // Admin: Lấy toàn bộ danh sách Booking trên hệ thống
@@ -8,7 +9,7 @@ const getAllBookings = async (req, res) => {
             SELECT b.*, t.tour_code, t.duration
             FROM bookings b 
             LEFT JOIN tours t ON b.tour_id = t.id 
-            WHERE b.status != 'Đang chờ thanh toán'
+            WHERE b.status != '${BOOKING_STATUS.PENDING_PAYMENT}'
             ORDER BY b.created_at DESC
         `;
         const [rows] = await pool.query(query);
@@ -17,7 +18,7 @@ const getAllBookings = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         const processedRows = rows.map(booking => {
-            if (booking.status === 'Hủy' || booking.status === 'Đang chờ xác nhận' || booking.status === 'Đang chờ thanh toán') {
+            if (booking.status === BOOKING_STATUS.CANCELLED || booking.status === BOOKING_STATUS.PENDING || booking.status === BOOKING_STATUS.PENDING_PAYMENT) {
                 return booking;
             }
 
@@ -35,11 +36,11 @@ const getAllBookings = async (req, res) => {
                 }
 
                 if (today < startDate) {
-                    booking.status = 'Đã xác nhận';
+                    booking.status = BOOKING_STATUS.CONFIRMED;
                 } else if (today >= startDate && today <= endDate) {
-                    booking.status = 'Đang diễn ra';
+                    booking.status = BOOKING_STATUS.ONGOING;
                 } else if (today > endDate) {
-                    booking.status = 'Đã hoàn thành';
+                    booking.status = BOOKING_STATUS.COMPLETED;
                 }
             }
             return booking;
@@ -48,7 +49,7 @@ const getAllBookings = async (req, res) => {
         res.json(processedRows);
     } catch (error) {
         console.error("Lỗi lấy toàn bộ bookings:", error.message);
-        res.status(500).json({ message: "Lỗi truy xuất đơn hàng" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -61,8 +62,8 @@ const updateBookingStatus = async (req, res) => {
         await pool.query('UPDATE bookings SET status = ? WHERE id = ?', [status, id]);
 
         let actionCode = 'UPDATED_STATUS';
-        if (status === 'Đã xác nhận') actionCode = 'CONFIRMED_BY_ADMIN';
-        if (status === 'Hủy') actionCode = 'CANCELLED_BY_ADMIN';
+        if (status === BOOKING_STATUS.CONFIRMED) actionCode = 'CONFIRMED_BY_ADMIN';
+        if (status === BOOKING_STATUS.CANCELLED) actionCode = 'CANCELLED_BY_ADMIN';
 
         await pool.query(
             `INSERT INTO order_logs (booking_id, action, description) VALUES (?, ?, ?)`,
@@ -76,18 +77,18 @@ const updateBookingStatus = async (req, res) => {
         const booking = rows[0];
 
         let invoiceHtml = null;
-        if (status === 'Đã xác nhận') {
+        if (status === BOOKING_STATUS.CONFIRMED) {
             invoiceHtml = await sendInvoiceEmail(booking);
         }
 
         res.json({
-            message: status === 'Đã xác nhận' ? `🎉 Đã xác nhận đơn đặt tour #TB-${id} và gửi hóa đơn Email!` : `✅ Cập nhật trạng thái đơn hàng #TB-${id} thành: ${status}`,
+            message: status === BOOKING_STATUS.CONFIRMED ? `🎉 Đã xác nhận đơn đặt tour #TB-${id} và gửi hóa đơn Email!` : `✅ Cập nhật trạng thái đơn hàng #TB-${id} thành: ${status}`,
             booking: booking,
             invoiceHtml: invoiceHtml
         });
     } catch (error) {
         console.error("Lỗi cập nhật trạng thái booking:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ khi xử lý đơn hàng" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -108,7 +109,7 @@ const sendInvoiceManual = async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi gửi hóa đơn thủ công:", error.message);
-        res.status(500).json({ message: "Lỗi khi gửi hóa đơn email" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -121,7 +122,7 @@ const updatePaymentStatus = async (req, res) => {
         res.json({ message: `✅ Cập nhật thanh toán đơn #TB-${id} thành: ${payment_status}` });
     } catch (error) {
         console.error("Lỗi cập nhật thanh toán:", error.message);
-        res.status(500).json({ message: "Lỗi server" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -139,7 +140,7 @@ const updateBookingDetails = async (req, res) => {
         res.json({ message: `✅ Cập nhật chi tiết đơn hàng #TB-${id} thành công!` });
     } catch (error) {
         console.error("Lỗi cập nhật chi tiết booking:", error.message);
-        res.status(500).json({ message: "Lỗi server" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 

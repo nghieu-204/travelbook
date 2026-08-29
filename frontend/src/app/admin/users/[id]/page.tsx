@@ -4,8 +4,31 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { fetchApi } from '@/lib/api'
-import { ChevronLeft, User as UserIcon, MapPin, Phone, Mail, Calendar, CreditCard, Loader2, Shield, Activity, XCircle, ShoppingBag } from 'lucide-react'
+import { ChevronLeft, User as UserIcon, MapPin, Phone, Mail, Calendar, CreditCard, Loader2, Shield, Activity, XCircle, ShoppingBag, Key } from 'lucide-react'
+import { getImageUrl } from '@/lib/utils'
 import Link from 'next/link'
+import { USER_STATUS, USER_ROLE, BOOKING_STATUS, PAYMENT_STATUS } from '@/constants/status'
+import { toast } from 'react-hot-toast'
+
+// Component xử lý ảnh đại diện có fallback
+const AvatarFallback = ({ profile }: { profile: any }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!profile.avatar || hasError) {
+    return profile.role === USER_ROLE.ADMIN 
+      ? <Shield className="w-6 h-6 text-emerald-500" /> 
+      : <UserIcon className="w-6 h-6 text-slate-400" />;
+  }
+
+  return (
+    <img 
+      src={getImageUrl(profile.avatar)} 
+      alt={profile.name} 
+      className="w-full h-full object-cover" 
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 export default function UserDetailsPage() {
   const params = useParams()
@@ -27,7 +50,7 @@ export default function UserDetailsPage() {
         const response = await fetchApi(`/admin/users/${id}/details`)
         setData(response)
       } catch (error: any) {
-        alert(error.message || 'Lỗi tải dữ liệu người dùng')
+        toast.error(error.message || 'Lỗi tải dữ liệu người dùng')
       } finally {
         setIsLoading(false)
       }
@@ -69,19 +92,15 @@ export default function UserDetailsPage() {
         </button>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-            {profile.avatar ? (
-              <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
-            ) : (
-              profile.role === 'admin' ? <Shield className="w-6 h-6 text-emerald-500" /> : <UserIcon className="w-6 h-6 text-slate-400" />
-            )}
+            <AvatarFallback profile={profile} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 leading-tight">{profile.name}</h1>
-            <div className="text-sm text-slate-500 flex items-center gap-2">
+            <h1 className="text-2xl font-black text-white leading-tight">{profile.name}</h1>
+            <div className="text-sm text-slate-400 flex items-center gap-2">
               <span>#{profile.id}</span>
               <span>•</span>
-              <span className={`font-semibold ${profile.status === 'Hoạt động' || !profile.status ? 'text-emerald-600' : 'text-red-600'}`}>
-                {profile.status === 'Hoạt động' || !profile.status ? 'Đang hoạt động' : 'Bị khóa'}
+              <span className={`font-semibold ${profile.status === USER_STATUS.ACTIVE || !profile.status ? 'text-emerald-600' : 'text-red-600'}`}>
+                {profile.status === USER_STATUS.ACTIVE || !profile.status ? 'Đang hoạt động' : 'Bị khóa'}
               </span>
             </div>
           </div>
@@ -135,13 +154,17 @@ export default function UserDetailsPage() {
                     <div className="text-slate-800 font-medium">{profile.phone || 'Chưa cập nhật'}</div>
                   </div>
                 </div>
+
                 <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
+                  <Key className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
-                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Địa chỉ</div>
-                    <div className="text-slate-800 font-medium">{profile.address || 'Chưa cập nhật'}</div>
+                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Phương thức đăng nhập</div>
+                    <div className="text-slate-800 font-medium">
+                      {profile.auth_provider === 'google' ? 'Google' : profile.auth_provider === 'facebook' ? 'Facebook' : 'Email & Mật khẩu'}
+                    </div>
                   </div>
                 </div>
+
                 <div className="flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
@@ -157,7 +180,7 @@ export default function UserDetailsPage() {
 
           {/* Cột phải: Thống kê CRM */}
           <div className="lg:col-span-2 space-y-6">
-            <h3 className="text-lg font-bold text-slate-800">Phân tích CRM (CRM Insights)</h3>
+            <h3 className="text-lg font-bold text-white">Phân tích CRM (CRM Insights)</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between relative overflow-hidden">
@@ -246,7 +269,7 @@ export default function UserDetailsPage() {
                       </td>
                       <td className="p-4">
                         <span className={`px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap ${
-                          booking.payment_status === 'Đã thanh toán' ? 'bg-emerald-100 text-emerald-700' :
+                          booking.payment_status === PAYMENT_STATUS.PAID ? 'bg-emerald-100 text-emerald-700' :
                           booking.payment_status === 'Đã cọc' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
                         }`}>
                           {booking.payment_status}
@@ -254,9 +277,9 @@ export default function UserDetailsPage() {
                       </td>
                       <td className="p-4">
                         <span className={`px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap ${
-                          booking.status === 'Đã hủy' ? 'bg-red-100 text-red-700' :
-                          booking.status === 'Đã hoàn thành' ? 'bg-purple-100 text-purple-700' :
-                          booking.status === 'Đã xác nhận' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                          booking.status === BOOKING_STATUS.CANCELLED ? 'bg-red-100 text-red-700' :
+                          booking.status === BOOKING_STATUS.COMPLETED ? 'bg-purple-100 text-purple-700' :
+                          booking.status === BOOKING_STATUS.CONFIRMED ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
                         }`}>
                           {booking.status}
                         </span>

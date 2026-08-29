@@ -24,6 +24,8 @@ const REGION_COLORS: Record<string, string> = {
   'Chưa có dữ liệu': '#334155'
 }
 
+import { toast } from 'react-hot-toast'
+
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
@@ -141,7 +143,7 @@ export default function AdminDashboard() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Lỗi xuất báo cáo:", error);
-      alert("Đã xảy ra lỗi khi xuất báo cáo!");
+      toast.error("Đã xảy ra lỗi khi xuất báo cáo!");
     }
   }
 

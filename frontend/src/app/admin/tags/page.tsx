@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react'
 import { tourService } from '@/services/tourService'
 import { Tag, Edit, Trash2, X, Check, Search, Plus } from 'lucide-react'
+import { toast } from 'react-hot-toast'
+import { useConfirm } from '@/providers/ConfirmProvider'
 
 interface TagItem {
   id: number
@@ -12,6 +14,7 @@ interface TagItem {
 }
 
 export default function TagsAdminPage() {
+  const { confirm } = useConfirm()
   const [tags, setTags] = useState<TagItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -54,14 +57,19 @@ export default function TagsAdminPage() {
   }, [searchTerm, filterCategory])
 
   const handleDelete = async (id: number, category: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa nhãn này?')) return
+    const isConfirmed = await confirm({
+      title: "Xóa nhãn",
+      description: "Bạn có chắc chắn muốn xóa nhãn này?",
+      type: "danger"
+    });
+    if (!isConfirmed) return;
     
     try {
       await tourService.deleteMetadata(`/admin/tags/${id}?category=${category}`)
       setTags(prev => prev.filter(t => !(t.id === id && t.category === category)))
-      alert('Đã xóa nhãn thành công!')
+      toast.success('Đã xóa nhãn thành công!')
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra khi xóa nhãn!')
+      toast.error(error.message || 'Có lỗi xảy ra khi xóa nhãn!')
     }
   }
 
@@ -78,7 +86,7 @@ export default function TagsAdminPage() {
 
   const handleSave = async (id: number) => {
     if (!editName.trim()) {
-      alert('Tên nhãn không được để trống!')
+      toast.error('Tên nhãn không được để trống!')
       return
     }
 
@@ -94,7 +102,7 @@ export default function TagsAdminPage() {
       ))
       setEditingId(null)
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra khi cập nhật nhãn!')
+      toast.error(error.message || 'Có lỗi xảy ra khi cập nhật nhãn!')
     } finally {
       setIsSaving(false)
     }
@@ -102,7 +110,7 @@ export default function TagsAdminPage() {
 
   const handleAdd = async () => {
     if (!newName.trim()) {
-      alert('Tên nhãn không được để trống!')
+      toast.error('Tên nhãn không được để trống!')
       return
     }
 
@@ -117,10 +125,10 @@ export default function TagsAdminPage() {
         setTags(prev => [res.tag, ...prev])
         setIsAdding(false)
         setNewName('')
-        alert('Đã thêm nhãn mới thành công!')
+        toast.success('Đã thêm nhãn mới thành công!')
       }
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra khi thêm nhãn mới!')
+      toast.error(error.message || 'Có lỗi xảy ra khi thêm nhãn mới!')
     } finally {
       setIsSavingNew(false)
     }

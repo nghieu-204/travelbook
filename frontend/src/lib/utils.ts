@@ -24,3 +24,22 @@ export function generateSlug(str: string): string {
   str = str.replace(/-+/g, '-');
   return str.replace(/^-+|-+$/g, '');
 }
+
+/**
+ * Returns a fully qualified URL for an image.
+ * If the provided src is already an absolute URL (http/https) or base64 (data:), it returns it as is.
+ * Otherwise, it prepends the backend base URL (extracted from NEXT_PUBLIC_API_URL).
+ */
+export function getImageUrl(src?: string | null): string {
+  if (!src) return '';
+  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
+    return src;
+  }
+  
+  // Lấy baseUrl từ API_URL (ví dụ http://localhost:8902/api -> http://localhost:8902)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api';
+  const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+  
+  const path = src.startsWith('/') ? src : `/${src}`;
+  return `${baseUrl}${path}`;
+}

@@ -2,6 +2,7 @@
 import { fetchApi } from '@/lib/api'
 import CheckoutClient from './CheckoutClient'
 import Link from 'next/link'
+import AuthGuard from '@/components/auth/AuthGuard'
 
 export default async function CheckoutPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
@@ -25,5 +26,9 @@ export default async function CheckoutPage({ params }: { params: Promise<{ id: s
     )
   }
 
-  return <CheckoutClient tour={tour} />
+  return (
+    <AuthGuard>
+      <CheckoutClient tour={tour} />
+    </AuthGuard>
+  )
 }

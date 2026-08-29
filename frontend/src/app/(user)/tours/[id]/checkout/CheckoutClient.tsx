@@ -8,6 +8,7 @@ import { MapPin, Users, Calendar, ShieldCheck, CheckCircle2, CreditCard, Wallet,
 import Link from 'next/link'
 import { fetchApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
+import FallbackImage from '@/components/ui/FallbackImage'
 
 export default function CheckoutClient({ tour }: { tour: any }) {
   const router = useRouter()
@@ -85,17 +86,17 @@ export default function CheckoutClient({ tour }: { tour: any }) {
           }
         } catch (err) {
           console.error("Lỗi tạo thanh toán VNPay:", err);
-          toast.error("Không thể khởi tạo thanh toán VNPay. Vui lòng thử lại hoặc chọn phương thức khác.");
+          toast.error("Không thể khởi tạo thanh toán VNPay. Vui lòng thử lại hoặc chọn phương thức khác.", { id: 'booking-error' });
           setIsSubmitting(false);
           return;
         }
       }
 
-      toast.success("Đặt tour thành công!");
+      toast.success("Đặt tour thành công! Đơn đặt tour của bạn đã được tạo.", { id: 'booking-success' });
       router.push('/bookings')
     } catch (error) {
       console.error("Lỗi đặt tour:", error);
-      toast.error("Đã xảy ra lỗi khi đặt tour. Vui lòng thử lại!");
+      toast.error("Đặt tour thất bại. Vui lòng thử lại!", { id: 'booking-error' });
     } finally {
       setIsSubmitting(false)
     }
@@ -239,7 +240,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
 
               <div className="flex gap-4 mb-6 pb-6 border-b border-slate-100">
                 <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-slate-100">
-                  <img src={tour.image || "https://images.unsplash.com/photo-1596422846543-74c6e271abb1?auto=format&fit=crop&w=600&q=80"} alt={tour.name} className="w-full h-full object-cover" />
+                  <FallbackImage src={tour.image || "https://images.unsplash.com/photo-1596422846543-74c6e271abb1?auto=format&fit=crop&w=600&q=80"} alt={tour.name} className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 line-clamp-2 text-sm leading-snug">{tour.name}</h3>
@@ -290,7 +291,7 @@ export default function CheckoutClient({ tour }: { tour: any }) {
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
                     <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    Đang xử lý...
+                    Đang đặt tour...
                   </span>
                 ) : (
                   <span>Xác nhận & Thanh toán</span>

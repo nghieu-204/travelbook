@@ -59,7 +59,11 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
           } else {
              const { useAuthStore } = await import('@/store/useAuthStore');
              useAuthStore.getState().logout();
-             useAuthStore.getState().setLoginModalOpen(true);
+             const { default: toast } = await import('react-hot-toast');
+             toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
+             const currentPath = window.location.pathname;
+             window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+             return new Promise(() => {}); // Prevent throwing error while redirecting
           }
         }
       }

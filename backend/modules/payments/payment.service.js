@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const querystring = require('qs');
 const { pool } = require('../../config/db');
+const { BOOKING_STATUS, PAYMENT_STATUS } = require('../../config/constants');
 
 function sortObject(obj) {
     let sorted = {};
@@ -89,13 +90,13 @@ async function processPaymentUpdate(orderId, rspCode, isIpn = false) {
     const booking = bookingRows[0];
     
     // Idempotency Check
-    if (booking.status !== 'Đang chờ thanh toán') {
+    if (booking.status !== BOOKING_STATUS.PENDING_PAYMENT) {
         return { alreadyProcessed: true, status: booking.status, bookingId };
     }
 
     await pool.query(
         'UPDATE bookings SET status = ?, payment_method = ?, payment_status = ? WHERE id = ?',
-        ['Đã xác nhận', 'Thanh toán qua VNPay', 'Đã thanh toán', booking.id]
+        [BOOKING_STATUS.CONFIRMED, 'Thanh toán qua VNPay', PAYMENT_STATUS.PAID, booking.id]
     );
     
     const actionDesc = isIpn 

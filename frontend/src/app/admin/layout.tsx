@@ -2,10 +2,33 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Map, ShoppingBag, Users, LogOut, MessageSquare, MapPin, Tag, Menu } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { LayoutDashboard, Map, ShoppingBag, Users, LogOut, MessageSquare, MapPin, Tag, Menu, User, Settings } from 'lucide-react'
+import { cn, getImageUrl } from '@/lib/utils'
 import { useAdminAuthStore } from '@/store/useAdminAuthStore'
 import { useEffect, useState } from 'react'
+import { USER_ROLE } from '@/constants/status'
+
+// Component xử lý ảnh đại diện có fallback
+const AvatarFallback = ({ user }: { user: any }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!user?.avatar || hasError) {
+    return (
+      <span className="fallback-letter font-bold text-sm">
+        {user?.name?.charAt(0).toUpperCase() || 'A'}
+      </span>
+    );
+  }
+
+  return (
+    <img 
+      src={getImageUrl(user.avatar)}
+      alt="Avatar" 
+      className="w-full h-full object-cover"
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -14,13 +37,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMounted, setIsMounted] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== USER_ROLE.ADMIN) {
       if (pathname !== '/admin/login') {
         router.push('/admin/login')
       }
@@ -41,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
 
-  if (!user || user.role !== 'admin') {
+  if (!user || user.role !== USER_ROLE.ADMIN) {
     return (
       <div className="fixed inset-0 z-[100] flex bg-[#0f172a] items-center justify-center">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -75,6 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ]
 
   const handleLogout = () => {
+    setIsLogoutModalOpen(false);
     logout();
     router.push('/');
   }
@@ -135,15 +160,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
             <h2 className="font-semibold text-white">Bảng Điều Khiển</h2>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm overflow-hidden shrink-0">
-              {user?.avatar ? (
-                <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                user?.name?.charAt(0) || 'A'
-              )}
-            </div>
-            <span className="text-sm font-medium text-slate-300">{user?.name || 'Admin'}</span>
+          <div className="relative">
+            <button 
+              onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
+              className="flex items-center gap-3 hover:bg-slate-800 p-2 rounded-lg transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-sm overflow-hidden shrink-0">
+                <AvatarFallback user={user} />
+              </div>
+              <span className="text-sm font-medium text-slate-300">{user?.name || 'Admin'}</span>
+            </button>
+
+            {isAccountMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsAccountMenuOpen(false)}></div>
+                <div className="absolute right-0 mt-2 w-56 bg-[#1e293b] border border-slate-700 rounded-xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100 py-2">
+                  <Link href="/admin/profile" onClick={() => setIsAccountMenuOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-[#334155] hover:text-white transition-colors">
+                    <User className="w-4 h-4" />
+                    Hồ sơ cá nhân
+                  </Link>
+                  <Link href="/admin/settings" onClick={() => setIsAccountMenuOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-[#334155] hover:text-white transition-colors">
+                    <Settings className="w-4 h-4" />
+                    Cài đặt tài khoản
+                  </Link>
+                  <div className="h-px bg-slate-700 my-2"></div>
+                  <button onClick={() => { setIsAccountMenuOpen(false); setIsLogoutModalOpen(true); }} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors">
+                    <LogOut className="w-4 h-4" />
+                    Đăng xuất
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </header>
         <div className="flex-1 overflow-y-auto p-8 bg-[#0f172a]">

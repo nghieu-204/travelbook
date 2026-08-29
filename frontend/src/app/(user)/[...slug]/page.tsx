@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import TourDetailPage from '../tours/[id]/page'
 import ToursPage from '../tours/page'
+import CheckoutPage from '../tours/[id]/checkout/page'
 import { fetchApi } from '@/lib/api'
 import { generateSlug } from '@/lib/utils'
 
@@ -11,10 +12,22 @@ export default async function CatchAllPage(props: {
   const { slug } = await props.params;
   const lastSegment = slug[slug.length - 1];
 
-  // 1. Check if it's a tour details page (last segment ends with -{id})
+  // 1. Check if it's a checkout page
+  if (slug.length >= 3 && slug[0] === 'tours' && slug[2] === 'checkout') {
+    const id = slug[1];
+    return <CheckoutPage params={Promise.resolve({ id })} />
+  }
+
+  // 1.5. Check if it's a tour details page (last segment ends with -{id} or is just {id})
+  let id = null;
   const match = lastSegment.match(/-(\d+)$/);
   if (match) {
-    const id = match[1];
+    id = match[1];
+  } else if (slug[0] === 'tours' && slug.length === 2 && /^\d+$/.test(slug[1])) {
+    id = slug[1];
+  }
+
+  if (id) {
     // Return TourDetailPage with extracted ID
     return <TourDetailPage params={Promise.resolve({ id })} />
   }

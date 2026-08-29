@@ -23,7 +23,7 @@ export default function PersonalizedHomeTours() {
           try {
             const user = JSON.parse(userStr)
             userId = user.id ? Number(user.id) : undefined
-          } catch (error) {
+          } catch {
             console.warn('Không thể parse thông tin user từ localStorage, bỏ qua cá nhân hóa.')
             localStorage.removeItem('user') // Clear corrupted data
           }
@@ -52,21 +52,13 @@ export default function PersonalizedHomeTours() {
   return (
     <section className="py-12 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="flex items-center gap-2 mb-8">
-          {isPersonalized ? (
-            <>
-              <Sparkles className="w-8 h-8 text-emerald-500" />
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dành riêng cho bạn</h2>
-              <span className="bg-emerald-100 text-emerald-700 text-sm font-bold px-3 py-1 rounded-full ml-2">Gợi ý AI</span>
-            </>
-          ) : (
-            <>
-              <TrendingUp className="w-8 h-8 text-orange-500" />
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dành riêng cho bạn</h2>
-            </>
-          )}
+        <div className="flex flex-col gap-2 mb-8">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-8 h-8 text-emerald-500" />
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dành riêng cho bạn</h2>
+          </div>
+          <p className="text-slate-600">Dựa trên những tour bạn đã quan tâm</p>
         </div>
-        {reason && <p className="text-slate-600 mb-8">{reason}</p>}
 
         <div className="mt-4">
           <TourCarousel tours={tours} />

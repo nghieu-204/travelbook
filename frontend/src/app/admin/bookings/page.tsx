@@ -4,11 +4,15 @@
 import { useState, useEffect } from 'react'
 import { Search, ChevronDown, ArrowUpDown, Copy, FileText, FileSpreadsheet, FileIcon, Printer, Eye, CheckCircle2, XCircle, Phone, Mail, Filter, Banknote, RefreshCw, Edit3, Rocket, Flag } from 'lucide-react'
 import { bookingService } from '@/services/bookingService'
+import { BOOKING_STATUS, PAYMENT_STATUS } from '@/constants/status'
 import * as XLSX from 'xlsx'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import toast from 'react-hot-toast'
+import { useConfirm } from '@/providers/ConfirmProvider'
 
 export default function BookingsPage() {
+  const { confirm } = useConfirm()
   const [allBookings, setAllBookings] = useState<any[]>([])
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -51,7 +55,7 @@ export default function BookingsPage() {
         totalPrice: b.total_price,
         bookingStatus: b.status,
         paymentMethod: b.payment_method,
-        paymentStatus: b.payment_status || 'Chưa thanh toán'
+        paymentStatus: b.payment_status || PAYMENT_STATUS.UNPAID
       }))
       setAllBookings(mappedData)
     } catch (err: any) {
@@ -85,11 +89,11 @@ export default function BookingsPage() {
     // 2. Status filter
     if (statusFilter !== 'all') {
       const statusMap: Record<string, string> = {
-        'completed': 'Đã hoàn thành',
-        'confirmed': 'Đã xác nhận',
-        'pending': 'Đang chờ xác nhận',
-        'in_progress': 'Đang diễn ra',
-        'cancelled': 'Hủy'
+        'completed': BOOKING_STATUS.COMPLETED,
+        'confirmed': BOOKING_STATUS.CONFIRMED,
+        'pending': BOOKING_STATUS.PENDING,
+        'in_progress': BOOKING_STATUS.ONGOING,
+        'cancelled': BOOKING_STATUS.CANCELLED
       }
       if (statusMap[statusFilter]) {
         filtered = filtered.filter(b => b.bookingStatus === statusMap[statusFilter])
@@ -130,9 +134,9 @@ export default function BookingsPage() {
       await bookingService.updateBookingStatus(Number(id), status)
       // Cập nhật state nội bộ
       setAllBookings(prev => prev.map(b => b.id === id ? { ...b, bookingStatus: status } : b))
-      alert(`Đã cập nhật đơn hàng thành: ${status}`)
+      toast.success(`Đã cập nhật đơn hàng thành: ${status}`, { id: 'admin-booking-update-success' })
     } catch (err: any) {
-      alert('Có lỗi xảy ra: ' + err.message)
+      toast.error('Có lỗi xảy ra: ' + err.message, { id: 'admin-booking-update-error' })
     }
   }
 
@@ -142,9 +146,9 @@ export default function BookingsPage() {
       await bookingService.updatePaymentStatus(Number(id), payment_status)
       // Cập nhật state nội bộ
       setAllBookings(prev => prev.map(b => b.id === id ? { ...b, paymentStatus: payment_status } : b))
-      alert(`Đã xác nhận thanh toán thành công!`)
+      toast.success(`Đã xác nhận thanh toán thành công!`, { id: 'admin-payment-success' })
     } catch (err: any) {
-      alert('Có lỗi xảy ra: ' + err.message)
+      toast.error('Có lỗi xảy ra: ' + err.message, { id: 'admin-payment-error' })
     }
   }
 
@@ -173,11 +177,11 @@ export default function BookingsPage() {
     if (!selectedBooking) return
     try {
       await bookingService.updateBooking(Number(selectedBooking.id), editForm)
-      alert('Cập nhật thành công!')
+      toast.success('Cập nhật thành công!', { id: 'admin-edit-success' })
       setEditModalOpen(false)
       fetchBookings() // refresh data
     } catch (err: any) {
-      alert('Lỗi: ' + err.message)
+      toast.error('Lỗi: ' + err.message, { id: 'admin-edit-error' })
     }
   }
 
@@ -234,15 +238,15 @@ export default function BookingsPage() {
 
   const getBookingStatusBadge = (status: string) => {
     switch (status) {
-      case 'Đã hoàn thành':
+      case BOOKING_STATUS.COMPLETED:
         return <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đã hoàn thành</span>
-      case 'Đã xác nhận':
+      case BOOKING_STATUS.CONFIRMED:
         return <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đã xác nhận</span>
-      case 'Đang diễn ra':
+      case BOOKING_STATUS.ONGOING:
         return <span className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đang diễn ra</span>
-      case 'Đang chờ xác nhận':
+      case BOOKING_STATUS.PENDING:
         return <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đang chờ xác nhận</span>
-      case 'Hủy':
+      case BOOKING_STATUS.CANCELLED:
         return <span className="px-2 py-0.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đã hủy</span>
       default:
         return <span className="px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">{status}</span>
@@ -250,7 +254,7 @@ export default function BookingsPage() {
   }
 
   const getPaymentStatusBadge = (status: string) => {
-    if (status === 'Đã thanh toán') {
+    if (status === PAYMENT_STATUS.PAID) {
       return <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Đã thanh toán</span>
     }
     return <span className="px-2 py-0.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-full text-[11px] font-bold whitespace-nowrap block w-max mx-auto">Chưa thanh toán</span>
@@ -289,7 +293,7 @@ export default function BookingsPage() {
   const handleCopy = () => {
     const data = getExportData();
     const text = [exportColumns.join('\t'), ...data.map(row => row.join('\t'))].join('\n');
-    navigator.clipboard.writeText(text).then(() => alert('Đã sao chép vào khay nhớ tạm!'));
+    navigator.clipboard.writeText(text).then(() => toast.success('Đã sao chép vào khay nhớ tạm!', { id: 'copy-success' }));
   };
 
   const handleCSV = () => {
@@ -562,7 +566,7 @@ export default function BookingsPage() {
                               <button onClick={() => handleOpenViewModal(booking)} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors">
                                 <Eye className="w-4 h-4" /> Xem chi tiết
                               </button>
-                              <button onClick={() => handleOpenEditModal(booking)} disabled={booking.bookingStatus === 'Đã hoàn thành' || booking.bookingStatus === 'Hủy'} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                              <button onClick={() => handleOpenEditModal(booking)} disabled={booking.bookingStatus === BOOKING_STATUS.COMPLETED || booking.bookingStatus === BOOKING_STATUS.CANCELLED} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 <Edit3 className="w-4 h-4" /> Chỉnh sửa
                               </button>
                               <button onClick={() => handlePrintInvoice(booking)} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-700 hover:text-white transition-colors">
@@ -570,35 +574,35 @@ export default function BookingsPage() {
                               </button>
 
                               {/* Separator */}
-                              {(booking.bookingStatus === 'Đang chờ xác nhận' || booking.bookingStatus === 'Đã xác nhận' || booking.bookingStatus === 'Đang diễn ra' || booking.bookingStatus === 'Hủy' || (booking.paymentMethod === 'Thanh toán trực tiếp' && booking.paymentStatus !== 'Đã thanh toán')) && (
+                              {(booking.bookingStatus === BOOKING_STATUS.PENDING || booking.bookingStatus === BOOKING_STATUS.CONFIRMED || booking.bookingStatus === BOOKING_STATUS.ONGOING || booking.bookingStatus === BOOKING_STATUS.CANCELLED || (booking.paymentMethod === 'Thanh toán trực tiếp' && booking.paymentStatus !== PAYMENT_STATUS.PAID)) && (
                                 <div className="border-t border-slate-700 my-1"></div>
                               )}
 
                               {/* 2. Nhóm hành động ĐỘNG */}
-                              {(booking.paymentMethod === 'Thanh toán trực tiếp' && booking.paymentStatus !== 'Đã thanh toán') && (
-                                <button onClick={() => { if(window.confirm('Xác nhận đã nhận tiền mặt từ khách hàng?')) handleUpdatePaymentStatus(booking.id, 'Đã thanh toán') }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-emerald-400 hover:bg-slate-700 transition-colors">
+                              {(booking.paymentMethod === 'Thanh toán trực tiếp' && booking.paymentStatus !== PAYMENT_STATUS.PAID) && (
+                                <button onClick={async () => { if(await confirm({ title: 'Xác nhận thanh toán', description: 'Xác nhận đã nhận tiền mặt từ khách hàng?' })) handleUpdatePaymentStatus(booking.id, PAYMENT_STATUS.PAID) }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-emerald-400 hover:bg-slate-700 transition-colors">
                                   <Banknote className="w-4 h-4" /> Xác nhận thanh toán
                                 </button>
                               )}
-                              {booking.bookingStatus === 'Đang chờ xác nhận' && (
+                              {booking.bookingStatus === BOOKING_STATUS.PENDING && (
                                 <>
-                                  <button onClick={() => handleUpdateStatus(booking.id, 'Đã xác nhận')} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-blue-400 hover:bg-slate-700 transition-colors">
+                                  <button onClick={() => handleUpdateStatus(booking.id, BOOKING_STATUS.CONFIRMED)} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-blue-400 hover:bg-slate-700 transition-colors">
                                     <CheckCircle2 className="w-4 h-4" /> Xác nhận đơn
                                   </button>
-                                  <button onClick={() => { if(window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) handleUpdateStatus(booking.id, 'Hủy') }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
+                                  <button onClick={async () => { if(await confirm({ title: 'Hủy đơn hàng', description: 'Bạn có chắc chắn muốn hủy đơn hàng này không?', type: 'danger' })) handleUpdateStatus(booking.id, BOOKING_STATUS.CANCELLED) }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
                                     <XCircle className="w-4 h-4" /> Hủy đơn
                                   </button>
                                 </>
                               )}
 
-                              {(booking.bookingStatus === 'Đã xác nhận' || booking.bookingStatus === 'Đang diễn ra') && (
-                                <button onClick={() => { if(window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) handleUpdateStatus(booking.id, 'Hủy') }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
+                              {(booking.bookingStatus === BOOKING_STATUS.CONFIRMED || booking.bookingStatus === BOOKING_STATUS.ONGOING) && (
+                                <button onClick={async () => { if(await confirm({ title: 'Hủy đơn hàng', description: 'Bạn có chắc chắn muốn hủy đơn hàng này không?', type: 'danger' })) handleUpdateStatus(booking.id, BOOKING_STATUS.CANCELLED) }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
                                   <XCircle className="w-4 h-4" /> Hủy đơn
                                 </button>
                               )}
 
-                              {booking.bookingStatus === 'Hủy' && (
-                                <button onClick={() => handleUpdateStatus(booking.id, 'Đang chờ xác nhận')} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-orange-400 hover:bg-slate-700 transition-colors">
+                              {booking.bookingStatus === BOOKING_STATUS.CANCELLED && (
+                                <button onClick={() => handleUpdateStatus(booking.id, BOOKING_STATUS.PENDING)} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-orange-400 hover:bg-slate-700 transition-colors">
                                   <RefreshCw className="w-4 h-4" /> Khôi phục đơn
                                 </button>
                               )}

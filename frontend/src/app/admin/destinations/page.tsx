@@ -3,7 +3,9 @@
 
 import { useState, useEffect } from 'react'
 import { tourService } from '@/services/tourService'
-import { MapPin, Edit, Trash2, X, Check, Search, Plus, ChevronRight, ChevronDown, Folder, File, Globe, Map } from 'lucide-react'
+import { MapPin, Edit, Trash2, X, Check, Search, Plus, ChevronRight, ChevronDown, Folder, Globe, Map } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { useConfirm } from '@/providers/ConfirmProvider'
 
 interface Category { id: number; name: string }
 interface Region { id: number; category_id: number; name: string }
@@ -23,6 +25,16 @@ interface TreeNode {
   countryId?: number;
   destinationId?: number;
   isInternational?: boolean;
+}
+
+const getTypeLabel = (type: NodeType) => {
+  switch (type) {
+    case 'category': return 'Phân loại'
+    case 'region': return 'Vùng miền'
+    case 'country': return 'Quốc gia'
+    case 'destination': return 'Điểm đến'
+    case 'landmark': return 'Địa danh (Cấp 4)'
+  }
 }
 
 const TreeRow = ({ 
@@ -61,16 +73,6 @@ const TreeRow = ({
     }
   }
 
-  const getTypeLabel = () => {
-    switch (node.type) {
-      case 'category': return 'Phân loại'
-      case 'region': return 'Vùng miền'
-      case 'country': return 'Quốc gia'
-      case 'destination': return 'Điểm đến'
-      case 'landmark': return 'Địa danh (Cấp 4)'
-    }
-  }
-
   return (
     <>
       <tr className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
@@ -89,7 +91,7 @@ const TreeRow = ({
                 {node.name}
               </span>
               <span className="text-xs text-slate-500 ml-2 bg-slate-800 px-2 py-0.5 rounded-full">
-                {getTypeLabel()}
+                {getTypeLabel(node.type)}
               </span>
             </div>
           </div>
@@ -151,11 +153,11 @@ const TreeRow = ({
 }
 
 export default function DestinationsAdminPage() {
+  const { confirm } = useConfirm()
   const [treeData, setTreeData] = useState<TreeNode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add')
   const [modalType, setModalType] = useState<NodeType>('destination')
@@ -286,12 +288,16 @@ export default function DestinationsAdminPage() {
       let childTypeLabel = 'mục con';
       if (node.children[0].type === 'country') childTypeLabel = 'quốc gia';
       else if (node.children[0].type === 'destination') childTypeLabel = 'điểm đến';
-      else if (node.children[0].type === 'landmark') childTypeLabel = 'địa danh';
-      alert(`Không thể xóa vì mục này đang chứa các ${childTypeLabel} bên trong. Vui lòng xóa chúng trước.`)
+      if (node.children[0].type === 'landmark') childTypeLabel = 'địa danh';
+      toast.error(`Không thể xóa vì mục này đang chứa các ${childTypeLabel} bên trong. Vui lòng xóa chúng trước.`, { id: 'dest-del-error' })
       return
     }
 
-    if (!confirm(`Bạn có chắc chắn muốn xóa ${getTypeLabel(node.type)} "${node.name}"?`)) return
+    const isConfirmed = await confirm({
+      title: "Xóa dữ liệu",
+      description: `Bạn có chắc chắn muốn xóa ${getTypeLabel(node.type)} "${node.name}"?`
+    })
+    if (!isConfirmed) return
     
     try {
       let endpoint = ''
@@ -301,15 +307,16 @@ export default function DestinationsAdminPage() {
       else if (node.type === 'landmark') endpoint = `/admin/landmarks/${node.id}`
       
       await tourService.deleteMetadata(endpoint)
+      toast.success('Xóa thành công!', { id: 'dest-del-success' })
       loadData()
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra khi xóa!')
+      toast.error(error.message || 'Có lỗi xảy ra khi xóa!', { id: 'dest-del-error2' })
     }
   }
 
   const submitModal = async () => {
     if (!modalName.trim()) {
-      alert('Vui lòng nhập tên!')
+      toast.error('Vui lòng nhập tên!', { id: 'dest-name-missing' })
       return
     }
 
@@ -344,14 +351,16 @@ export default function DestinationsAdminPage() {
 
       if (modalMode === 'edit') {
         await tourService.updateMetadata(endpoint, modalNodeToEdit?.id || 0, payload)
+        toast.success('Cập nhật thành công!', { id: 'dest-save-success' })
       } else {
         await tourService.createMetadata(endpoint, payload)
+        toast.success('Thêm mới thành công!', { id: 'dest-add-success' })
       }
       
       setIsModalOpen(false)
       loadData()
     } catch (error: any) {
-      alert(error.message || 'Có lỗi xảy ra!')
+      toast.error(error.message || 'Có lỗi xảy ra!', { id: 'dest-save-error' })
     } finally {
       setIsSaving(false)
     }

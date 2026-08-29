@@ -45,12 +45,13 @@ async function seedTours() {
         }
 
         console.log('🌍 Đang nạp dữ liệu Địa lý (Categories, Regions, Destinations)...');
-        await pool.query("INSERT IGNORE INTO tourcategory (id, name) VALUES (1, 'Trong nước'), (2, 'Ngoài nước')");
+        await pool.query("INSERT IGNORE INTO tourcategory (id, name) VALUES (1, 'Trong nước'), (2, 'Quốc tế')");
         await pool.query("INSERT IGNORE INTO region (id, category_id, name) VALUES (1, 1, 'Miền Bắc'), (2, 1, 'Miền Trung'), (3, 1, 'Miền Nam'), (4, 2, 'Châu Á')");
-        await pool.query(`INSERT IGNORE INTO destination (id, region_id, name) VALUES 
-            (1, 3, 'Phú Quốc'), (2, 2, 'Đà Nẵng'), (3, 1, 'Sapa'), (4, 1, 'Hạ Long'), (5, 4, 'Bali'),
-            (6, 2, 'Huế'), (7, 2, 'Đà Lạt'), (8, 2, 'Quảng Bình'), (9, 3, 'Nha Trang'), (10, 1, 'Ninh Bình'),
-            (11, 1, 'Mộc Châu'), (12, 3, 'Côn Đảo'), (13, 1, 'Hà Giang'), (14, 2, 'Quy Nhơn'), (15, 4, 'Bangkok')`);
+        await pool.query("INSERT IGNORE INTO country (id, region_id, name) VALUES (1, 4, 'Thái Lan'), (2, 4, 'Indonesia'), (3, 4, 'Hàn Quốc'), (4, 4, 'Nhật Bản')");
+        await pool.query(`INSERT IGNORE INTO destination (id, region_id, country_id, name) VALUES 
+            (1, 3, NULL, 'Phú Quốc'), (2, 2, NULL, 'Đà Nẵng'), (3, 1, NULL, 'Sapa'), (4, 1, NULL, 'Hạ Long'), (5, 4, 2, 'Bali'),
+            (6, 2, NULL, 'Huế'), (7, 2, NULL, 'Đà Lạt'), (8, 2, NULL, 'Quảng Bình'), (9, 3, NULL, 'Nha Trang'), (10, 1, NULL, 'Ninh Bình'),
+            (11, 1, NULL, 'Mộc Châu'), (12, 3, NULL, 'Côn Đảo'), (13, 1, NULL, 'Hà Giang'), (14, 2, NULL, 'Quy Nhơn'), (15, 4, 1, 'Bangkok')`);
 
         console.log('🌱 Đang nạp dữ liệu mẫu cho 10 tour du lịch...');
         for (const tour of sampleTours) {
@@ -62,15 +63,23 @@ async function seedTours() {
                 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1000&q=80'
             ]);
 
-            await pool.query(
-                `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, rating, reviews_count, badge, description, itinerary, included, excluded, destination_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            const tourCode = 'TB' + Math.floor(1000 + Math.random() * 9000).toString();
+            const departureDest = tour.departure_destination_id || 1; // Default to 1 (usually Hanoi/HCM)
+
+            const [result] = await pool.query(
+                `INSERT INTO tours (name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, rating, reviews_count, badge, description, itinerary, included, excluded, destination_id, tour_code, departure_destination_id, status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     tour.name, tour.price, tour.original_price, childPrice, spots,
                     tour.departure_date || '2026-08-15', tour.duration, tour.image, galleryJson,
-                    tour.rating, tour.reviews_count, tour.badge, tour.description, tour.itinerary, tour.included, tour.excluded, tour.destination_id
+                    tour.rating, tour.reviews_count, tour.badge, tour.description, tour.itinerary, tour.included, tour.excluded, tour.destination_id,
+                    tourCode, departureDest, 'Active'
                 ]
             );
+
+            if (tour.destination_id) {
+                await pool.query('INSERT IGNORE INTO tour_destination (tour_id, destination_id, is_primary) VALUES (?, ?, ?)', [result.insertId, tour.destination_id, 1]);
+            }
         }
         console.log('✅ Đã nạp thành công 10 tour mẫu vào database!');
     } catch (error) {

@@ -8,6 +8,7 @@ const dbConfig = {
     password: process.env.DB_PASSWORD || '',
     port: process.env.DB_PORT || 3307,
     database: process.env.DB_NAME || 'travel_booking',
+    charset: 'utf8mb4',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0

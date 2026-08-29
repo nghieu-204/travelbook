@@ -5,6 +5,7 @@ import { Check, X, MapPin, ChevronRight, ChevronDown, Info, ShieldAlert, Banknot
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { fetchApi } from '@/lib/api'
+import { toast } from 'react-hot-toast'
 
 const defaultItineraryData = [
   {
@@ -101,9 +102,9 @@ export default function TourInfo({ tour }: { tour?: any }) {
       setEligibility({ canReview: false, reason: 'Cảm ơn bạn đã gửi đánh giá!' });
       setRating(5);
       setComment('');
-      alert(res.message || "Đánh giá thành công!");
+      toast.success(res.message || "Đánh giá thành công!");
     } catch (err: any) {
-      alert(err.message || "Lỗi khi gửi đánh giá.");
+      toast.error(err.message || "Lỗi khi gửi đánh giá.");
     } finally {
       setSubmittingReview(false);
     }

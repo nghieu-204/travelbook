@@ -3,6 +3,11 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../../utils/sendEmail');
+const { USER_ROLE } = require('../../config/constants');
+const { OAuth2Client } = require('google-auth-library');
+const axios = require('axios');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.sendOtp = async (email) => {
     // 1. Kiểm tra xem email đã tồn tại chưa
@@ -88,12 +93,17 @@ exports.loginUser = async (email, password, requiredRole = null) => {
 
     const user = users[0];
 
+    // 1.5. Kiểm tra trạng thái khóa (Ban)
+    if (user.status === 'Bị khóa' || user.is_active === 0) {
+        throw new Error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên!");
+    }
+
     // 2. Kiểm tra quyền hạn nếu có yêu cầu (vd: đăng nhập admin)
     if (requiredRole && user.role !== requiredRole) {
-        if (requiredRole === 'admin') {
+        if (requiredRole === USER_ROLE.ADMIN) {
             throw new Error("Tài khoản không có quyền truy cập!");
         }
-    } else if (!requiredRole && user.role === 'admin') {
+    } else if (!requiredRole && user.role === USER_ROLE.ADMIN) {
         throw new Error("Tài khoản quản trị phải đăng nhập ở trang quản trị!");
     }
 
@@ -106,7 +116,7 @@ exports.loginUser = async (email, password, requiredRole = null) => {
     // 4. Tạo Token
     const token = jwt.sign(
         { id: user.id, role: user.role, name: user.name, email: user.email },
-        'MY_SECRET_KEY',
+        process.env.JWT_SECRET || 'MY_SECRET_KEY',
         { expiresIn: '24h' }
     );
 
@@ -134,7 +144,7 @@ exports.forgotPassword = async (email) => {
     );
 
     // 4. Gửi email
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:8900'}/reset-password?token=${resetToken}`;
 
     const html = `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;">
@@ -180,4 +190,95 @@ exports.resetPassword = async (token, newPassword) => {
         'UPDATE users SET password = ?, reset_password_token = NULL, reset_password_expires = NULL WHERE id = ?',
         [hashedPassword, userId]
     );
+};
+
+exports.oauthLogin = async (provider, providerId, email, name, avatar) => {
+    let user;
+    const providerIdField = provider === 'google' ? 'google_id' : 'facebook_id';
+    
+    // 1. Tìm user theo providerId
+    const [usersByProvider] = await pool.query(`SELECT * FROM users WHERE ${providerIdField} = ?`, [providerId]);
+    
+    if (usersByProvider.length > 0) {
+        user = usersByProvider[0];
+    } else {
+        // 2. Tìm user theo email (trường hợp user đã tạo tài khoản bằng email này trước đó)
+        const [usersByEmail] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+        
+        if (usersByEmail.length > 0) {
+            user = usersByEmail[0];
+            // Link account
+            await pool.query(`UPDATE users SET ${providerIdField} = ?, avatar = COALESCE(avatar, ?) WHERE id = ?`, [providerId, avatar, user.id]);
+        } else {
+            // 3. Tạo user mới
+            const [result] = await pool.query(
+                `INSERT INTO users (name, email, password, ${providerIdField}, avatar) VALUES (?, ?, NULL, ?, ?)`,
+                [name, email, providerId, avatar]
+            );
+            
+            const [newUsers] = await pool.query('SELECT * FROM users WHERE id = ?', [result.insertId]);
+            user = newUsers[0];
+        }
+    }
+
+    // 4. Kiểm tra trạng thái
+    if (user.status === 'Bị khóa' || user.is_active === 0) {
+        throw new Error("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên!");
+    }
+
+    // 5. Tạo Token
+    const token = jwt.sign(
+        { id: user.id, role: user.role, name: user.name, email: user.email },
+        process.env.JWT_SECRET || 'MY_SECRET_KEY',
+        { expiresIn: '24h' }
+    );
+
+    return { token, user };
+};
+
+exports.verifyGoogleToken = async (accessToken) => {
+    const response = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const payload = response.data;
+    return {
+        providerId: payload.sub,
+        email: payload.email,
+        name: payload.name,
+        avatar: payload.picture,
+    };
+};
+
+exports.verifyFacebookToken = async (accessToken) => {
+    // 1. Verify token with debug_token endpoint to prevent confused deputy attack
+    const appId = process.env.FACEBOOK_APP_ID;
+    const appSecret = process.env.FACEBOOK_APP_SECRET;
+    
+    if (appId && appSecret) {
+        const appToken = `${appId}|${appSecret}`;
+        const debugResponse = await axios.get(`https://graph.facebook.com/debug_token?input_token=${accessToken}&access_token=${appToken}`);
+        const debugData = debugResponse.data.data;
+        
+        if (!debugData.is_valid) {
+            throw new Error("Facebook token không hợp lệ.");
+        }
+        if (debugData.app_id !== appId) {
+            throw new Error("Facebook token không thuộc về ứng dụng này.");
+        }
+    }
+
+    // 2. Lấy thông tin user
+    const response = await axios.get(`https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`);
+    const data = response.data;
+    
+    if (!data.email) {
+        throw new Error("Tài khoản Facebook của bạn chưa được liên kết email hoặc bạn không cho phép truy cập email. Không thể đăng nhập.");
+    }
+    
+    return {
+        providerId: data.id,
+        email: data.email,
+        name: data.name,
+        avatar: data.picture?.data?.url,
+    };
 };

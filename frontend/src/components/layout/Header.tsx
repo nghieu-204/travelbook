@@ -6,6 +6,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, User as UserIcon, LogOut, Menu, Mic } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { USER_ROLE } from '@/constants/status'
+import toast from 'react-hot-toast'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { cn } from '@/lib/utils'
 
 export default function Header() {
   const { user, logout, setLoginModalOpen } = useAuthStore()
@@ -14,6 +18,8 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isScrolled, setIsScrolled] = useState(false)
+  
+  const { isListening, startListening, stopListening } = useSpeechRecognition()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,6 +35,13 @@ export default function Header() {
       router.push(`/tours?q=${encodeURIComponent(searchQuery.trim())}`)
       setSearchQuery('')
     }
+  }
+
+  const handleLogout = () => {
+    logout()
+    setIsDropdownOpen(false)
+    toast.success('Đăng xuất thành công')
+    router.replace('/')
   }
 
   return (
@@ -72,8 +85,15 @@ export default function Header() {
                     className="w-full bg-slate-100 hover:bg-slate-200/50 focus:bg-white border border-transparent focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/10 outline-none rounded-full py-2.5 pl-4 pr-16 text-sm transition-all"
                   />
                   <div className="absolute right-3 flex items-center gap-2 text-slate-500">
-                    <button className="hover:text-red-500 transition-colors group" title="Tìm kiếm bằng giọng nói">
-                      <Mic className="w-4 h-4 group-hover:animate-pulse" />
+                    <button 
+                      onClick={() => {
+                        if (isListening) stopListening()
+                        else startListening((text) => setSearchQuery(text))
+                      }}
+                      className={cn("transition-colors group", isListening ? "text-red-500" : "hover:text-red-500")} 
+                      title="Tìm kiếm bằng giọng nói"
+                    >
+                      <Mic className={cn("w-4 h-4", isListening ? "animate-pulse" : "group-hover:animate-pulse")} />
                     </button>
                     <button onClick={handleSearch} className="hover:text-blue-600 transition-colors" title="Tìm kiếm">
                       <Search className="w-4 h-4" />
@@ -92,7 +112,19 @@ export default function Header() {
               >
                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold overflow-hidden shrink-0">
                   {user.avatar ? (
-                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    <img 
+                      src={user.avatar.startsWith('http') || user.avatar.startsWith('data:') ? user.avatar : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902'}${user.avatar.startsWith('/') ? '' : '/'}${user.avatar}`}
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        if (e.currentTarget.parentElement) {
+                          const span = document.createElement('span');
+                          span.innerText = user.name.charAt(0);
+                          e.currentTarget.parentElement.appendChild(span);
+                        }
+                      }}
+                    />
                   ) : (
                     user.name.charAt(0)
                   )}
@@ -106,13 +138,13 @@ export default function Header() {
                     <p className="text-sm font-medium truncate">{user.name}</p>
                     <p className="text-xs text-slate-500 truncate">{user.email}</p>
                   </div>
-                  {user.role === 'admin' && (
+                  {user.role === USER_ROLE.ADMIN && (
                     <Link href="/admin" className="block px-4 py-2 text-sm font-bold text-emerald-600 hover:bg-emerald-50" onClick={() => setIsDropdownOpen(false)}>Vào trang Admin</Link>
                   )}
                   <Link href="/user" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" onClick={() => setIsDropdownOpen(false)}>Hồ sơ của tôi</Link>
-                  <Link href="/user/bookings" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" onClick={() => setIsDropdownOpen(false)}>Đơn đặt tour</Link>
+                  <Link href="/bookings" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50" onClick={() => setIsDropdownOpen(false)}>Đơn đặt tour</Link>
                   <button
-                    onClick={() => { logout(); setIsDropdownOpen(false); }}
+                    onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                   >
                     <LogOut className="w-4 h-4" /> Đăng xuất

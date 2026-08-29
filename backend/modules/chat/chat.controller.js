@@ -93,7 +93,7 @@ const chatWithAI = async (req, res) => {
         }
     } catch (error) {
         console.error("Lỗi Chatbot:", error);
-        return res.status(500).json({ success: false, message: 'Lỗi server khi gọi AI: ' + error.message });
+        return res.status(500).json({ success: false, message: "Lỗi hệ thống trong quá trình xử lý" + error.message });
     }
 };
 
@@ -112,7 +112,7 @@ const getChatHistory = async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi lấy lịch sử Chat:", error);
-        return res.status(500).json({ success: false, message: 'Lỗi server' });
+        return res.status(500).json({ success: false, message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 

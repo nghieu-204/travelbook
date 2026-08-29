@@ -14,7 +14,7 @@ const createContact = async (req, res) => {
         res.status(201).json({ message: "🎉 Đã gửi yêu cầu liên hệ thành công! Đội ngũ TravelBook sẽ sớm phản hồi cho bạn." });
     } catch (error) {
         console.error("Lỗi gửi contact:", error.message);
-        res.status(500).json({ message: "Lỗi kết nối khi gửi liên hệ" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 

@@ -4,7 +4,7 @@ const sampleTours = require('../../data/sampleTours');
 // 1. Lấy danh sách tours (Sử dụng JOIN để lấy tên địa lý thật thay vì ID)
 const getTours = async (req, res) => {
     try {
-        const { keyword, location, region, category, minPrice, maxPrice, departureDate, duration, tourType, rating, departureLocation } = req.query;
+        const { keyword, location, region, category, minPrice, maxPrice, departureDate, duration, tourtype, rating, departureLocation } = req.query;
         
         let query = `
             SELECT t.*, 
@@ -88,11 +88,11 @@ const getTours = async (req, res) => {
         }
         
         // --- NEW ADVANCED FILTERS ---
-        const tourTypes = ensureArray(tourType);
-        if (tourTypes.length > 0) {
-            const placeholders = tourTypes.map(() => '?').join(',');
+        const tourtypes = ensureArray(tourtype);
+        if (tourtypes.length > 0) {
+            const placeholders = tourtypes.map(() => '?').join(',');
             query += ` AND t.id IN (SELECT tt.tour_id FROM tour_tourtype tt JOIN tourtype type ON tt.type_id = type.id WHERE type.name IN (${placeholders}))`;
-            params.push(...tourTypes);
+            params.push(...tourtypes);
         }
 
         if (rating && !isNaN(rating) && Number(rating) > 0) {
@@ -125,7 +125,7 @@ const getTours = async (req, res) => {
         res.json(rows);
     } catch (error) {
         console.error("Lỗi truy vấn tours:", error.message);
-        res.status(500).json({ message: "Lỗi server khi lấy danh sách tour" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -160,7 +160,7 @@ const getTourById = async (req, res) => {
         try { tour.destinations = tour.destinations ? JSON.parse(tour.destinations) : []; } catch (e) { tour.destinations = []; }
 
         const [types] = await pool.query('SELECT type.name FROM tour_tourtype tt JOIN tourtype type ON tt.type_id = type.id WHERE tt.tour_id = ?', [id]);
-        tour.tourTypes = types.map(t => t.name);
+        tour.tourtypes = types.map(t => t.name);
 
         const [occasions] = await pool.query('SELECT occ.name FROM tour_occasion to_occ JOIN occasion occ ON to_occ.occasion_id = occ.id WHERE to_occ.tour_id = ?', [id]);
         tour.occasions = occasions.map(o => o.name);
@@ -168,14 +168,14 @@ const getTourById = async (req, res) => {
         res.json(tour);
     } catch (error) {
         console.error("Lỗi lấy chi tiết tour:", error);
-        res.status(500).json({ message: "Lỗi server khi lấy chi tiết tour" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
 // 3. Admin: Thêm tour mới (Lưu ID thay vì chuỗi)
 const createTour = async (req, res) => {
     try {
-        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, tourTypes, occasions, tour_code, notes, departure_location } = req.body;
+        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, tourtypes, occasions, tour_code, notes, departure_location } = req.body;
         
         const galleryJson = typeof gallery === 'string' && gallery.startsWith('[') ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' && itinerary.startsWith('[') ? itinerary : JSON.stringify(itinerary || []);
@@ -192,23 +192,23 @@ const createTour = async (req, res) => {
         const tourId = result.insertId;
 
         // Insert Tags
-        if (tourTypes) {
-            let typesArr = typeof tourTypes === 'string' ? JSON.parse(tourTypes) : tourTypes;
+        if (tourtypes) {
+            let typesArr = typeof tourtypes === 'string' ? JSON.parse(tourtypes) : tourtypes;
             for (let typeId of typesArr) {
-                await pool.query('INSERT IGNORE INTO Tour_TourType (tour_id, type_id) VALUES (?, ?)', [tourId, typeId]);
+                await pool.query('INSERT IGNORE INTO Tour_tourtype (tour_id, type_id) VALUES (?, ?)', [tourId, typeId]);
             }
         }
         if (occasions) {
             let occArr = typeof occasions === 'string' ? JSON.parse(occasions) : occasions;
             for (let occId of occArr) {
-                await pool.query('INSERT IGNORE INTO Tour_Occasion (tour_id, occasion_id) VALUES (?, ?)', [tourId, occId]);
+                await pool.query('INSERT IGNORE INTO Tour_occasion (tour_id, occasion_id) VALUES (?, ?)', [tourId, occId]);
             }
         }
 
         res.status(201).json({ message: "🎉 Thêm tour mới thành công!", tourId });
     } catch (error) {
         console.error("Lỗi thêm tour:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ khi thêm tour" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -216,7 +216,7 @@ const createTour = async (req, res) => {
 const updateTour = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, tourTypes, occasions, tour_code, notes, departure_location } = req.body;
+        const { name, price, original_price, child_price, available_spots, departure_date, duration, image, gallery, badge, description, itinerary, included, excluded, destination_id, tourtypes, occasions, tour_code, notes, departure_location } = req.body;
 
         const galleryJson = typeof gallery === 'string' && gallery.startsWith('[') ? gallery : JSON.stringify(gallery || [image]);
         const itineraryJson = typeof itinerary === 'string' && itinerary.startsWith('[') ? itinerary : JSON.stringify(itinerary || []);
@@ -231,25 +231,25 @@ const updateTour = async (req, res) => {
         );
 
         // Update Tags
-        if (tourTypes) {
-            await pool.query('DELETE FROM Tour_TourType WHERE tour_id = ?', [id]);
-            let typesArr = typeof tourTypes === 'string' ? JSON.parse(tourTypes) : tourTypes;
+        if (tourtypes) {
+            await pool.query('DELETE FROM Tour_tourtype WHERE tour_id = ?', [id]);
+            let typesArr = typeof tourtypes === 'string' ? JSON.parse(tourtypes) : tourtypes;
             for (let typeId of typesArr) {
-                await pool.query('INSERT IGNORE INTO Tour_TourType (tour_id, type_id) VALUES (?, ?)', [id, typeId]);
+                await pool.query('INSERT IGNORE INTO Tour_tourtype (tour_id, type_id) VALUES (?, ?)', [id, typeId]);
             }
         }
         if (occasions) {
-            await pool.query('DELETE FROM Tour_Occasion WHERE tour_id = ?', [id]);
+            await pool.query('DELETE FROM Tour_occasion WHERE tour_id = ?', [id]);
             let occArr = typeof occasions === 'string' ? JSON.parse(occasions) : occasions;
             for (let occId of occArr) {
-                await pool.query('INSERT IGNORE INTO Tour_Occasion (tour_id, occasion_id) VALUES (?, ?)', [id, occId]);
+                await pool.query('INSERT IGNORE INTO Tour_occasion (tour_id, occasion_id) VALUES (?, ?)', [id, occId]);
             }
         }
 
         res.json({ message: "🎉 Cập nhật thông tin tour thành công!" });
     } catch (error) {
         console.error("Lỗi cập nhật tour:", error.message);
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -261,7 +261,7 @@ const deleteTour = async (req, res) => {
         res.json({ message: "✅ Đã xóa tour khỏi hệ thống!" });
     } catch (error) {
         console.error("Lỗi xóa tour:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ khi xóa tour" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -274,7 +274,7 @@ const updateTourStatus = async (req, res) => {
         res.json({ message: "Cập nhật trạng thái thành công!" });
     } catch (error) {
         console.error("Lỗi cập nhật trạng thái:", error.message);
-        res.status(500).json({ message: "Lỗi server khi cập nhật trạng thái" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -284,7 +284,7 @@ const seedData = async (req, res) => {
         res.json({ message: "Tính năng nạp dữ liệu mẫu hiện đã được tích hợp qua module riêng." });
     } catch (error) {
         console.error("Lỗi nạp seed:", error);
-        res.status(500).json({ message: "Lỗi khi nạp dữ liệu mẫu" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -295,14 +295,14 @@ const getMetadata = async (req, res) => {
         const [regions] = await pool.query('SELECT * FROM region');
         const [countries] = await pool.query('SELECT * FROM country');
         const [destinations] = await pool.query('SELECT * FROM destination');
-        const [tourTypes] = await pool.query('SELECT * FROM TourType');
-        const [occasions] = await pool.query('SELECT * FROM Occasion');
+        const [tourtypes] = await pool.query('SELECT * FROM tourtype');
+        const [occasions] = await pool.query('SELECT * FROM occasion');
         const [landmarks] = await pool.query('SELECT * FROM landmarks');
         
-        res.status(200).json({ categories, regions, countries, destinations, tourTypes, occasions, landmarks });
+        res.status(200).json({ categories, regions, countries, destinations, tourtypes, occasions, landmarks });
     } catch (error) {
         console.error("Lỗi getMetadata:", error);
-        res.status(500).json({ message: "Lỗi tải metadata" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -313,7 +313,7 @@ const createDestination = async (req, res) => {
         const [result] = await pool.query('INSERT INTO destination (name, region_id) VALUES (?, ?)', [name, region_id]);
         res.status(201).json({ id: result.insertId, name, region_id });
     } catch (error) {
-        res.status(500).json({ message: "Lỗi tạo điểm đến" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -324,7 +324,7 @@ const updateDestination = async (req, res) => {
         await pool.query('UPDATE destination SET name=?, region_id=? WHERE id=?', [name, region_id, id]);
         res.json({ id, name, region_id });
     } catch (error) {
-        res.status(500).json({ message: "Lỗi sửa điểm đến" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -335,20 +335,20 @@ const deleteDestination = async (req, res) => {
         res.json({ message: "Xóa điểm đến thành công" });
     } catch (error) {
         console.error("Lỗi xóa destination:", error);
-        res.status(500).json({ message: "Lỗi khi xóa điểm đến" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
-// --- CÁC HÀM QUẢN LÝ TAGS (TourType, Occasion) ---
+// --- CÁC HÀM QUẢN LÝ TAGS (tourtype, occasion) ---
 const createTag = async (req, res) => {
     try {
         const { name, category } = req.body;
-        const table = category === 'type' ? 'TourType' : 'Occasion';
+        const table = category === 'type' ? 'tourtype' : 'occasion';
         const [result] = await pool.query(`INSERT INTO ${table} (name) VALUES (?)`, [name]);
         res.status(201).json({ tag: { id: result.insertId, name, category } });
     } catch (error) {
         console.error("Lỗi tạo tag:", error);
-        res.status(500).json({ message: "Lỗi khi tạo tag" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -356,12 +356,12 @@ const updateTag = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, category } = req.body;
-        const table = category === 'type' ? 'TourType' : 'Occasion';
+        const table = category === 'type' ? 'tourtype' : 'occasion';
         await pool.query(`UPDATE ${table} SET name = ? WHERE id = ?`, [name, id]);
         res.json({ message: "Cập nhật tag thành công" });
     } catch (error) {
         console.error("Lỗi cập nhật tag:", error);
-        res.status(500).json({ message: "Lỗi khi cập nhật tag" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -369,12 +369,12 @@ const deleteTag = async (req, res) => {
     try {
         const { id } = req.params;
         const { category } = req.query;
-        const table = category === 'type' ? 'TourType' : 'Occasion';
+        const table = category === 'type' ? 'tourtype' : 'occasion';
         await pool.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
         res.json({ message: "Xóa tag thành công" });
     } catch (error) {
         console.error("Lỗi xóa tag:", error);
-        res.status(500).json({ message: "Lỗi khi xóa tag" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -385,7 +385,7 @@ const getFiltersMetadata = async (req, res) => {
         const [regions] = await pool.query('SELECT * FROM region');
         const [countries] = await pool.query('SELECT * FROM country');
         const [destinations] = await pool.query('SELECT id, name, region_id, country_id FROM destination');
-        const [tourTypes] = await pool.query('SELECT name FROM tourtype');
+        const [tourtypes] = await pool.query('SELECT name FROM tourtype');
         const [departureLocations] = await pool.query('SELECT DISTINCT d.name AS departure_location FROM tours t JOIN destination d ON t.departure_destination_id = d.id WHERE t.departure_destination_id IS NOT NULL');
 
         const domesticCat = categories.find(c => c.name.toLowerCase().includes('trong nước'));
@@ -419,12 +419,12 @@ const getFiltersMetadata = async (req, res) => {
         res.json({
             domestic: domesticHierarchy,
             international: internationalHierarchy,
-            tourTypes: tourTypes.map(t => t.name),
+            tourtypes: tourtypes.map(t => t.name),
             departureLocations: departureLocations.map(dl => dl.departure_location)
         });
     } catch (error) {
         console.error('Lỗi khi lấy filter metadata:', error);
-        res.status(500).json({ message: 'Lỗi server khi lấy dữ liệu bộ lọc' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 

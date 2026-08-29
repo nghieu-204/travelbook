@@ -10,6 +10,9 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/useAuthStore'
 import { cn } from '@/lib/utils'
 import { authService } from '@/services/authService'
+import toast from 'react-hot-toast'
+import { useGoogleLogin } from '@react-oauth/google'
+import FacebookLogin from '@greatsumini/react-facebook-login'
 
 const loginSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
@@ -36,22 +39,48 @@ export default function AuthModal() {
   const [otp, setOtp] = useState('')
   const [isSendingOtp, setIsSendingOtp] = useState(false)
 
-  const { register: registerLogin, handleSubmit: handleLoginSubmit, formState: { errors: loginErrors } } = useForm<LoginFormData>({
+  const { register: registerLogin, handleSubmit: handleLoginSubmit, formState: { errors: loginErrors, isSubmitting: isLoggingIn } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   })
 
-  const { register: registerReg, handleSubmit: handleRegSubmit, formState: { errors: regErrors } } = useForm<RegisterFormData>({
+  const { register: registerReg, handleSubmit: handleRegSubmit, formState: { errors: regErrors, isSubmitting: isRegistering } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema)
   })
+
+  const handleAuthSuccess = (result: { user: any, token: string }, successMessage: string, successId: string) => {
+    login(result.user, result.token)
+    toast.success(successMessage, { id: successId })
+    setLoginModalOpen(false)
+  }
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        const result = await authService.loginGoogle(tokenResponse.access_token)
+        handleAuthSuccess(result, 'Đăng nhập Google thành công!', 'google-success')
+      } catch (error: any) {
+        toast.error(error?.message || 'Đăng nhập Google thất bại.', { id: 'google-error' })
+      }
+    },
+  })
+
+  const handleFacebookSuccess = async (response: any) => {
+    try {
+      const result = await authService.loginFacebook(response.accessToken)
+      handleAuthSuccess(result, 'Đăng nhập Facebook thành công!', 'fb-success')
+    } catch (error: any) {
+      toast.error(error?.message || 'Đăng nhập Facebook thất bại.', { id: 'fb-error' })
+    }
+  }
 
   if (!isLoginModalOpen) return null
 
   const onLogin = async (data: LoginFormData) => {
     try {
       const result = await authService.login(data)
-      login(result.user, result.token)
-    } catch (error: unknown) {
-      alert((error as Error).message || 'Đăng nhập thất bại')
+      handleAuthSuccess(result, 'Đăng nhập thành công! Chào mừng bạn quay trở lại!', 'login-success')
+    } catch (error: any) {
+      toast.error(error?.message || 'Đăng nhập thất bại. Email hoặc mật khẩu không chính xác.', { id: 'login-error' })
     }
   }
 
@@ -61,9 +90,9 @@ export default function AuthModal() {
         setIsSendingOtp(true)
         const result = await authService.sendOtp(data.email)
         setOtpSent(true)
-        alert(result.message || 'Mã OTP đã được gửi đến email của bạn!')
-      } catch (error: unknown) {
-        alert((error as Error).message || 'Gửi mã OTP thất bại')
+        toast.success(result.message || 'Mã OTP đã được gửi đến email của bạn!', { id: 'otp-success' })
+      } catch (error: any) {
+        toast.error(error?.message || 'Gửi mã OTP thất bại', { id: 'otp-error' })
       } finally {
         setIsSendingOtp(false)
       }
@@ -71,18 +100,18 @@ export default function AuthModal() {
     }
 
     if (!otp) {
-      alert('Vui lòng nhập mã OTP!')
+      toast.error('Vui lòng nhập mã OTP!', { id: 'otp-missing' })
       return
     }
 
     try {
       const result = await authService.register({ ...data, otp })
-      alert(result.message || 'Đăng ký thành công! Bạn có thể đăng nhập ngay.')
+      toast.success(result.message || 'Đăng ký thành công! Tài khoản của bạn đã được tạo.', { id: 'reg-success' })
       setMode('login')
       setOtpSent(false)
       setOtp('')
-    } catch (error: unknown) {
-      alert((error as Error).message || 'Đăng ký thất bại')
+    } catch (error: any) {
+      toast.error(error?.message || 'Đăng ký thất bại. Không thể tạo tài khoản. Vui lòng thử lại.', { id: 'reg-error' })
     }
   }
 
@@ -138,8 +167,12 @@ export default function AuthModal() {
                 <Link href="/forgot-password" onClick={() => setLoginModalOpen(false)} className="text-sm font-medium text-blue-600 hover:underline">Quên mật khẩu?</Link>
               </div>
 
-              <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
-                Đăng nhập
+              <button disabled={isLoggingIn} type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                {isLoggingIn ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" /> Đang đăng nhập...
+                  </span>
+                ) : 'Đăng nhập'}
               </button>
             </form>
           ) : (
@@ -219,10 +252,14 @@ export default function AuthModal() {
 
               <button 
                 type="submit" 
-                disabled={isSendingOtp}
+                disabled={isSendingOtp || isRegistering}
                 className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {isSendingOtp ? <Loader2 className="w-5 h-5 animate-spin" /> : otpSent ? 'Xác thực & Đăng ký' : 'Nhận mã OTP'}
+                {(isSendingOtp || isRegistering) ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" /> {isSendingOtp ? 'Đang gửi...' : 'Đang đăng ký...'}
+                  </span>
+                ) : otpSent ? 'Xác thực & Đăng ký' : 'Nhận mã OTP'}
               </button>
             </form>
           )}
@@ -240,6 +277,7 @@ export default function AuthModal() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
+                onClick={() => loginWithGoogle()}
                 className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -263,15 +301,23 @@ export default function AuthModal() {
                 Google
               </button>
               
-              <button
-                type="button"
-                className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                Facebook
-              </button>
+              <FacebookLogin
+                appId={process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || ''}
+                onSuccess={handleFacebookSuccess}
+                onFail={(error) => console.log('Facebook Login Failed', error)}
+                render={({ onClick }) => (
+                  <button
+                    type="button"
+                    onClick={onClick}
+                    className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Facebook
+                  </button>
+                )}
+              />
             </div>
           </div>
 

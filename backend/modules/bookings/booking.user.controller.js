@@ -1,4 +1,5 @@
 const { pool } = require('../../config/db');
+const { BOOKING_STATUS, PAYMENT_STATUS } = require('../../config/constants');
 const { sendInvoiceEmail, createBookingProcess } = require('./booking.service');
 
 
@@ -18,7 +19,7 @@ const createBooking = async (req, res) => {
         if (error.message.startsWith('BAD_REQUEST')) {
             return res.status(400).json({ message: error.message.split(':')[1] });
         }
-        res.status(500).json({ message: "Lỗi kết nối khi đặt tour. Vui lòng thử lại!" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -33,16 +34,16 @@ const getBookingsByUser = async (req, res) => {
             for (const rev of reviews) {
                 const [reviewed] = await pool.query(`
                     SELECT COUNT(*) as reviewed_count FROM bookings 
-                    WHERE user_id = ? AND tour_id = ? AND status = 'Đã hoàn thành' AND is_reviewed = TRUE
-                `, [userId, rev.tour_id]);
+                    WHERE user_id = ? AND tour_id = ? AND status = ? AND is_reviewed = TRUE
+                `, [userId, rev.tour_id, BOOKING_STATUS.COMPLETED]);
                 
                 const needed = rev.count - (reviewed[0].reviewed_count || 0);
                 if (needed > 0) {
                     const [unreviewed] = await pool.query(`
                         SELECT id FROM bookings 
-                        WHERE user_id = ? AND tour_id = ? AND status = 'Đã hoàn thành' AND is_reviewed = FALSE
+                        WHERE user_id = ? AND tour_id = ? AND status = ? AND is_reviewed = FALSE
                         LIMIT ?
-                    `, [userId, rev.tour_id, needed]);
+                    `, [userId, rev.tour_id, BOOKING_STATUS.COMPLETED, needed]);
                     
                     if (unreviewed.length > 0) {
                         const ids = unreviewed.map(b => b.id);
@@ -67,7 +68,7 @@ const getBookingsByUser = async (req, res) => {
         today.setHours(0, 0, 0, 0);
 
         const processedRows = rows.map(booking => {
-            if (booking.status === 'Hủy' || booking.status === 'Đang chờ xác nhận' || booking.status === 'Đang chờ thanh toán') {
+            if (booking.status === BOOKING_STATUS.CANCELLED || booking.status === BOOKING_STATUS.PENDING || booking.status === BOOKING_STATUS.PENDING_PAYMENT) {
                 return booking;
             }
 
@@ -85,11 +86,11 @@ const getBookingsByUser = async (req, res) => {
                 }
 
                 if (today < startDate) {
-                    booking.status = 'Đã xác nhận';
+                    booking.status = BOOKING_STATUS.CONFIRMED;
                 } else if (today >= startDate && today <= endDate) {
-                    booking.status = 'Đang diễn ra';
+                    booking.status = BOOKING_STATUS.ONGOING;
                 } else if (today > endDate) {
-                    booking.status = 'Đã hoàn thành';
+                    booking.status = BOOKING_STATUS.COMPLETED;
                 }
             }
             return booking;
@@ -138,11 +139,11 @@ const cancelBooking = async (req, res) => {
 
         // 4. Payment status rule
         // Sometimes payment_status might be null/empty, we should also check if status is 'Đang chờ thanh toán'
-        const isPending = booking.payment_status === 'Chưa thanh toán' || booking.status === 'Đang chờ xác nhận' || booking.status === 'Đang chờ thanh toán';
+        const isPending = booking.payment_status === PAYMENT_STATUS.UNPAID || booking.status === BOOKING_STATUS.PENDING || booking.status === BOOKING_STATUS.PENDING_PAYMENT;
 
         if (isPending) {
             // Pending: Cancel immediately
-            await pool.query('UPDATE bookings SET status = ?, cancel_reason = ? WHERE id = ?', ['Hủy', cancel_reason, bookingId]);
+            await pool.query('UPDATE bookings SET status = ?, cancel_reason = ? WHERE id = ?', [BOOKING_STATUS.CANCELLED, cancel_reason, bookingId]);
             // Restore spots
             await pool.query('UPDATE tours SET available_spots = available_spots + ? WHERE id = ?', [totalPeople, booking.tour_id]);
             // Log
@@ -153,7 +154,7 @@ const cancelBooking = async (req, res) => {
             return res.json({ message: 'Hủy đơn thành công.' });
         } else {
             // Paid: Change status to 'Yêu cầu hủy'
-            await pool.query('UPDATE bookings SET status = ?, cancel_reason = ? WHERE id = ?', ['Yêu cầu hủy', cancel_reason, bookingId]);
+            await pool.query('UPDATE bookings SET status = ?, cancel_reason = ? WHERE id = ?', [BOOKING_STATUS.CANCELLATION_REQUESTED, cancel_reason, bookingId]);
             // Do not restore spots yet
             // Log
             await pool.query(
@@ -165,7 +166,7 @@ const cancelBooking = async (req, res) => {
 
     } catch (error) {
         console.error("Lỗi hủy tour:", error);
-        res.status(500).json({ message: "Lỗi kết nối khi hủy tour. Vui lòng thử lại!" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 

@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, MapPin, Calendar, Users, ChevronRight, Download, Ticket, ArrowRight, Loader2, MessageSquare, Star, X, CheckCircle } from 'lucide-react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useConfirm } from '@/providers/ConfirmProvider'
+import { toast } from 'react-hot-toast'
 import { bookingService } from '@/services/bookingService'
 import { reviewService } from '@/services/reviewService'
 
@@ -15,14 +17,10 @@ function BookingsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
-  const [paymentStatus, setPaymentStatus] = useState<{status: 'success' | 'error', message: string} | null>(null)
-
-  // Review states
   const [reviewBooking, setReviewBooking] = useState<any>(null)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
-  const [showThanksModal, setShowThanksModal] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -47,9 +45,9 @@ function BookingsContent() {
     const vnp_ResponseCode = searchParams.get('vnp_ResponseCode')
     if (vnp_ResponseCode) {
       if (vnp_ResponseCode === '00') {
-        setPaymentStatus({ status: 'success', message: 'Thanh toán thành công! Đơn đặt tour của bạn đã được xác nhận.' })
+        toast.success('Thanh toán thành công! Đơn đặt tour của bạn đã được xác nhận.', { id: 'payment-success', duration: 4000 })
       } else {
-        setPaymentStatus({ status: 'error', message: 'Thanh toán thất bại hoặc đã bị hủy. Vui lòng thử lại.' })
+        toast.error('Thanh toán thất bại hoặc đã bị hủy. Vui lòng thử lại.', { id: 'payment-error', duration: 4000 })
       }
       
       // Clean up URL
@@ -75,12 +73,12 @@ function BookingsContent() {
       // Update local state to hide the button immediately
       setBookings(prev => prev.map(b => b.id === reviewBooking.id ? { ...b, is_reviewed: true } : b))
       
-      setShowThanksModal(true)
+      toast.success('Gửi đánh giá thành công! Cảm ơn bạn đã chia sẻ trải nghiệm!', { id: 'review-success' })
       setReviewBooking(null)
       setRating(5)
       setComment('')
     } catch (err: any) {
-      alert(err.message || "Lỗi khi gửi đánh giá, vui lòng thử lại sau.")
+      toast.error(err.message || "Lỗi khi gửi đánh giá, vui lòng thử lại sau.", { id: 'review-error' })
     } finally {
       setIsSubmittingReview(false)
     }
@@ -182,43 +180,6 @@ function BookingsContent() {
 
   return (
     <div className="bg-slate-50 min-h-screen py-12 pb-32 relative">
-      {/* Thanks Modal */}
-      {showThanksModal && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 p-8 text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-emerald-600" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Cảm ơn bạn!</h3>
-            <p className="text-slate-600 mb-6">Đánh giá của bạn đã được ghi nhận và sẽ giúp ích rất nhiều cho các du khách khác.</p>
-            <button onClick={() => setShowThanksModal(false)} className="w-full px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-              Đóng
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Payment Status Modal */}
-      {paymentStatus && (
-        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 p-8 text-center">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${paymentStatus.status === 'success' ? 'bg-emerald-100' : 'bg-red-100'}`}>
-              {paymentStatus.status === 'success' ? (
-                <CheckCircle className="w-8 h-8 text-emerald-600" />
-              ) : (
-                <X className="w-8 h-8 text-red-600" />
-              )}
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
-              {paymentStatus.status === 'success' ? 'Thanh toán thành công!' : 'Thanh toán thất bại!'}
-            </h3>
-            <p className="text-slate-600 mb-6">{paymentStatus.message}</p>
-            <button onClick={() => setPaymentStatus(null)} className={`w-full px-5 py-2.5 rounded-xl font-bold text-white transition-colors ${paymentStatus.status === 'success' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}>
-              Đóng
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Review Modal */}
       {reviewBooking && (
@@ -260,7 +221,11 @@ function BookingsContent() {
               <div className="flex justify-end gap-3 pt-4">
                 <button type="button" onClick={() => setReviewBooking(null)} className="px-5 py-2.5 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-colors">Hủy</button>
                 <button type="submit" disabled={isSubmittingReview} className="px-5 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[120px] disabled:opacity-70">
-                  {isSubmittingReview ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Gửi Đánh Giá'}
+                  {isSubmittingReview ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" /> Đang gửi...
+                    </span>
+                  ) : 'Gửi Đánh Giá'}
                 </button>
               </div>
             </form>
@@ -368,14 +333,18 @@ function BookingsContent() {
   )
 }
 
+import AuthGuard from '@/components/auth/AuthGuard'
+
 export default function BookingsPage() {
   return (
-    <Suspense fallback={
-      <div className="bg-slate-50 min-h-screen py-12 flex justify-center items-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    }>
-      <BookingsContent />
-    </Suspense>
+    <AuthGuard>
+      <Suspense fallback={
+        <div className="bg-slate-50 min-h-screen py-12 flex justify-center items-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      }>
+        <BookingsContent />
+      </Suspense>
+    </AuthGuard>
   )
 }

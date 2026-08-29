@@ -27,7 +27,7 @@ exports.createVNPayPayment = async (req, res) => {
 
     } catch (error) {
         console.error('❌ Lỗi tạo URL VNPay:', error);
-        res.status(500).json({ message: 'Lỗi máy chủ cổng thanh toán VNPay.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -63,7 +63,7 @@ exports.vnpayIpn = async (req, res) => {
         }
     } catch (error) {
         console.error('❌ Lỗi xử lý VNPay IPN:', error);
-        res.status(500).json({ message: 'Lỗi máy chủ khi xử lý IPN.' });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -73,7 +73,7 @@ exports.vnpayReturn = async (req, res) => {
         
         const { isValid, signed, secureHash } = verifySignature(vnp_Params);
 
-        const frontendUrl = 'http://localhost:3000/bookings';
+        const frontendUrl = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/bookings` : 'http://localhost:8900/bookings';
         const rspCode = vnp_Params['vnp_ResponseCode'];
         const orderId = vnp_Params['vnp_TxnRef'];
         
@@ -102,6 +102,7 @@ exports.vnpayReturn = async (req, res) => {
         }
     } catch (error) {
         console.error('❌ Lỗi xử lý VNPay Return:', error);
-        return res.redirect('http://localhost:3000/bookings?vnp_ResponseCode=99');
+        const fallbackUrl = process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/bookings` : 'http://localhost:8900/bookings';
+        return res.redirect(`${fallbackUrl}?vnp_ResponseCode=99`);
     }
 };

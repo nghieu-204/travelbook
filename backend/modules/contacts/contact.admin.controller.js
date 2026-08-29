@@ -11,7 +11,7 @@ const getAllContacts = async (req, res) => {
         res.json(rows);
     } catch (error) {
         console.error("Lỗi truy xuất contacts:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
@@ -57,7 +57,6 @@ const replyContact = async (req, res) => {
         `;
 
         // Gửi email qua Nodemailer
-        console.log("DEBUG EMAIL ENV:", { EMAIL_USER: process.env.EMAIL_USER, HAS_PASS: !!process.env.EMAIL_PASS });
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.EMAIL_PASS !== 'abcdefghijklmnop') {
             try {
                 const transporter = nodemailer.createTransport({
@@ -89,7 +88,7 @@ const replyContact = async (req, res) => {
         });
     } catch (error) {
         console.error("Lỗi phản hồi contact:", error.message);
-        res.status(500).json({ message: "Lỗi máy chủ khi phản hồi" });
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };
 
