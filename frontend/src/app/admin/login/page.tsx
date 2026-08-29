@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
       const result = await authService.adminLogin(data)
       login(result.user, result.token)
       toast.success('Đăng nhập thành công!')
-      router.push('/admin')
+      window.location.href = '/admin'
     } catch (error: any) {
       toast.error(error.message || 'Đăng nhập thất bại')
     } finally {

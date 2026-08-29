@@ -50,7 +50,7 @@ export default function AuthModal() {
   const handleAuthSuccess = (result: { user: any, token: string }, successMessage: string, successId: string) => {
     login(result.user, result.token)
     toast.success(successMessage, { id: successId })
-    setLoginModalOpen(false)
+    window.location.reload()
   }
 
   const loginWithGoogle = useGoogleLogin({
