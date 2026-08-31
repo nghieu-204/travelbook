@@ -15,6 +15,7 @@ const getTours = async (req, res) => {
                    (SELECT d.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS province,
                    (SELECT co.name FROM tour_destination td JOIN destination d ON td.destination_id = d.id LEFT JOIN country co ON d.country_id = co.id WHERE td.tour_id = t.id AND td.is_primary = TRUE LIMIT 1) AS country,
                    (SELECT GROUP_CONCAT(l.name SEPARATOR ', ') FROM landmarks l WHERE JSON_CONTAINS(t.landmarks, CAST(l.id AS CHAR))) AS landmark_name,
+                   (SELECT GROUP_CONCAT(type.name SEPARATOR ',') FROM tour_tourtype tt JOIN tourtype type ON tt.type_id = type.id WHERE tt.tour_id = t.id) AS tags,
                    (SELECT d.name FROM destination d WHERE d.id = t.departure_destination_id) AS departure_location
             FROM tours t
             WHERE 1=1
@@ -385,7 +386,7 @@ const getFiltersMetadata = async (req, res) => {
         const [regions] = await pool.query('SELECT * FROM region');
         const [countries] = await pool.query('SELECT * FROM country');
         const [destinations] = await pool.query('SELECT id, name, region_id, country_id FROM destination');
-        const [tourtypes] = await pool.query('SELECT name FROM tourtype');
+        const [tourtypes] = await pool.query('SELECT DISTINCT name FROM tourtype');
         const [departureLocations] = await pool.query('SELECT DISTINCT d.name AS departure_location FROM tours t JOIN destination d ON t.departure_destination_id = d.id WHERE t.departure_destination_id IS NOT NULL');
 
         const domesticCat = categories.find(c => c.name.toLowerCase().includes('trong nước'));

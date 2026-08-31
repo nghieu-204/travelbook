@@ -1,8 +1,13 @@
 import { fetchApi } from '@/lib/api';
 
 export const recommendService = {
-  getRecommendations: async (userId?: number) => {
-    const endpoint = userId ? `/suggestions?userId=${userId}` : '/suggestions';
+  getRecentlyViewed: async (userId?: number) => {
+    const endpoint = userId ? `/suggestions/recently-viewed?userId=${userId}` : '/suggestions/recently-viewed';
+    return fetchApi(endpoint);
+  },
+
+  getPersonalized: async (userId?: number) => {
+    const endpoint = userId ? `/suggestions/personalized?userId=${userId}` : '/suggestions/personalized';
     return fetchApi(endpoint);
   },
 

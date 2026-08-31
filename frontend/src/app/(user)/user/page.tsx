@@ -16,6 +16,7 @@ export default function UserProfilePage() {
   
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
   const [avatar, setAvatar] = useState('')
   
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -34,6 +35,7 @@ export default function UserProfilePage() {
         setProfile(data)
         setName(data.name || '')
         setPhone(data.phone || '')
+        setAddress(data.address || '')
         setAvatar(data.avatar || '')
       } catch (error) {
         console.error("Lỗi lấy thông tin profile:", error)
@@ -87,7 +89,7 @@ export default function UserProfilePage() {
       const res = await userService.updateProfile({
         name,
         email: profile?.email,
-        address: profile?.address,
+        address,
         phone,
         avatar
       })
@@ -223,6 +225,16 @@ export default function UserProfilePage() {
               type="text" 
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all" 
+              placeholder="Chưa cập nhật" 
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Địa chỉ</label>
+            <input 
+              type="text" 
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all" 
               placeholder="Chưa cập nhật" 
             />

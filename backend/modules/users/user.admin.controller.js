@@ -223,6 +223,13 @@ const updateUserDetails = async (req, res) => {
             }
         }
 
+        if (role === USER_ROLE.ADMIN) {
+            const [[targetUser]] = await pool.query('SELECT google_id, facebook_id FROM users WHERE id = ?', [id]);
+            if (targetUser && (targetUser.google_id || targetUser.facebook_id)) {
+                return res.status(400).json({ message: "Không thể cấp quyền Admin cho tài khoản đăng nhập bằng Google/Facebook!" });
+            }
+        }
+
         await pool.query(
             'UPDATE users SET name = ?, phone = ?, address = ?, role = ?, status = ? WHERE id = ?',
             [name, phone, address, role, status, id]

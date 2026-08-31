@@ -51,19 +51,22 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
         if (typeof window !== 'undefined') {
-          if (window.location.pathname.startsWith('/admin')) {
-             const { useAdminAuthStore } = await import('@/store/useAdminAuthStore');
-             useAdminAuthStore.getState().logout();
-             window.location.href = '/admin/login';
-             return new Promise(() => {}); // Prevent throwing error while redirecting
-          } else {
-             const { useAuthStore } = await import('@/store/useAuthStore');
-             useAuthStore.getState().logout();
-             const { default: toast } = await import('react-hot-toast');
-             toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
-             const currentPath = window.location.pathname;
-             window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-             return new Promise(() => {}); // Prevent throwing error while redirecting
+          const currentPath = window.location.pathname;
+          // Không chặn lỗi 401/403 nếu đang ở trang đăng nhập
+          if (!currentPath.includes('/login')) {
+            if (currentPath.startsWith('/admin')) {
+               const { useAdminAuthStore } = await import('@/store/useAdminAuthStore');
+               useAdminAuthStore.getState().logout();
+               window.location.href = '/admin/login';
+               return new Promise(() => {}); // Prevent throwing error while redirecting
+            } else {
+               const { useAuthStore } = await import('@/store/useAuthStore');
+               useAuthStore.getState().logout();
+               const { default: toast } = await import('react-hot-toast');
+               toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.');
+               window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+               return new Promise(() => {}); // Prevent throwing error while redirecting
+            }
           }
         }
       }

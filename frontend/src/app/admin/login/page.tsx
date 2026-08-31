@@ -22,6 +22,7 @@ export default function AdminLoginPage() {
   const { login } = useAdminAuthStore()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema)
@@ -30,12 +31,15 @@ export default function AdminLoginPage() {
   const onLogin = async (data: any) => {
     try {
       setIsLoading(true)
+      setLoginError(null)
       const result = await authService.adminLogin(data)
       login(result.user, result.token)
       toast.success('Đăng nhập thành công!')
       window.location.href = '/admin'
     } catch (error: any) {
-      toast.error(error.message || 'Đăng nhập thất bại')
+      const errorMsg = error.message || 'Đăng nhập thất bại'
+      setLoginError(errorMsg)
+      toast.error(errorMsg)
     } finally {
       setIsLoading(false)
     }
@@ -53,6 +57,24 @@ export default function AdminLoginPage() {
               Đăng nhập để quản trị hệ thống
             </p>
           </div>
+
+          {loginError && (
+            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3">
+              <div className="text-red-500 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+              </div>
+              <div>
+                <h4 className="text-red-500 font-bold text-sm mb-1">Đăng nhập thất bại</h4>
+                <p className="text-red-400/90 text-sm">
+                  {loginError.includes('không có quyền') ? (
+                    <>Tài khoản của bạn là tài khoản khách hàng, không có quyền truy cập trang quản trị. <a href="/" className="underline hover:text-red-300 font-semibold">Quay lại trang chủ</a></>
+                  ) : (
+                    loginError
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
             <div>

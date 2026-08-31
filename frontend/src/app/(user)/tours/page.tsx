@@ -50,7 +50,7 @@ export default async function ToursPage({
   }
 
   if (tourTypes.length > 0) {
-    tourTypes.forEach(t => apiParams.append('tourType', t));
+    tourTypes.forEach(t => apiParams.append('tourtype', t));
   }
 
   if (departureLocations.length > 0) {
@@ -70,9 +70,7 @@ export default async function ToursPage({
   // Gọi API lấy danh sách tours
   let filteredTours: Tour[] = [];
   try {
-    const params: Record<string, string> = {};
-    apiParams.forEach((value, key) => { params[key] = value });
-    filteredTours = await tourService.getTours(params);
+    filteredTours = await tourService.getTours(apiParams.toString());
   } catch (error) {
     console.error("Lỗi gọi API tours:", error);
   }
@@ -183,7 +181,17 @@ export default async function ToursPage({
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar Filter (25%) */}
             <aside className="lg:w-1/4 w-full">
-              <TourFilter />
+              <TourFilter 
+                initialCategory={categoryStr}
+                initialRegions={regions}
+                initialDestinations={destinations}
+                initialTourTypes={tourTypes}
+                initialDepartureLocations={departureLocations}
+                initialDurations={durations}
+                initialMinPrice={minPrice}
+                initialMaxPrice={maxPrice}
+                initialRating={rating}
+              />
             </aside>
 
             {/* Content (75%) */}

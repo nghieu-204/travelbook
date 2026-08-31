@@ -52,11 +52,15 @@ app.use('/api/admin', verifyToken, adminBookingRoutes);
 app.use('/api/admin', verifyToken, statRoutes);
 
 const { recoverPendingOrders } = require('./queue/orderQueue');
+const { startCronJobs } = require('./cron/booking.cron');
 
 const PORT = process.env.PORT || process.env.API_PORT || 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
     
+    // Khởi tạo Cron Jobs
+    startCronJobs();
+
     // Khôi phục các Timeout Queue (Thay cho Redis TTL)
     recoverPendingOrders();
 });

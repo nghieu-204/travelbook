@@ -2,10 +2,10 @@ import { fetchApi } from '@/lib/api';
 
 export const tourService = {
   // --- TOURS ---
-  getTours: async (params?: Record<string, string>) => {
+  getTours: async (params?: Record<string, any> | string) => {
     let url = '/tours';
     if (params) {
-      const qs = new URLSearchParams(params).toString();
+      const qs = typeof params === 'string' ? params : new URLSearchParams(params as Record<string, string>).toString();
       if (qs) url += `?${qs}`;
     }
     return fetchApi(url);

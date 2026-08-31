@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronDown, ChevronUp, ChevronRight, Star } from 'lucide-react'
+import { ChevronDown, ChevronUp, Star, Search } from 'lucide-react'
 
 // --- SUBCOMPONENTS ---
 
@@ -71,49 +71,29 @@ const DualRangeSlider = ({ value, onChange }: { value: [number, number], onChang
   )
 }
 
-// 3. Tree Checkbox Component for Destinations
-const TreeCheckbox = ({ node, isRoot = false, selected, onChange }: { node: any, isRoot?: boolean, selected: string[], onChange: (val: string) => void }) => {
-  const [isOpen, setIsOpen] = useState(isRoot);
-  
-  const hasChildren = node.children && node.children.length > 0;
-  const isChecked = selected.includes(node.name);
-
-  return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-2 py-1.5 group">
-        {hasChildren ? (
-          <button onClick={() => setIsOpen(!isOpen)} className="text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center">
-            <ChevronRight className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-          </button>
-        ) : (
-          <div className="w-5 h-5"></div>
-        )}
-        <label className="flex items-center gap-2 cursor-pointer flex-1">
-          <input 
-            type="checkbox" 
-            checked={isChecked}
-            onChange={() => onChange(node.name)}
-            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-          />
-          <span className={`text-sm transition-colors ${isChecked ? 'font-semibold text-blue-700' : 'font-medium text-slate-700 group-hover:text-blue-600'}`}>
-            {node.name}
-          </span>
-        </label>
-      </div>
-      {hasChildren && isOpen && (
-        <div className="ml-5 border-l border-gray-200 pl-2">
-          {node.children.map((child: any) => (
-            <TreeCheckbox key={child.name} node={child} selected={selected} onChange={onChange} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
+export interface TourFilterProps {
+  initialCategory?: string;
+  initialRegions?: string[];
+  initialDestinations?: string[];
+  initialTourTypes?: string[];
+  initialDepartureLocations?: string[];
+  initialDurations?: string[];
+  initialMinPrice?: number;
+  initialMaxPrice?: number;
+  initialRating?: number;
 }
 
-
-// --- MAIN COMPONENT ---
-export default function TourFilter() {
+export default function TourFilter({
+  initialCategory = '',
+  initialRegions = [],
+  initialDestinations = [],
+  initialTourTypes = [],
+  initialDepartureLocations = [],
+  initialDurations = [],
+  initialMinPrice = 0,
+  initialMaxPrice = 99990000,
+  initialRating = 0
+}: TourFilterProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -121,7 +101,7 @@ export default function TourFilter() {
   const [metadata, setMetadata] = useState<any>({
     domestic: [],
     international: [],
-    tourTypes: [],
+    tourtypes: [],
     departureLocations: []
   })
   const [isLoading, setIsLoading] = useState(true)
@@ -133,22 +113,7 @@ export default function TourFilter() {
         const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api') + '/tours/filters-metadata');
         if (res.ok) {
           const data = await res.json();
-          // Transform domestic and international to Tree format
-          const domesticTree = data.domestic.map((r: any) => ({
-            name: r.region,
-            children: r.provinces ? r.provinces.map((p: any) => ({
-              name: p.name,
-              children: p.destinations.map((d: string) => ({ name: d, children: [] }))
-            })) : []
-          }));
-          const intlTree = data.international.map((r: any) => ({
-            name: r.region,
-            children: r.countries.map((c: any) => ({
-              name: c.country,
-              children: c.destinations.map((d: string) => ({ name: d, children: [] }))
-            }))
-          }));
-          setMetadata({ ...data, domesticTree, intlTree });
+          setMetadata(data);
         }
       } catch (error) {
         console.error("Lỗi lấy filter metadata:", error);
@@ -161,39 +126,57 @@ export default function TourFilter() {
 
   // STATE MANAGEMENT
   const [filterParams, setFilterParams] = useState({
-    category: (searchParams.get('category') as 'Trong nước' | 'Quốc tế' | '') || '',
-    priceRange: [
-      searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : 0,
-      searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : 99990000
-    ] as [number, number],
-    destinations: searchParams.getAll('destination').concat(searchParams.getAll('region'), searchParams.getAll('location')),
-    tourTypes: searchParams.getAll('tourType'),
-    departureLocations: searchParams.getAll('departureLocation'),
-    durations: searchParams.getAll('duration'),
-    rating: searchParams.get('rating') ? Number(searchParams.get('rating')) : 0
+    category: (initialCategory || 'Tất cả') as 'Tất cả' | 'Trong nước' | 'Quốc tế',
+    regions: initialRegions,
+    destinations: initialDestinations,
+    tourTypes: initialTourTypes,
+    priceRange: [initialMinPrice, initialMaxPrice] as [number, number],
+    durations: initialDurations,
+    rating: initialRating,
+    departureLocations: initialDepartureLocations
   })
 
-  // Cập nhật state nếu URL thay đổi từ bên ngoài
-  const syncFromUrl = useCallback(() => {
-    const cat = searchParams.get('category') as 'Trong nước' | 'Quốc tế' | '';
-    if (cat !== null) {
-       setFilterParams(prev => {
-         if (cat === prev.category) return prev;
-         return { ...prev, category: cat || '', destinations: searchParams.getAll('destination') };
-       });
-    }
-  }, [searchParams])
+  // Compute unique regions and destinations based on category
+  const { allRegions, allDestinations } = useMemo(() => {
+    const regions = new Set<string>();
+    const dests = new Set<string>();
 
-  useEffect(() => {
-    syncFromUrl()
-  }, [syncFromUrl])
+    if (!filterParams.category || filterParams.category === 'Tất cả' || filterParams.category === 'Trong nước') {
+      metadata.domestic?.forEach((r: any) => {
+        if (r.region) regions.add(r.region);
+        r.destinations?.forEach((d: string) => dests.add(d));
+      });
+    }
+    
+    if (!filterParams.category || filterParams.category === 'Tất cả' || filterParams.category === 'Quốc tế') {
+      metadata.international?.forEach((r: any) => {
+        if (r.region) regions.add(r.region);
+        r.countries?.forEach((c: any) => {
+          c.destinations?.forEach((d: string) => dests.add(d));
+        });
+      });
+    }
+
+    return {
+      allRegions: Array.from(regions),
+      allDestinations: Array.from(dests).sort()
+    };
+  }, [metadata, filterParams.category]);
+
+  // Ref to track if user has manually interacted with filters
+  const hasInteracted = useRef(false);
+
+  // Search state for destinations
+  const [destSearch, setDestSearch] = useState('');
 
   // Update State Helpers
   const updateState = (key: keyof typeof filterParams, value: any) => {
+    hasInteracted.current = true;
     setFilterParams(prev => ({ ...prev, [key]: value }))
   }
 
-  const toggleArrayState = (key: 'destinations' | 'tourTypes' | 'departureLocations' | 'durations', value: string) => {
+  const toggleArrayState = (key: 'regions' | 'destinations' | 'tourTypes' | 'departureLocations' | 'durations', value: string) => {
+    hasInteracted.current = true;
     setFilterParams(prev => {
       const arr = prev[key]
       return { ...prev, [key]: arr.includes(value) ? arr.filter(i => i !== value) : [...arr, value] }
@@ -201,28 +184,28 @@ export default function TourFilter() {
   }
 
   const clearAll = () => {
+    hasInteracted.current = true;
     setFilterParams(prev => ({
-      category: prev.category,
-      priceRange: [0, 99990000],
+      category: 'Tất cả',
+      regions: [],
       destinations: [],
       tourTypes: [], 
-      departureLocations: [],
+      priceRange: [0, 99990000],
       durations: [], 
-      rating: 0
+      rating: 0,
+      departureLocations: []
     }))
   }
 
-  const isInitialMount = useRef(true);
   const searchParamsRef = useRef(searchParams);
 
   useEffect(() => {
     searchParamsRef.current = searchParams;
   }, [searchParams]);
 
-  // Trigger API Update
+  // Trigger API Update only when user interacted
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
+    if (!hasInteracted.current) {
       return;
     }
 
@@ -230,9 +213,10 @@ export default function TourFilter() {
       const params = new URLSearchParams()
       if (filterParams.category) params.set('category', filterParams.category)
       
-      if (filterParams.priceRange[0] > 0) params.set('minPrice', filterParams.priceRange[0].toString())
-      if (filterParams.priceRange[1] < 99990000) params.set('maxPrice', filterParams.priceRange[1].toString())
-      
+      if (filterParams.regions.length > 0) {
+        filterParams.regions.forEach(r => params.append('region', r))
+      }
+
       if (filterParams.destinations.length > 0) {
          filterParams.destinations.forEach(d => params.append('location', d))
       }
@@ -241,10 +225,9 @@ export default function TourFilter() {
          filterParams.tourTypes.forEach(t => params.append('tourType', t))
       }
 
-      if (filterParams.departureLocations.length > 0) {
-         filterParams.departureLocations.forEach(dl => params.append('departureLocation', dl))
-      }
-
+      if (filterParams.priceRange[0] > 0) params.set('minPrice', filterParams.priceRange[0].toString())
+      if (filterParams.priceRange[1] < 99990000) params.set('maxPrice', filterParams.priceRange[1].toString())
+      
       if (filterParams.durations.length > 0) {
          filterParams.durations.forEach(d => params.append('duration', d))
       }
@@ -263,16 +246,14 @@ export default function TourFilter() {
     return () => clearTimeout(timer)
   }, [filterParams, router])
 
-  const destinationTree = filterParams.category === 'Trong nước' ? metadata.domesticTree : 
-                          filterParams.category === 'Quốc tế' ? metadata.intlTree : 
-                          [...(metadata.domesticTree || []), ...(metadata.intlTree || [])];
+  const filteredDestinations = allDestinations.filter(d => d.toLowerCase().includes(destSearch.toLowerCase()));
 
   if (isLoading) return <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-24 animate-pulse h-[800px]"></div>;
 
   return (
     <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm sticky top-24">
       
-      {/* 1. Header & Tab Chuyển đổi */}
+      {/* Header & Clear */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-black text-slate-900 tracking-tight">Bộ Lọc</h2>
         <button onClick={clearAll} className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline">
@@ -281,32 +262,101 @@ export default function TourFilter() {
       </div>
 
       <div className="transition-opacity duration-300">
-        
-        {/* Accordion: Điểm đến (Tree) */}
-        <Accordion title="Điểm đến" isOpenDefault={true}>
-          <div className="max-h-[300px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-            {destinationTree?.map((node: any) => (
-              <TreeCheckbox 
-                key={node.name} 
-                node={node} 
-                isRoot={true} 
-                selected={filterParams.destinations} 
-                onChange={(val) => toggleArrayState('destinations', val)} 
-              />
+
+        {/* 1. Loại tour (Radio/Tab) */}
+        <div className="mb-6">
+          <div className="flex bg-slate-100 rounded-lg p-1">
+            {['Tất cả', 'Trong nước', 'Quốc tế'].map((cat) => (
+              <button
+                key={cat}
+                onClick={() => updateState('category', cat)}
+                className={`flex-1 text-[13px] font-bold py-2 rounded-md transition-all ${
+                  filterParams.category === cat 
+                    ? 'bg-white text-blue-600 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {cat}
+              </button>
             ))}
-            {destinationTree?.length === 0 && <div className="text-sm text-slate-500 py-2">Không có dữ liệu điểm đến.</div>}
+          </div>
+        </div>
+
+        {/* 2. Khu vực (Checkbox) */}
+        {allRegions.length > 0 && (
+          <Accordion title="Khu vực" isOpenDefault={true}>
+            <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+              {allRegions.map((region: string) => (
+                <label key={region} className="flex items-center gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={filterParams.regions.includes(region)}
+                    onChange={() => toggleArrayState('regions', region)}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{region}</span>
+                </label>
+              ))}
+            </div>
+          </Accordion>
+        )}
+        
+        {/* 3. Điểm đến (Dropdown/Search + Checkbox) */}
+        <Accordion title="Điểm đến" isOpenDefault={true}>
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Tìm điểm đến..."
+              value={destSearch}
+              onChange={(e) => setDestSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            />
+          </div>
+          <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+            {filteredDestinations.map((dest: string) => (
+              <label key={dest} className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  checked={filterParams.destinations.includes(dest)}
+                  onChange={() => toggleArrayState('destinations', dest)}
+                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{dest}</span>
+              </label>
+            ))}
+            {filteredDestinations.length === 0 && <div className="text-sm text-slate-500 py-2">Không tìm thấy điểm đến.</div>}
           </div>
         </Accordion>
 
-        {/* Accordion: Mức giá */}
-        <Accordion title="Mức giá" isOpenDefault={true}>
+        {/* 4. Chủ đề/Sở thích (Tour Types) */}
+        {metadata.tourtypes && metadata.tourtypes.length > 0 && (
+          <Accordion title="Chủ đề / Sở thích" isOpenDefault={true}>
+            <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+              {metadata.tourtypes.map((type: string) => (
+                <label key={type} className="flex items-center gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={filterParams.tourTypes.includes(type)}
+                    onChange={() => toggleArrayState('tourTypes', type)}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{type}</span>
+                </label>
+              ))}
+            </div>
+          </Accordion>
+        )}
+
+        {/* 5. Khoảng giá (Range Slider) */}
+        <Accordion title="Khoảng giá" isOpenDefault={true}>
           <DualRangeSlider 
             value={filterParams.priceRange} 
             onChange={(val) => updateState('priceRange', val)} 
           />
         </Accordion>
 
-        {/* Accordion: Thời lượng */}
+        {/* 6. Thời lượng (Checkbox) */}
         <Accordion title="Thời lượng">
           <div className="space-y-3">
             {['1-3 ngày', '4-7 ngày', 'Trên 7 ngày'].map(dur => (
@@ -323,46 +373,8 @@ export default function TourFilter() {
           </div>
         </Accordion>
 
-        {/* Accordion: Loại hình Tour */}
-        {metadata.tourTypes && metadata.tourTypes.length > 0 && (
-          <Accordion title="Loại hình Tour">
-            <div className="space-y-3">
-              {metadata.tourTypes.map((type: string) => (
-                <label key={type} className="flex items-center gap-3 cursor-pointer group">
-                  <input 
-                    type="checkbox" 
-                    checked={filterParams.tourTypes.includes(type)}
-                    onChange={() => toggleArrayState('tourTypes', type)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{type}</span>
-                </label>
-              ))}
-            </div>
-          </Accordion>
-        )}
-
-        {/* Accordion: Điểm khởi hành */}
-        {metadata.departureLocations && metadata.departureLocations.length > 0 && (
-          <Accordion title="Điểm khởi hành">
-            <div className="space-y-3">
-              {metadata.departureLocations.map((loc: string) => (
-                <label key={loc} className="flex items-center gap-3 cursor-pointer group">
-                  <input 
-                    type="checkbox" 
-                    checked={filterParams.departureLocations.includes(loc)}
-                    onChange={() => toggleArrayState('departureLocations', loc)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <span className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">{loc}</span>
-                </label>
-              ))}
-            </div>
-          </Accordion>
-        )}
-
-        {/* Accordion: Đánh giá */}
-        <Accordion title="Đánh giá (Rating)">
+        {/* 7. Đánh giá (Star Rating) */}
+        <Accordion title="Đánh giá">
           <div className="space-y-3">
             {[5, 4, 3].map(star => (
               <label key={star} className="flex items-center gap-3 cursor-pointer group">

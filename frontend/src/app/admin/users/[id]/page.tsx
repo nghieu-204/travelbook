@@ -156,6 +156,14 @@ export default function UserDetailsPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
+                  <div>
+                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Địa chỉ</div>
+                    <div className="text-slate-800 font-medium">{profile.address || 'Chưa cập nhật'}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
                   <Key className="w-5 h-5 text-slate-400 mt-0.5" />
                   <div>
                     <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Phương thức đăng nhập</div>

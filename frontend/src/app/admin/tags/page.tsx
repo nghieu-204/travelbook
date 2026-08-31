@@ -38,7 +38,7 @@ export default function TagsAdminPage() {
     setIsLoading(true)
     try {
       const data = await tourService.getMetadata()
-      const types = (data.tourTypes || []).map((t: any) => ({ ...t, category: 'type' }))
+      const types = (data.tourtypes || []).map((t: any) => ({ ...t, category: 'type' }))
       const occasions = (data.occasions || []).map((o: any) => ({ ...o, category: 'occasion' }))
       setTags([...types, ...occasions])
     } catch (error) {
@@ -90,6 +90,12 @@ export default function TagsAdminPage() {
       return
     }
 
+    const isDuplicate = tags.some(t => t.id !== id && t.name.toLowerCase() === editName.trim().toLowerCase() && t.category === editCategory)
+    if (isDuplicate) {
+      toast.error('Cảnh báo: Nhãn này đã tồn tại trong hệ thống!')
+      return
+    }
+
     setIsSaving(true)
     try {
       await tourService.updateMetadata('/admin/tags', id, {
@@ -111,6 +117,12 @@ export default function TagsAdminPage() {
   const handleAdd = async () => {
     if (!newName.trim()) {
       toast.error('Tên nhãn không được để trống!')
+      return
+    }
+
+    const isDuplicate = tags.some(t => t.name.toLowerCase() === newName.trim().toLowerCase() && t.category === newCategory)
+    if (isDuplicate) {
+      toast.error('Cảnh báo: Nhãn này đã tồn tại trong hệ thống!')
       return
     }
 

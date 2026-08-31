@@ -409,13 +409,14 @@ export default function AdminUsers() {
                 <select 
                   value={editingUser.role || USER_ROLE.USER} 
                   onChange={(e) => setEditingUser({...editingUser, role: e.target.value})}
-                  disabled={Number(editingUser.id) === Number(currentUser?.id)}
-                  className={`w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-slate-800 ${Number(editingUser.id) === Number(currentUser?.id) ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'}`}
+                  disabled={Number(editingUser.id) === Number(currentUser?.id) || editingUser.auth_provider !== 'local'}
+                  className={`w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-blue-500 text-slate-800 ${(Number(editingUser.id) === Number(currentUser?.id) || editingUser.auth_provider !== 'local') ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'}`}
                 >
                   <option value={USER_ROLE.USER}>User</option>
-                  <option value={USER_ROLE.ADMIN}>Admin</option>
+                  <option value={USER_ROLE.ADMIN} disabled={editingUser.auth_provider !== 'local'}>Admin</option>
                 </select>
                 {Number(editingUser.id) === Number(currentUser?.id) && <p className="text-xs text-amber-600 mt-1">Không thể thay đổi quyền của chính mình.</p>}
+                {editingUser.auth_provider !== 'local' && <p className="text-xs text-amber-600 mt-1">Tài khoản liên kết (Google/Facebook) không thể được cấp quyền Admin.</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Trạng thái</label>

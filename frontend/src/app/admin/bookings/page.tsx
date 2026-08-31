@@ -596,9 +596,14 @@ export default function BookingsPage() {
                               )}
 
                               {(booking.bookingStatus === BOOKING_STATUS.CONFIRMED || booking.bookingStatus === BOOKING_STATUS.ONGOING) && (
-                                <button onClick={async () => { if(await confirm({ title: 'Hủy đơn hàng', description: 'Bạn có chắc chắn muốn hủy đơn hàng này không?', type: 'danger' })) handleUpdateStatus(booking.id, BOOKING_STATUS.CANCELLED) }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
-                                  <XCircle className="w-4 h-4" /> Hủy đơn
-                                </button>
+                                <>
+                                  <button onClick={async () => { if(await confirm({ title: 'Hoàn thành đơn', description: 'Đánh dấu đơn đặt tour này là đã hoàn thành (khách đã đi xong)?' })) handleUpdateStatus(booking.id, BOOKING_STATUS.COMPLETED) }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-emerald-400 hover:bg-slate-700 transition-colors">
+                                    <CheckCircle2 className="w-4 h-4" /> Đã hoàn thành
+                                  </button>
+                                  <button onClick={async () => { if(await confirm({ title: 'Hủy đơn hàng', description: 'Bạn có chắc chắn muốn hủy đơn hàng này không?', type: 'danger' })) handleUpdateStatus(booking.id, BOOKING_STATUS.CANCELLED) }} className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 hover:bg-slate-700 transition-colors">
+                                    <XCircle className="w-4 h-4" /> Hủy đơn
+                                  </button>
+                                </>
                               )}
 
                               {booking.bookingStatus === BOOKING_STATUS.CANCELLED && (

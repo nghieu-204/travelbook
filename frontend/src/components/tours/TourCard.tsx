@@ -15,6 +15,9 @@ export interface Tour {
   region?: string
   province?: string
   country?: string
+  reason?: string
+  tags?: string
+  badge?: string
 }
 
 import { generateSlug } from '@/lib/utils'
@@ -57,6 +60,30 @@ export default function TourCard({ tour }: { tour: Tour }) {
 
         {/* Content Section - natural height, overlapping image with negative margin */}
         <div className="flex-1 bg-white rounded-t-xl -mt-5 relative z-10 flex flex-col p-3 pb-3">
+          {/* Reason Label */}
+          {tour.reason && (
+            <div className="mb-1.5 text-[11px] font-medium text-[#0046b8] bg-blue-50 px-2 py-1 rounded-md self-start border border-blue-100/50">
+              {tour.reason === 'content_based' ? '✨ Tương tự tour bạn đã xem' :
+               tour.reason === 'collaborative' ? '🤝 Người có chung sở thích cũng chọn' :
+               tour.reason === 'popular' ? '🔥 Tour được nhiều người quan tâm' : ''}
+            </div>
+          )}
+
+          {/* Tags */}
+          {tour.tags && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {tour.tags.split(',').slice(0, 3).map((tag, idx) => {
+                const t = tag.trim();
+                if (!t) return null;
+                return (
+                  <span key={idx} className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-semibold border border-slate-200">
+                    {t}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           {/* Title */}
           <div className="flex items-start gap-1.5 mb-2">
             <div className="shrink-0 mt-0.5 rounded-full bg-amber-50 p-1">

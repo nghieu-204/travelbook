@@ -11,7 +11,6 @@ import { useAuthStore } from '@/store/useAuthStore'
 export default function PersonalizedHomeTours() {
   const { user } = useAuthStore()
   const [tours, setTours] = useState<Tour[]>([])
-  const [reason, setReason] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -21,10 +20,9 @@ export default function PersonalizedHomeTours() {
         
         const userId = user?.id ? Number(user.id) : undefined
 
-        const data = await recommendService.getRecommendations(userId)
-        // Limit to 8 tours max for the carousel
-        setTours((data.tours || []).slice(0, 8))
-        setReason(data.matchReason || '')
+        const data = await recommendService.getPersonalized(userId)
+        // Set maximum 4 tours as specified
+        setTours(Array.isArray(data) ? data.slice(0, 4) : [])
       } catch (error) {
         console.error("Lỗi lấy tour gợi ý trang chủ:", error)
       } finally {
@@ -39,22 +37,18 @@ export default function PersonalizedHomeTours() {
     return null
   }
 
-  const isPersonalized = reason.includes('AI')
-
   return (
-    <section className="py-12 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-        <div className="flex flex-col gap-2 mb-8">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-emerald-500" />
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Dành riêng cho bạn</h2>
+    <section className="py-8 bg-white">
+      <div className="container mx-auto px-2 sm:px-4 max-w-[1380px]">
+        <div className="mb-8 px-2">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-emerald-500" />
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">Dành riêng cho bạn</h2>
           </div>
-          <p className="text-slate-600">Dựa trên những tour bạn đã quan tâm</p>
+          <p className="text-slate-500 mt-2 text-lg">Gợi ý tour dựa trên sở thích và hành vi của bạn</p>
         </div>
 
-        <div className="mt-4">
-          <TourCarousel tours={tours} />
-        </div>
+        <TourCarousel tours={tours} />
       </div>
     </section>
   )

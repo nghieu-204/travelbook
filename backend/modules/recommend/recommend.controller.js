@@ -1,53 +1,51 @@
 const { pool } = require('../../config/db');
 
-// Lấy danh sách tour gợi ý cá nhân hóa dựa trên lịch sử hoạt động / đặt tour của người dùng
-exports.getRecommendations = async (req, res) => {
+// Lấy danh sách tour vừa xem gần đây
+exports.getRecentlyViewed = async (req, res) => {
     try {
-        const { userId, email } = req.query;
-
-        let recommendedTours = [];
-        let matchReason = '';
-
-        // Gọi AI Microservice (Python) - Hybrid Recommendation
-        try {
-            const fetchUserId = userId || 0;
-            const aiResponse = await fetch(`http://ai-service:8000/recommend/home/${fetchUserId}`);
-            if (aiResponse.ok) {
-                    const aiData = await aiResponse.json();
-                    const recommendedIds = aiData.tours || [];
-
-                    if (recommendedIds.length > 0) {
-                        const placeholders = recommendedIds.map(() => '?').join(',');
-                        const [aiTours] = await pool.query(
-                            `SELECT * FROM tours WHERE id IN (${placeholders})`,
-                            recommendedIds
-                        );
-                        
-                        // Sắp xếp lại theo đúng thứ tự AI trả về
-                        recommendedTours = aiTours.sort((a, b) => recommendedIds.indexOf(a.id) - recommendedIds.indexOf(b.id));
-                        matchReason = aiData.method === 'popular-cold-start' ? '🔥 Top tour phổ biến' : '✨ Gợi ý riêng cho bạn';
-                    }
-                }
-            } catch (aiError) {
-                console.error('❌ Lỗi kết nối AI cho getRecommendations:', aiError.message);
-                // Fallback nếu AI lỗi sẽ xử lý ở bên dưới
-            }
-
-        // Nếu chưa đủ tour cá nhân hóa, lấy top tour rating cao nhất
-        if (recommendedTours.length < 3) {
-            const [popular] = await pool.query(
-                'SELECT * FROM tours ORDER BY rating DESC, reviews_count DESC LIMIT 4'
-            );
-            recommendedTours = popular;
-            matchReason = '🔥 Top tour phổ biến';
+        const { userId } = req.query;
+        if (!userId) {
+            return res.json([]);
         }
 
-        res.json({
-            tours: recommendedTours,
-            matchReason
-        });
+        try {
+            const aiResponse = await fetch(`http://ai-service:8000/recommend/recently-viewed?user_id=${userId}`);
+            if (aiResponse.ok) {
+                const aiData = await aiResponse.json();
+                return res.json(aiData.recently_viewed || []);
+            }
+        } catch (aiError) {
+            console.error('❌ Lỗi kết nối AI cho getRecentlyViewed:', aiError.message);
+        }
+
+        // Trả về mảng rỗng nếu lỗi
+        res.json([]);
     } catch (error) {
-        console.error('❌ Lỗi lấy tour gợi ý:', error.message);
+        console.error('❌ Lỗi lấy tour vừa xem:', error.message);
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
+    }
+};
+
+// Lấy danh sách tour gợi ý cá nhân hóa (Content-Based, Collaborative, Popular)
+exports.getPersonalized = async (req, res) => {
+    try {
+        const { userId } = req.query;
+        const fetchUserId = userId || 0;
+
+        try {
+            const aiResponse = await fetch(`http://ai-service:8000/recommend/personalized?user_id=${fetchUserId}`);
+            if (aiResponse.ok) {
+                const aiData = await aiResponse.json();
+                return res.json(aiData.personalized || []);
+            }
+        } catch (aiError) {
+            console.error('❌ Lỗi kết nối AI cho getPersonalized:', aiError.message);
+        }
+
+        // Trả về mảng rỗng nếu lỗi để không làm crash UI
+        res.json([]);
+    } catch (error) {
+        console.error('❌ Lỗi lấy tour gợi ý cá nhân hóa:', error.message);
         res.status(500).json({ message: "Lỗi hệ thống trong quá trình xử lý" });
     }
 };

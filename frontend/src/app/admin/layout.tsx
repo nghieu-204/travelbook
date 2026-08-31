@@ -101,7 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const handleLogout = () => {
     setIsLogoutModalOpen(false);
     logout();
-    window.location.href = '/';
+    window.location.href = '/admin/login';
   }
 
   return (

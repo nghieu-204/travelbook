@@ -25,7 +25,7 @@ export default function CreateTourV2() {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   
-  const [metadata, setMetadata] = useState<any>({ categories: [], regions: [], destinations: [], tourTypes: [], occasions: [] })
+  const [metadata, setMetadata] = useState<any>({ categories: [], regions: [], destinations: [], tourtypes: [], occasions: [] })
   
   const [categoryId, setCategoryId] = useState('')
   const [regionId, setRegionId] = useState('')
@@ -237,7 +237,7 @@ export default function CreateTourV2() {
         notes: JSON.stringify(notes),
         image: imageStr,
         gallery: JSON.stringify(galleryArr),
-        tourTypes: JSON.stringify(selectedTypes),
+        tourtypes: JSON.stringify(selectedTypes),
         occasions: JSON.stringify(selectedOccasions),
         departure_destination_id: departureDestinationId ? Number(departureDestinationId) : null,
         landmarks: selectedLandmarks.length > 0 ? JSON.stringify(selectedLandmarks) : null
@@ -495,7 +495,7 @@ export default function CreateTourV2() {
                 <MultiSelectDropdown
                   label="Loại hình Du lịch"
                   placeholder="Tìm và chọn loại hình..."
-                  options={metadata.tourTypes?.map((t: any) => ({ id: t.id, label: t.name })) || []}
+                  options={metadata.tourtypes?.map((t: any) => ({ id: t.id, label: t.name })) || []}
                   selectedIds={selectedTypes}
                   onChange={(ids) => setSelectedTypes(ids as number[])}
                 />
