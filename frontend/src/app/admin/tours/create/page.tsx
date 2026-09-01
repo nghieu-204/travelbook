@@ -248,6 +248,32 @@ export default function CreateTourV2() {
         }
       }
 
+      // Upload itinerary files
+      const itineraryWithUrls = [...itinerary];
+      const itinFormData = new FormData();
+      const itinIndices: number[] = [];
+      let hasItinFiles = false;
+
+      for (let i = 0; i < itineraryWithUrls.length; i++) {
+        if ((itineraryWithUrls[i] as any).file) {
+          itinFormData.append('images', (itineraryWithUrls[i] as any).file);
+          itinIndices.push(i);
+          hasItinFiles = true;
+        } else if (itineraryWithUrls[i].image) {
+          itineraryWithUrls[i].image = itineraryWithUrls[i].image.replace('http://localhost:8902', '');
+        }
+      }
+
+      if (hasItinFiles) {
+        const itinRes = await tourService.uploadTourImages(itinFormData);
+        const itinUrls = itinRes.urls || [];
+        for (let idx = 0; idx < itinIndices.length; idx++) {
+          itineraryWithUrls[itinIndices[idx]].image = itinUrls[idx];
+        }
+      }
+      
+      const cleanedItinerary = itineraryWithUrls.map(({ file, ...rest }: any) => rest);
+
       const payload = {
         name: title,
         destinations: JSON.stringify(selectedDestinations),
@@ -260,7 +286,7 @@ export default function CreateTourV2() {
         description,
         badge: 'Mới',
         tour_code: tourCode,
-        itinerary: JSON.stringify(itinerary),
+        itinerary: JSON.stringify(cleanedItinerary),
         notes: JSON.stringify(notes),
         image: imageStr,
         gallery: JSON.stringify(galleryArr),
@@ -682,11 +708,7 @@ export default function CreateTourV2() {
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           const file = e.target.files[0];
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setItinerary(itinerary.map(i => i.id === day.id ? { ...i, image: reader.result as string } : i));
-                          };
-                          reader.readAsDataURL(file);
+                          setItinerary(itinerary.map(i => i.id === day.id ? { ...i, image: URL.createObjectURL(file), file: file } : i));
                         }
                       }} 
                     />
