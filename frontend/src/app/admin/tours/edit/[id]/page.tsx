@@ -257,18 +257,52 @@ export default function EditTour() {
     setIsSaving(true)
     try {
       let imageStr = '';
+      const galleryArr: string[] = [];
+      const formData = new FormData();
+      let hasFilesToUpload = false;
+
+      // Append main image if it's a file
       if (mainImage?.file) {
-        imageStr = await fileToBase64(mainImage.file);
+        formData.append('images', mainImage.file);
+        hasFilesToUpload = true;
       } else {
         imageStr = mainImage!.preview.replace('http://localhost:8902', '');
       }
 
-      const galleryArr = [];
+      // Append gallery images if they are files
       for (const img of galleryImages) {
         if (img.file) {
-          galleryArr.push(await fileToBase64(img.file));
+          formData.append('images', img.file);
+          hasFilesToUpload = true;
         } else {
           galleryArr.push(img.preview.replace('http://localhost:8902', ''));
+        }
+      }
+
+      // Upload if any files exist
+      if (hasFilesToUpload) {
+        // Need to import tourService at the top, or just use fetchApi if tourService is not imported.
+        // Wait, tourService is NOT imported in this file. I need to use fetchApi directly, or import tourService.
+        // Since I'm only modifying the block, I'll use fetchApi with FormData.
+        
+        const uploadRes = await fetchApi('/admin/tours/upload-images', {
+          method: 'POST',
+          body: formData,
+        });
+        const uploadedUrls = uploadRes?.urls || [];
+        
+        // Extract main image URL vs gallery URLs
+        let urlIndex = 0;
+        if (mainImage?.file) {
+          imageStr = uploadedUrls[urlIndex];
+          urlIndex++;
+        }
+        
+        for (const img of galleryImages) {
+          if (img.file) {
+            galleryArr.push(uploadedUrls[urlIndex]);
+            urlIndex++;
+          }
         }
       }
 

@@ -206,18 +206,45 @@ export default function CreateTourV2() {
     setIsSaving(true)
     try {
       let imageStr = '';
+      const galleryArr: string[] = [];
+      const formData = new FormData();
+      let hasFilesToUpload = false;
+
+      // Append main image if it's a file
       if (mainImage?.file) {
-        imageStr = await fileToBase64(mainImage.file);
+        formData.append('images', mainImage.file);
+        hasFilesToUpload = true;
       } else {
         imageStr = mainImage!.preview.replace('http://localhost:8902', '');
       }
 
-      const galleryArr = [];
+      // Append gallery images if they are files
       for (const img of galleryImages) {
         if (img.file) {
-          galleryArr.push(await fileToBase64(img.file));
+          formData.append('images', img.file);
+          hasFilesToUpload = true;
         } else {
           galleryArr.push(img.preview.replace('http://localhost:8902', ''));
+        }
+      }
+
+      // Upload if any files exist
+      if (hasFilesToUpload) {
+        const uploadRes = await tourService.uploadTourImages(formData);
+        const uploadedUrls = uploadRes.urls || [];
+        
+        // Extract main image URL vs gallery URLs
+        let urlIndex = 0;
+        if (mainImage?.file) {
+          imageStr = uploadedUrls[urlIndex];
+          urlIndex++;
+        }
+        
+        for (const img of galleryImages) {
+          if (img.file) {
+            galleryArr.push(uploadedUrls[urlIndex]);
+            urlIndex++;
+          }
         }
       }
 

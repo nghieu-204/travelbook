@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
 const {
-    createTour, updateTour, updateTourStatus, deleteTour,
+    createTour, updateTour, updateTourStatus, deleteTour, uploadTourImages,
     createCountry, updateCountry, deleteCountry,
     createRegion, updateRegion, deleteRegion,
     createDestination, updateDestination, deleteDestination,
@@ -10,7 +12,33 @@ const {
 } = require('./tour.admin.controller');
 const { verifyAdmin } = require('../../middlewares/adminAuth');
 
+// -- Multer Config cho Tour Images --
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '../../uploads/tours/'));
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'tour-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ 
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit per file
+    fileFilter: (req, file, cb) => {
+        const filetypes = /jpeg|jpg|png|webp/;
+        const mimetype = filetypes.test(file.mimetype);
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        
+        if (mimetype && extname) {
+            return cb(null, true);
+        }
+        cb(new Error("Chỉ hỗ trợ file ảnh (jpeg, jpg, png, webp)!"));
+    }
+});
+
 // Admin protected routes
+router.post('/tours/upload-images', verifyAdmin, upload.array('images', 20), uploadTourImages);
 router.post('/tours', verifyAdmin, createTour);
 router.put('/tours/:id', verifyAdmin, updateTour);
 router.put('/tours/:id/status', verifyAdmin, updateTourStatus);

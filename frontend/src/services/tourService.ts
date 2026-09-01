@@ -22,6 +22,13 @@ export const tourService = {
     });
   },
 
+  uploadTourImages: async (formData: FormData) => {
+    return fetchApi('/admin/tours/upload-images', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
   updateTourStatus: async (id: number, status: string) => {
     return fetchApi(`/admin/tours/${id}/status`, {
       method: 'PUT',
