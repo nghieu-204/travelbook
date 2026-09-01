@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { fetchApi } from '@/lib/api'
 import { toast } from 'react-hot-toast'
+import FallbackImage from '@/components/ui/FallbackImage'
+import { getImageUrl } from '@/lib/utils'
 
 const defaultItineraryData = [
   {
@@ -334,7 +336,7 @@ export default function TourInfo({ tour }: { tour?: any }) {
               <div key={rev.id} className="pb-6 border-b border-slate-100 last:border-b-0 last:pb-0">
                 <div className="flex items-start gap-4">
                   <img 
-                    src={rev.user_avatar || 'https://ui-avatars.com/api/?name=' + rev.user_name + '&background=random'} 
+                    src={rev.user_avatar ? getImageUrl(rev.user_avatar) : 'https://ui-avatars.com/api/?name=' + rev.user_name + '&background=random'} 
                     alt={rev.user_name} 
                     className="w-12 h-12 rounded-full object-cover shrink-0 border border-slate-200"
                   />
@@ -411,7 +413,7 @@ export default function TourInfo({ tour }: { tour?: any }) {
                           </div>
                           {item.image && (
                             <div className="h-48 md:h-auto md:w-5/12 shrink-0">
-                              <img 
+                              <FallbackImage 
                                 src={item.image} 
                                 alt={item.title} 
                                 className="w-full h-full object-cover"

@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useState, useEffect, useRef } from 'react'
 import { userService } from '@/services/userService'
 import { toast } from 'react-hot-toast'
+import { getImageUrl } from '@/lib/utils'
 
 export default function UserProfilePage() {
   const { user, token, login } = useAuthStore()
@@ -156,7 +157,7 @@ export default function UserProfilePage() {
           <div className="w-28 h-28 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-4xl border-4 border-white shadow-lg overflow-hidden shrink-0">
             {avatar ? (
               <img 
-                src={avatar.startsWith('http') || avatar.startsWith('data:') ? avatar : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902'}${avatar.startsWith('/') ? '' : '/'}${avatar}`}
+                src={getImageUrl(avatar)}
                 alt="Avatar" 
                 className="w-full h-full object-cover"
                 onError={(e) => {

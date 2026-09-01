@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, User as UserIcon, LogOut, Menu, Mic } from 'lucide-react'
+import AuthModal from '@/components/auth/AuthModal'
+import { getImageUrl } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { USER_ROLE } from '@/constants/status'
 import toast from 'react-hot-toast'
@@ -113,7 +115,7 @@ export default function Header() {
                 <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold overflow-hidden shrink-0">
                   {user.avatar ? (
                     <img 
-                      src={user.avatar.startsWith('http') || user.avatar.startsWith('data:') ? user.avatar : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902'}${user.avatar.startsWith('/') ? '' : '/'}${user.avatar}`}
+                      src={getImageUrl(user.avatar)}
                       alt="Avatar" 
                       className="w-full h-full object-cover"
                       onError={(e) => {

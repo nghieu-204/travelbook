@@ -136,7 +136,7 @@ const uploadTourImages = async (req, res) => {
         }
         
         // Tạo mảng URLs
-        const imageUrls = req.files.map(file => `/uploads/tours/${file.filename}`);
+        const imageUrls = req.files.map(file => `/uploads/tours/images/${file.filename}`);
         
         res.status(200).json({ 
             message: "Upload ảnh thành công", 

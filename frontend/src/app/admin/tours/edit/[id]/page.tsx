@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { FileUp, Save, LayoutDashboard, Plus, Trash2, MapPin, AlignLeft, Tags, Settings, Calendar, Globe, Target, Image as ImageIcon, CheckCircle, Flame, Tag, RefreshCw, ArrowLeft, CheckCircle2, Map, FileText, Info } from 'lucide-react'
 import SearchableAdminDropdown from '@/components/ui/SearchableAdminDropdown'
 import { fetchApi } from '@/lib/api'
+import { getImageUrl } from '@/lib/utils'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import MultiSelectDropdown from '@/components/ui/MultiSelectDropdown'
 import { toast } from 'react-hot-toast'
@@ -748,7 +749,7 @@ export default function EditTour() {
                     >
                       {day.image ? (
                         <>
-                          <img src={day.image} alt="Preview" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
+                          <img src={getImageUrl(day.image)} alt="Tour Image" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <span className="text-white font-medium bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">Thay đổi ảnh</span>
                           </div>

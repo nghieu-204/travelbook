@@ -1,34 +1,35 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin } from 'lucide-react'
+import { getImageUrl } from '@/lib/utils'
 
 const destinations = [
   {
     id: 1,
     name: 'Sapa',
     region: 'Tây Bắc, Việt Nam',
-    image: '/images/destinations/sapa.png',
+    image: '/uploads/destinations/sapa.png',
     description: 'Thị trấn trong sương với ruộng bậc thang tuyệt đẹp.'
   },
   {
     id: 2,
     name: 'Đà Nẵng',
     region: 'Miền Trung, Việt Nam',
-    image: '/images/destinations/danang.png',
+    image: '/uploads/destinations/danang.png',
     description: 'Thành phố đáng sống với biển xanh và cầu Vàng.'
   },
   {
     id: 3,
     name: 'Phú Quốc',
     region: 'Miền Nam, Việt Nam',
-    image: '/images/destinations/phuquoc.png',
+    image: '/uploads/destinations/phuquoc.png',
     description: 'Đảo ngọc hoang sơ cùng những bãi cát trắng mịn màng.'
   },
   {
     id: 4,
     name: 'Nhật Bản',
     region: 'Quốc tế',
-    image: '/images/destinations/japan.png',
+    image: '/uploads/destinations/japan.png',
     description: 'Xứ sở anh đào giao thoa hoàn hảo giữa văn hóa truyền thống thiêng liêng và công nghệ hiện đại đột phá.'
   }
 ]
@@ -50,13 +51,10 @@ export default function PopularDestinations() {
             >
               <div className="absolute inset-0 bg-slate-900/20 group-hover:bg-slate-900/40 transition-colors duration-300 z-10" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-10" />
-              
-              <Image 
-                src={dest.image}
+              <img 
+                src={getImageUrl(dest.image)}
                 alt={dest.name}
-                fill
-                className="object-cover group-hover:scale-110 transition-transform duration-500"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
               
               <div className="absolute bottom-0 left-0 right-0 p-6 z-20 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">

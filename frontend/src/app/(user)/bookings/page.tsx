@@ -10,6 +10,7 @@ import { useConfirm } from '@/providers/ConfirmProvider'
 import { toast } from 'react-hot-toast'
 import { bookingService } from '@/services/bookingService'
 import { reviewService } from '@/services/reviewService'
+import FallbackImage from '@/components/ui/FallbackImage'
 
 function BookingsContent() {
   const { user, isLoginModalOpen, setLoginModalOpen } = useAuthStore()
@@ -252,7 +253,7 @@ function BookingsContent() {
                 <div className="p-6 md:p-8">
                   <div className="flex flex-col md:flex-row gap-6 md:gap-8 border-b border-slate-100 pb-8 mb-8">
                     <div className="w-full md:w-56 h-40 rounded-2xl overflow-hidden shrink-0 bg-slate-100 group relative">
-                      <img src={booking.tour_image || "https://images.unsplash.com/photo-1596422846543-74c6e271abb1?auto=format&fit=crop&w=600&q=80"} alt={booking.tour_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <FallbackImage src={booking.tour_image} alt={booking.tour_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                     </div>
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-3">
