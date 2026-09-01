@@ -103,8 +103,8 @@ export default async function ToursPage({
 
   if (isLandingMode) {
     try {
-      domesticTours = await tourService.getTours({ category: 'Trong nước' });
-      internationalTours = await tourService.getTours({ category: 'Quốc tế' });
+      domesticTours = await tourService.getTours({ category: 'Trong nước', limit: '50' });
+      internationalTours = await tourService.getTours({ category: 'Quốc tế', limit: '50' });
     } catch (error) {
       console.error("Lỗi lấy danh sách landing tour:", error);
     }

@@ -21,9 +21,12 @@ export default function TourSection({ title, category, pills, tours }: TourSecti
   let displayTours = tours;
   if (activeTab !== 'Tất cả') {
     displayTours = tours.filter(t => {
-      const matchName = t.name?.toLowerCase().includes(activeTab.toLowerCase());
-      const matchDest = t.destinations?.some(d => d.name?.toLowerCase().includes(activeTab.toLowerCase()));
-      return matchName || matchDest;
+      const tabStr = activeTab.toLowerCase();
+      const matchName = t.name?.toLowerCase().includes(tabStr);
+      const matchDest = t.destinations?.some(d => d.name?.toLowerCase().includes(tabStr));
+      const matchCountry = t.country?.toLowerCase().includes(tabStr);
+      const matchRegion = t.region?.toLowerCase().includes(tabStr);
+      return matchName || matchDest || matchCountry || matchRegion;
     });
   }
   
