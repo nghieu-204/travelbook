@@ -13,6 +13,11 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
     'Content-Type': 'application/json',
   };
 
+  // Nếu body hoặc data là FormData, KHÔNG GÁN Content-Type để trình duyệt tự set multipart/form-data
+  if (customConfig.body instanceof FormData || data instanceof FormData) {
+    delete defaultHeaders['Content-Type'];
+  }
+
   // Lấy token từ LocalStorage nếu ở môi trường client
   if (typeof window !== 'undefined') {
     const isAdminRoute = window.location.pathname.startsWith('/admin');
@@ -31,7 +36,7 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
   }
 
   const config: RequestInit = {
-    method: data ? 'POST' : 'GET',
+    method: data || customConfig.body ? 'POST' : 'GET',
     headers: {
       ...defaultHeaders,
       ...headers,
@@ -41,7 +46,11 @@ export async function fetchApi(endpoint: string, options: FetchOptions = {}) {
   };
 
   if (data) {
-    config.body = JSON.stringify(data);
+    if (data instanceof FormData) {
+      config.body = data;
+    } else {
+      config.body = JSON.stringify(data);
+    }
   }
 
   try {
