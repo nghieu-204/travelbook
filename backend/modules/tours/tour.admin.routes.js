@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const {
-    createTour, updateTour, updateTourStatus, deleteTour, uploadTourImages,
+    createTour, updateTour, updateTourStatus, deleteTour, uploadTourImages, uploadItineraryImages,
     createCountry, updateCountry, deleteCountry,
     createRegion, updateRegion, deleteRegion,
     createDestination, updateDestination, deleteDestination,
@@ -37,8 +37,30 @@ const upload = multer({
     }
 });
 
+// -- Multer Config cho Itinerary Images --
+const itineraryStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const fs = require('fs');
+        const dir = path.join(__dirname, '../../uploads/tours/itinerary/');
+        if (!fs.existsSync(dir)){
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'itin-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const uploadItinerary = multer({ 
+    storage: itineraryStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: upload.fileFilter
+});
+
 // Admin protected routes
 router.post('/tours/upload-images', verifyAdmin, upload.array('images', 20), uploadTourImages);
+router.post('/tours/upload-itinerary-images', verifyAdmin, uploadItinerary.array('images', 20), uploadItineraryImages);
 router.post('/tours', verifyAdmin, createTour);
 router.put('/tours/:id', verifyAdmin, updateTour);
 router.put('/tours/:id/status', verifyAdmin, updateTourStatus);

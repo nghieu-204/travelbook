@@ -323,7 +323,7 @@ export default function EditTour() {
       }
 
       if (hasItinFiles) {
-        const itinRes = await fetchApi('/admin/tours/upload-images', {
+        const itinRes = await fetchApi('/admin/tours/upload-itinerary-images', {
           method: 'POST',
           body: itinFormData,
         });

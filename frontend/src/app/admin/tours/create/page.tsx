@@ -265,7 +265,7 @@ export default function CreateTourV2() {
       }
 
       if (hasItinFiles) {
-        const itinRes = await tourService.uploadTourImages(itinFormData);
+        const itinRes = await tourService.uploadItineraryImages(itinFormData);
         const itinUrls = itinRes.urls || [];
         for (let idx = 0; idx < itinIndices.length; idx++) {
           itineraryWithUrls[itinIndices[idx]].image = itinUrls[idx];

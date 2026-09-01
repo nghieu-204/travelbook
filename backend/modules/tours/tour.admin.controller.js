@@ -148,6 +148,24 @@ const uploadTourImages = async (req, res) => {
     }
 };
 
+const uploadItineraryImages = async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: "Không có file nào được upload" });
+        }
+        
+        const imageUrls = req.files.map(file => `/uploads/tours/itinerary/${file.filename}`);
+        
+        res.status(200).json({ 
+            message: "Upload ảnh thành công", 
+            urls: imageUrls 
+        });
+    } catch (error) {
+        console.error("Lỗi upload ảnh lịch trình:", error.message);
+        res.status(500).json({ message: "Lỗi hệ thống trong quá trình upload ảnh" });
+    }
+};
+
 // 3. Admin: Thêm tour mới (Lưu ID thay vì chuỗi)
 const createTour = async (req, res) => {
     try {
@@ -497,7 +515,7 @@ const deleteTag = async (req, res) => {
 };
 
 module.exports = {
-    getTours, getTourById, seedData, createTour, updateTour, updateTourStatus, deleteTour, uploadTourImages,
+    getTours, getTourById, seedData, createTour, updateTour, updateTourStatus, deleteTour, uploadTourImages, uploadItineraryImages,
     getMetadata,
     createRegion, updateRegion, deleteRegion,
     createCountry, updateCountry, deleteCountry,

@@ -29,6 +29,13 @@ export const tourService = {
     });
   },
 
+  uploadItineraryImages: async (formData: FormData) => {
+    return fetchApi('/admin/tours/upload-itinerary-images', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
   updateTourStatus: async (id: number, status: string) => {
     return fetchApi(`/admin/tours/${id}/status`, {
       method: 'PUT',
