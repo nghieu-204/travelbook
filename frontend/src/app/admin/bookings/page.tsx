@@ -17,6 +17,7 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+  const [isExportOpen, setIsExportOpen] = useState(false)
   
   // Modals state
   const [viewModalOpen, setViewModalOpen] = useState(false)
@@ -152,6 +153,9 @@ export default function BookingsPage() {
       const target = e.target as HTMLElement;
       if (!target.closest('.action-dropdown-container')) {
         setOpenDropdownId(null);
+      }
+      if (!target.closest('.export-dropdown-container')) {
+        setIsExportOpen(false);
       }
     }
     document.addEventListener('click', handleClickOutside)
@@ -454,103 +458,101 @@ export default function BookingsPage() {
       {/* Main Container */}
       <div className="bg-[#1e293b] rounded-xl border border-slate-800 shadow-sm overflow-hidden flex flex-col">
 
-        {/* Toolbar */}
-        <div className="p-5 border-b border-slate-800 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-
-          {/* Left: Export Buttons & Length Menu */}
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <button onClick={handleCopy} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-md border border-slate-700 transition-colors shadow-sm">
-                <Copy className="w-4 h-4" /> Copy
-              </button>
-              <button onClick={handleCSV} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-md border border-slate-700 transition-colors shadow-sm">
-                <FileText className="w-4 h-4" /> CSV
-              </button>
-              <button onClick={handleExcel} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-md border border-slate-700 transition-colors shadow-sm">
-                <FileSpreadsheet className="w-4 h-4" /> Excel
-              </button>
-              <button onClick={handlePDF} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-md border border-slate-700 transition-colors shadow-sm">
-                <FileIcon className="w-4 h-4" /> PDF
-              </button>
-              <button onClick={handlePrintTable} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-md border border-slate-700 transition-colors shadow-sm">
-                <Printer className="w-4 h-4" /> Print
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              Hiển thị
-              <select 
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value))
-                  setCurrentPage(1)
-                }}
-                className="bg-slate-800 border border-slate-700 text-white px-2 py-1 rounded-md focus:outline-none focus:border-blue-500"
+        {/* Toolbar & Filters */}
+        <div className="p-5 border-b border-slate-800 flex flex-col gap-4">
+          
+          {/* Row 1: Export */}
+          <div className="flex justify-end">
+            <div className="relative inline-block text-left export-dropdown-container">
+              <button 
+                onClick={() => setIsExportOpen(!isExportOpen)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg border border-slate-700 transition-colors shadow-sm"
               >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-              đơn mỗi trang
+                Xuất dữ liệu <ChevronDown className={`w-4 h-4 transition-transform ${isExportOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isExportOpen && (
+                <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-xl bg-slate-800 border border-slate-700 ring-1 ring-black ring-opacity-5 z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="py-1">
+                    <button onClick={() => { handleCopy(); setIsExportOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                      <Copy className="w-4 h-4" /> Copy
+                    </button>
+                    <button onClick={() => { handleCSV(); setIsExportOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                      <FileText className="w-4 h-4" /> CSV
+                    </button>
+                    <button onClick={() => { handleExcel(); setIsExportOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                      <FileSpreadsheet className="w-4 h-4" /> Excel
+                    </button>
+                    <button onClick={() => { handlePDF(); setIsExportOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                      <FileIcon className="w-4 h-4" /> PDF
+                    </button>
+                    <button onClick={() => { handlePrintTable(); setIsExportOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                      <Printer className="w-4 h-4" /> Print
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Right: Search & Filters */}
-          <div className="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3">
-            {/* Filter Date */}
-            <div className="relative w-full sm:w-auto">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-[#0f172a] border border-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors shadow-inner"
-                title="Từ ngày"
-              />
-            </div>
-            <div className="relative w-full sm:w-auto">
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-[#0f172a] border border-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors shadow-inner"
-                title="Đến ngày"
-              />
-            </div>
+          {/* Row 2: Filters */}
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto flex-wrap">
+              {/* Date Filters */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-[#0f172a] border border-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full sm:w-36 transition-colors"
+                  title="Từ ngày"
+                />
+                <span className="text-slate-500">-</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-[#0f172a] border border-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full sm:w-36 transition-colors"
+                  title="Đến ngày"
+                />
+              </div>
 
-            {/* Quick Filter */}
-            <button 
-              onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border shadow-inner whitespace-nowrap ${statusFilter === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-[#0f172a] text-slate-300 border-slate-700 hover:border-slate-500'}`}
-            >
-              Cần xử lý ({pendingCount})
-            </button>
+              {/* Status Filters */}
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <button 
+                  onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border whitespace-nowrap ${statusFilter === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-[#0f172a] text-slate-300 border-slate-700 hover:border-slate-500 hover:bg-slate-800'}`}
+                >
+                  Cần xử lý <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${statusFilter === 'pending' ? 'bg-amber-500/30 text-amber-300' : 'bg-slate-700 text-slate-300'}`}>{pendingCount}</span>
+                </button>
 
-            {/* Filter Status */}
-            <div className="relative w-full sm:w-auto min-w-[140px]">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-[#0f172a] border border-slate-700 text-slate-300 pl-9 pr-8 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors shadow-inner cursor-pointer"
-              >
-                <option value="all">Tất cả trạng thái</option>
-                <option value="completed">Đã hoàn thành</option>
-                <option value="confirmed">Đã xác nhận</option>
-                <option value="in_progress">Đang diễn ra</option>
-                <option value="pending">Đang chờ xác nhận</option>
-                <option value="cancelled">Đã hủy</option>
-              </select>
-              <Filter className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="relative min-w-[160px] flex-1 sm:flex-none">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="appearance-none bg-[#0f172a] border border-slate-700 text-slate-300 pl-9 pr-8 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors cursor-pointer"
+                  >
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="completed">Đã hoàn thành</option>
+                    <option value="confirmed">Đã xác nhận</option>
+                    <option value="in_progress">Đang diễn ra</option>
+                    <option value="pending">Đang chờ xác nhận</option>
+                    <option value="cancelled">Đã hủy</option>
+                  </select>
+                  <Filter className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
             </div>
 
             {/* Search Input */}
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full xl:w-72">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-[#0f172a] border border-slate-700 text-slate-200 pl-9 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors shadow-inner"
+                className="bg-[#0f172a] border border-slate-700 text-slate-200 pl-9 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-full transition-colors"
                 placeholder="Tìm kiếm booking..."
               />
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -563,15 +565,15 @@ export default function BookingsPage() {
           <table className="w-full text-sm text-left text-slate-300 border-collapse">
             <thead className="text-[11px] text-slate-400 uppercase bg-[#0f172a] border-b border-slate-800">
               <tr>
-                <th onClick={() => handleSort('id')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[100px]">Mã đơn <SortIcon sortKey="id" /></th>
-                <th onClick={() => handleSort('tourName')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[200px]">Tên Tours <SortIcon sortKey="tourName" /></th>
-                <th onClick={() => handleSort('customerName')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[200px]">Khách hàng <SortIcon sortKey="customerName" /></th>
-                <th onClick={() => handleSort('rawDate')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50">Ngày đặt <SortIcon sortKey="rawDate" /></th>
-                <th onClick={() => handleSort('adults')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Số lượng <SortIcon sortKey="adults" /></th>
-                <th onClick={() => handleSort('totalPrice')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-right">Tổng tiền <SortIcon sortKey="totalPrice" /></th>
-                <th onClick={() => handleSort('paymentStatus')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Thanh toán <SortIcon sortKey="paymentStatus" /></th>
-                <th onClick={() => handleSort('bookingStatus')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Trạng thái <SortIcon sortKey="bookingStatus" /></th>
-                <th className="px-2 py-3 font-semibold text-center sticky right-0 bg-[#0f172a] shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.3)] z-20">Hành động</th>
+                <th onClick={() => handleSort('id')} className="px-3 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 w-[90px]">Mã đơn <SortIcon sortKey="id" /></th>
+                <th onClick={() => handleSort('tourName')} className="px-3 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[240px]">Tên Tour <SortIcon sortKey="tourName" /></th>
+                <th onClick={() => handleSort('customerName')} className="px-3 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 w-[220px]">Khách hàng <SortIcon sortKey="customerName" /></th>
+                <th onClick={() => handleSort('rawDate')} className="px-3 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 w-[100px]">Ngày đặt <SortIcon sortKey="rawDate" /></th>
+                <th onClick={() => handleSort('adults')} className="px-3 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center w-[80px]">Số lượng <SortIcon sortKey="adults" /></th>
+                <th onClick={() => handleSort('totalPrice')} className="px-3 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-right w-[120px]">Tổng tiền <SortIcon sortKey="totalPrice" /></th>
+                <th onClick={() => handleSort('paymentStatus')} className="px-3 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center w-[140px]">Thanh toán <SortIcon sortKey="paymentStatus" /></th>
+                <th onClick={() => handleSort('bookingStatus')} className="px-3 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center w-[140px]">Trạng thái <SortIcon sortKey="bookingStatus" /></th>
+                <th className="px-3 py-3 font-semibold text-center sticky right-0 bg-[#0f172a] shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.3)] z-20 w-[70px]">Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -582,36 +584,36 @@ export default function BookingsPage() {
                     key={booking.id}
                     className={`border-b border-slate-800/50 hover:bg-slate-700/50 transition-colors ${isEven ? 'bg-transparent' : 'bg-[#0f172a]/40'}`}
                   >
-                    <td className="px-2 py-3 font-bold text-amber-500 border-r border-slate-800/50 text-[13px] whitespace-nowrap">
+                    <td className="px-3 py-4 font-bold text-amber-500 border-r border-slate-800/50 text-[13px] whitespace-nowrap align-top">
                       TB-{booking.id}
                     </td>
-                    <td className="px-2 py-3 font-medium max-w-[220px] border-r border-slate-800/50 text-[13px]" title={booking.tourName}>
+                    <td className="px-3 py-4 font-medium border-r border-slate-800/50 text-[13px] align-top" title={booking.tourName}>
                       <div className="inline-block px-1.5 py-0.5 bg-slate-700 text-slate-300 rounded text-[10px] font-bold mb-1.5 tracking-wide border border-slate-600 shadow-sm">{booking.tourCode}</div>
                       <div className="text-white line-clamp-2 leading-snug">{booking.tourName}</div>
                     </td>
-                    <td className="px-2 py-3 border-r border-slate-800/50">
-                      <div className="font-bold text-white text-[13px]">{booking.customerName}</div>
-                      <div className="text-slate-400 text-xs flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3" /> {booking.phone}</div>
-                      <div className="text-slate-400 text-xs flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" /> {booking.email}</div>
+                    <td className="px-3 py-4 border-r border-slate-800/50 align-top">
+                      <div className="font-bold text-white text-[13px] mb-1">{booking.customerName}</div>
+                      <div className="text-slate-400 text-[11px] flex items-center gap-1.5 mt-0.5"><Phone className="w-3 h-3" /> {booking.phone}</div>
+                      <div className="text-slate-400 text-[11px] flex items-center gap-1.5 mt-0.5"><Mail className="w-3 h-3" /> <span className="truncate">{booking.email}</span></div>
                     </td>
-                    <td className="px-2 py-3 border-r border-slate-800/50 text-xs whitespace-nowrap">{booking.bookingDate}</td>
-                    <td className="px-2 py-3 text-center font-medium border-r border-slate-800/50 text-xs text-slate-300">
-                      {booking.adults + booking.children} ({booking.adults}L, {booking.children}T)
+                    <td className="px-3 py-4 border-r border-slate-800/50 text-[12px] whitespace-nowrap align-top">{booking.bookingDate}</td>
+                    <td className="px-3 py-4 text-center font-medium border-r border-slate-800/50 text-[12px] text-slate-300 align-top">
+                      {booking.adults + booking.children} <br/><span className="text-[10px] text-slate-500">({booking.adults}L, {booking.children}T)</span>
                     </td>
-                    <td className="px-2 py-3 text-right font-bold text-amber-400 border-r border-slate-800/50 text-[13px] whitespace-nowrap">{formatCurrency(booking.totalPrice)}</td>
-                    <td className="px-2 py-3 text-center border-r border-slate-800/50">
-                      <div className="flex flex-col items-center justify-center gap-1">
+                    <td className="px-3 py-4 text-right font-bold text-amber-400 border-r border-slate-800/50 text-[13px] whitespace-nowrap align-top">{formatCurrency(booking.totalPrice)}</td>
+                    <td className="px-3 py-4 text-center border-r border-slate-800/50 align-top">
+                      <div className="flex flex-col items-center gap-1.5">
                         {getPaymentStatusBadge(booking.paymentStatus)}
-                        <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                          {booking.paymentMethod === 'Thanh toán tại văn phòng' ? 'Thanh toán trực tiếp' : (booking.paymentMethod === 'Thanh toán qua VNPay' || booking.paymentMethod === 'VNPAY' ? 'VNPay' : booking.paymentMethod)}
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap font-medium">
+                          {booking.paymentMethod === 'Thanh toán tại văn phòng' ? 'Trực tiếp' : (booking.paymentMethod === 'Thanh toán qua VNPay' || booking.paymentMethod === 'VNPAY' ? 'VNPay' : booking.paymentMethod)}
                         </span>
                       </div>
                     </td>
-                    <td className="px-2 py-3 text-center border-r border-slate-800/50">{getBookingStatusBadge(booking.bookingStatus)}</td>
+                    <td className="px-3 py-4 text-center border-r border-slate-800/50 align-top">{getBookingStatusBadge(booking.bookingStatus)}</td>
 
                     {/* Action Column - Sticky Right */}
                     <td
-                      className={`px-2 py-3 text-center sticky right-0 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.3)] transition-colors ${openDropdownId === booking.id ? 'bg-slate-700/50 z-50' : isEven ? 'bg-[#1e293b] z-10' : 'bg-[#182132] z-10'}`}
+                      className={`px-3 py-4 text-center sticky right-0 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.3)] transition-colors align-top ${openDropdownId === booking.id ? 'bg-slate-700/50 z-50' : isEven ? 'bg-[#1e293b] z-10' : 'bg-[#182132] z-10'}`}
                     >
                       <div className="relative inline-block text-left action-dropdown-container">
                         <button
@@ -688,10 +690,31 @@ export default function BookingsPage() {
         </div>
 
         {/* Pagination Info */}
-        <div className="p-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-400">
-          <div>
-            Hiển thị {bookings.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, bookings.length)} trong tổng số {bookings.length} đơn
+        <div className="p-5 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-400">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            <div className="flex items-center gap-2">
+              Hiển thị
+              <select 
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="bg-slate-800 border border-slate-700 text-white px-2 py-1.5 rounded-md focus:outline-none focus:border-blue-500 text-xs shadow-inner"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              đơn
+            </div>
+            <div className="hidden sm:block w-px h-4 bg-slate-700"></div>
+            <div>
+              Đang xem <strong className="text-white">{bookings.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, bookings.length)}</strong> / {bookings.length}
+            </div>
           </div>
+
           <div className="flex gap-1 shadow-sm overflow-x-auto max-w-full">
             <button 
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
