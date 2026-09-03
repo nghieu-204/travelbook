@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'travel.com.vn' },
-      { protocol: 'https', hostname: 'loremflickr.com' }
+      { protocol: 'https', hostname: 'loremflickr.com' },
+      { protocol: 'https', hostname: 'ui-avatars.com' }
     ]
   },
   async rewrites() {
