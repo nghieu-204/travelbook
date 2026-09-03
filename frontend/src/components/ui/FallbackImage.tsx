@@ -26,6 +26,7 @@ export default function FallbackImage({ src, alt, className, fallbackSrc, ...pro
       src={imgSrc as string} 
       alt={alt || "Image"} 
       fill
+      unoptimized={true}
       className={`object-cover ${className || ''}`} 
       onError={() => setImgSrc(fallbackSrc || defaultFallback)}
       placeholder="blur"
