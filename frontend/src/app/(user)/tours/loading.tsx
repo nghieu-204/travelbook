@@ -1,4 +1,4 @@
-import TourCardSkeleton from '@/components/tours/TourCardSkeleton'
+import TourCardSkeleton from '@/components/ui/skeletons/TourCardSkeleton'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 

@@ -21,7 +21,7 @@ export default async function ToursPage({
   const rating = ratingStr ? Number(ratingStr) : 0
   const durations = Array.isArray(params.duration) ? params.duration : params.duration ? [params.duration] : []
   const maxPriceStr = typeof params.maxPrice === 'string' ? params.maxPrice : ''
-  const maxPrice = maxPriceStr ? Number(maxPriceStr) : 99990000
+  const maxPrice = maxPriceStr ? Math.min(Number(maxPriceStr), 20000000) : 20000000
   const minPriceStr = typeof params.minPrice === 'string' ? params.minPrice : ''
   const minPrice = minPriceStr ? Number(minPriceStr) : 0
   const locationParams = Array.isArray(params.location) ? params.location : params.location ? [params.location] : []
@@ -37,7 +37,7 @@ export default async function ToursPage({
   const apiParams = new URLSearchParams();
   if (query) apiParams.append('keyword', query);
   if (categoryStr) apiParams.append('category', categoryStr);
-  if (maxPrice > 0 && maxPrice < 99990000) apiParams.append('maxPrice', maxPrice.toString());
+  if (maxPrice > 0 && maxPrice < 20000000) apiParams.append('maxPrice', maxPrice.toString());
 
   // Backend chỉ hỗ trợ 1 region tại 1 thời điểm trong controller hiện tại
   if (regions.length > 0) {

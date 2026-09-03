@@ -40,7 +40,7 @@ export default function TourGallery({ images = [] }: { images?: string[] }) {
           className="relative w-full h-[350px] md:h-[480px] rounded-3xl overflow-hidden group cursor-pointer shadow-sm border border-slate-100"
         >
           <FallbackImage src={displayImages[mainImageIndex]} alt="Main" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-          <button className="absolute bottom-4 right-4 bg-white/95 hover:bg-white text-slate-700 p-2.5 rounded-full shadow-lg transition-all hover:scale-110">
+          <button aria-label="Phóng to ảnh" className="absolute bottom-4 right-4 bg-white/95 hover:bg-white text-slate-700 p-2.5 rounded-full shadow-lg transition-all hover:scale-110">
             <Expand className="w-5 h-5" />
           </button>
         </div>
@@ -68,6 +68,7 @@ export default function TourGallery({ images = [] }: { images?: string[] }) {
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm">
           {/* Nút đóng */}
           <button 
+            aria-label="Đóng"
             onClick={() => setIsFullScreen(false)}
             className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition-all z-50"
           >
@@ -77,6 +78,7 @@ export default function TourGallery({ images = [] }: { images?: string[] }) {
           {/* Nút lùi */}
           {displayImages.length > 1 && (
             <button 
+              aria-label="Ảnh trước"
               onClick={(e) => { e.stopPropagation(); setMainImageIndex(prev => (prev - 1 + displayImages.length) % displayImages.length); }}
               className="absolute left-4 md:left-12 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-4 rounded-full transition-all z-50"
             >
@@ -100,6 +102,7 @@ export default function TourGallery({ images = [] }: { images?: string[] }) {
           {/* Nút tiến */}
           {displayImages.length > 1 && (
             <button 
+              aria-label="Ảnh tiếp theo"
               onClick={(e) => { e.stopPropagation(); setMainImageIndex(prev => (prev + 1) % displayImages.length); }}
               className="absolute right-4 md:right-12 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-4 rounded-full transition-all z-50"
             >

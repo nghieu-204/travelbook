@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-// @ts-expect-error type error from react-hook-form
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'

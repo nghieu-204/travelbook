@@ -26,7 +26,9 @@ export default function RelatedTours({ tourId }: RelatedToursProps) {
           userId = user.id ? `?userId=${user.id}` : ''
         }
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api'
+        const apiUrl = typeof window !== 'undefined'
+            ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api')
+            : (process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8902/api');
         const response = await fetch(`${apiUrl}/suggestions/related/${tourId}`)
         
         if (response.ok) {

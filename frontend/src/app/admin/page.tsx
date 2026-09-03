@@ -26,6 +26,21 @@ const REGION_COLORS: Record<string, string> = {
 
 import { toast } from 'react-hot-toast'
 
+function formatRevenue(revenue: number): string {
+  if (revenue === 0) return '0';
+  if (revenue < 1000000) {
+    return revenue.toLocaleString('vi-VN');
+  } else if (revenue < 1000000000) {
+    return (revenue / 1000000).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' triệu';
+  } else {
+    return (revenue / 1000000000).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' tỷ';
+  }
+}
+
+function formatFullCurrency(revenue: number): string {
+  return revenue.toLocaleString('vi-VN') + ' ₫';
+}
+
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<any>(null)
@@ -161,7 +176,7 @@ export default function AdminDashboard() {
               <option value="week">Tuần này</option>
               <option value="month">Tháng này</option>
               <option value="year">Năm nay</option>
-              <option value="all">Tất cả thời gian</option>
+              <option value="all">12 tháng gần nhất</option>
             </select>
             <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -182,7 +197,13 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-400 font-medium mb-1">Tổng doanh thu</p>
-            <h3 className="text-3xl font-black text-white flex items-baseline gap-1">{(Number(stats.kpi?.total_revenue) || 0).toLocaleString('vi-VN')} <span className="text-sm font-medium text-slate-500">VND</span></h3>
+            <h3 
+              className="text-2xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-white flex items-baseline gap-1 min-w-0 cursor-help"
+              title={`Doanh thu\n${formatFullCurrency(Number(stats.kpi?.total_revenue) || 0)}`}
+            >
+              <span className="truncate">{formatRevenue(Number(stats.kpi?.total_revenue) || 0)}</span>
+              <span className="text-sm font-medium text-slate-500 shrink-0">₫</span>
+            </h3>
             {timeFilter !== 'all' && stats.kpi_trends && (
               <div className={`mt-2 text-sm font-medium flex items-center gap-1 ${stats.kpi_trends.total_revenue >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                 {stats.kpi_trends.total_revenue >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -200,7 +221,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-400 font-medium mb-1">Tổng lượt đặt</p>
-            <h3 className="text-3xl font-black text-white">{stats.kpi?.total_bookings || 0}</h3>
+            <h3 className="text-2xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-white min-w-0 truncate">{stats.kpi?.total_bookings || 0}</h3>
             {timeFilter !== 'all' && stats.kpi_trends && (
               <div className={`mt-2 text-sm font-medium flex items-center gap-1 ${stats.kpi_trends.total_bookings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                 {stats.kpi_trends.total_bookings >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -218,7 +239,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-400 font-medium mb-1">Người dùng hệ thống</p>
-            <h3 className="text-3xl font-black text-white">{stats.kpi?.total_users || 0}</h3>
+            <h3 className="text-2xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-white min-w-0 truncate">{stats.kpi?.total_users || 0}</h3>
             {timeFilter !== 'all' && stats.kpi_trends && (
               <div className={`mt-2 text-sm font-medium flex items-center gap-1 ${stats.kpi_trends.total_users >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                 {stats.kpi_trends.total_users >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -236,7 +257,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-slate-400 font-medium mb-1">Tour đang hoạt động</p>
-            <h3 className="text-3xl font-black text-white">{stats.kpi?.active_tours || 0}</h3>
+            <h3 className="text-2xl lg:text-xl xl:text-2xl 2xl:text-3xl font-black text-white min-w-0 truncate">{stats.kpi?.active_tours || 0}</h3>
             {timeFilter !== 'all' && stats.kpi_trends && (
               <div className={`mt-2 text-sm font-medium flex items-center gap-1 ${stats.kpi_trends.active_tours >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                 {stats.kpi_trends.active_tours >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -304,7 +325,14 @@ export default function AdminDashboard() {
 
         {/* Bar Chart */}
         <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-sm col-span-1 lg:col-span-2 flex flex-col">
-          <h2 className="text-lg font-bold text-white mb-6">Doanh thu 12 tháng gần nhất</h2>
+          <h2 className="text-lg font-bold text-white mb-6">
+            {timeFilter === 'year' 
+              ? `Doanh thu theo tháng năm ${new Date().getFullYear()}` 
+              : timeFilter === 'all' 
+                ? 'Doanh thu 12 tháng gần nhất' 
+                : 'Doanh thu theo tháng'
+            }
+          </h2>
           <div className="flex-1 min-h-[250px]">
             {revenueData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">

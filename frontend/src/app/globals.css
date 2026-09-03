@@ -36,3 +36,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Global A11y Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 2px;
+  border-radius: inherit;
+}

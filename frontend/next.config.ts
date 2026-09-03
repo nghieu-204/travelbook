@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'travel.com.vn' },
       { protocol: 'https', hostname: 'loremflickr.com' }
     ]
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.API_URL || 'http://localhost:8902/api'}/:path*`
+      }
+    ];
   }
 };
 

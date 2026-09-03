@@ -37,7 +37,7 @@ export default function TourCard({ tour }: { tour: Tour }) {
   return (
     <div className="flex justify-center w-full h-full">
       <Link href={href}
-        className="group bg-white rounded-xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition-all duration-300 border border-slate-200 relative flex flex-col h-full w-full max-w-[320px]"
+        className="group bg-white rounded-xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.98] transition-all duration-300 border border-slate-200 relative flex flex-col h-full w-full max-w-[320px]"
       >
 
         {/* Image Section */}
