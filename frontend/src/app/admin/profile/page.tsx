@@ -65,25 +65,14 @@ export default function AdminProfile() {
           {/* Avatar */}
           <div className="relative -mt-16 mb-6 inline-block">
             <div className="w-32 h-32 rounded-full border-4 border-[#1e293b] bg-slate-800 overflow-hidden flex items-center justify-center text-4xl font-bold text-slate-400 shadow-xl">
-              {avatarUrl ? (
-                <img 
-                  src={avatarUrl} 
-                  alt="Avatar" 
-                  className="w-full h-full object-cover" 
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const parent = e.currentTarget.parentElement;
-                    if (parent && !parent.querySelector('.fallback-letter')) {
-                      const span = document.createElement('span');
-                      span.className = 'fallback-letter';
-                      span.innerText = profile?.name?.charAt(0).toUpperCase() || 'A';
-                      parent.appendChild(span);
-                    }
-                  }}
-                />
-              ) : (
-                profile.name?.charAt(0) || 'A'
-              )}
+              <img 
+                src={avatarUrl ? avatarUrl : `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'A')}&background=random`} 
+                alt="Avatar" 
+                className="w-full h-full object-cover" 
+                onError={(e) => {
+                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'A')}&background=random`;
+                }}
+              />
             </div>
             <div className="absolute bottom-2 right-2 w-4 h-4 bg-emerald-500 border-2 border-[#1e293b] rounded-full"></div>
           </div>

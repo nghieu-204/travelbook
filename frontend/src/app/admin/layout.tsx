@@ -14,9 +14,11 @@ const AvatarFallback = ({ user }: { user: any }) => {
 
   if (!user?.avatar || hasError) {
     return (
-      <span className="fallback-letter font-bold text-sm">
-        {user?.name?.charAt(0).toUpperCase() || 'A'}
-      </span>
+      <img 
+        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'A')}&background=random`}
+        alt="Avatar" 
+        className="w-full h-full object-cover"
+      />
     );
   }
 

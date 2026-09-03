@@ -112,24 +112,15 @@ export default function Header() {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-2 p-1 pr-3 rounded-full border border-slate-200 hover:bg-slate-50 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold overflow-hidden shrink-0">
-                  {user.avatar ? (
-                    <img 
-                      src={getImageUrl(user.avatar)}
-                      alt="Avatar" 
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        if (e.currentTarget.parentElement) {
-                          const span = document.createElement('span');
-                          span.innerText = user.name.charAt(0);
-                          e.currentTarget.parentElement.appendChild(span);
-                        }
-                      }}
-                    />
-                  ) : (
-                    user.name.charAt(0)
-                  )}
+                <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-slate-200">
+                  <img 
+                    src={user.avatar ? getImageUrl(user.avatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`}
+                    alt="Avatar" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`;
+                    }}
+                  />
                 </div>
                 <span className="text-sm font-semibold hidden sm:block">{user.name}</span>
               </button>

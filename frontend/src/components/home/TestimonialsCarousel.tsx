@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import Link from 'next/link'
 import FallbackImage from '@/components/ui/FallbackImage'
+import { getImageUrl } from '@/lib/utils'
 
 interface TestimonialsCarouselProps {
   testimonials: any[]
@@ -88,7 +89,7 @@ export default function TestimonialsCarousel({ testimonials }: TestimonialsCarou
               <div className="flex items-center gap-4 mt-auto">
                 <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2 border-white shadow-sm">
                   <FallbackImage 
-                    src={testimonial.user_avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80'} 
+                    src={testimonial.user_avatar ? getImageUrl(testimonial.user_avatar) : `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.user_name)}&background=random`} 
                     alt={testimonial.user_name}
                     className="w-full h-full object-cover"
                   />

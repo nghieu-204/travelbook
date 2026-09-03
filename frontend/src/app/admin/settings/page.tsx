@@ -201,25 +201,14 @@ export default function AdminSettings() {
                   <label className="text-sm font-medium text-slate-300">Ảnh đại diện</label>
                   <div className="flex items-center gap-6">
                     <div className="relative w-24 h-24 rounded-full border-4 border-slate-700 bg-slate-800 overflow-hidden flex items-center justify-center shrink-0 shadow-lg">
-                      {displayAvatar ? (
-                        <img 
-                          src={displayAvatar} 
-                          alt="Avatar" 
-                          className="w-full h-full object-cover" 
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent && !parent.querySelector('.fallback-letter')) {
-                              const span = document.createElement('span');
-                              span.className = 'text-3xl font-bold text-slate-500 fallback-letter';
-                              span.innerText = formData.name?.charAt(0).toUpperCase() || 'A';
-                              parent.appendChild(span);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <span className="text-3xl font-bold text-slate-500">{formData.name?.charAt(0) || 'A'}</span>
-                      )}
+                      <img 
+                        src={displayAvatar ? displayAvatar : `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name || 'A')}&background=random`} 
+                        alt="Avatar" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name || 'A')}&background=random`;
+                        }}
+                      />
                       
                       {/* Overlay upload button directly on avatar */}
                       <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity cursor-pointer">

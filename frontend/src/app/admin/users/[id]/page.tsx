@@ -15,9 +15,13 @@ const AvatarFallback = ({ profile }: { profile: any }) => {
   const [hasError, setHasError] = useState(false);
 
   if (!profile.avatar || hasError) {
-    return profile.role === USER_ROLE.ADMIN 
-      ? <Shield className="w-6 h-6 text-emerald-500" /> 
-      : <UserIcon className="w-6 h-6 text-slate-400" />;
+    return (
+      <img 
+        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || 'A')}&background=random`}
+        alt="Avatar" 
+        className="w-full h-full object-cover"
+      />
+    );
   }
 
   return (
