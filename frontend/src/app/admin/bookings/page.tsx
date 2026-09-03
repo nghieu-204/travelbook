@@ -37,6 +37,10 @@ export default function BookingsPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
+  const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [sortConfig, setSortConfig] = useState<{key: string, direction: 'asc'|'desc'} | null>(null)
+
   const fetchBookings = async () => {
     try {
       setLoading(true)
@@ -50,6 +54,7 @@ export default function BookingsPage() {
         phone: b.user_phone,
         address: '', 
         bookingDate: new Date(b.created_at || Date.now()).toISOString().split('T')[0],
+        rawDate: b.created_at || Date.now(),
         adults: b.adults,
         children: b.children,
         totalPrice: b.total_price,
@@ -108,8 +113,38 @@ export default function BookingsPage() {
       filtered = filtered.filter(b => new Date(b.bookingDate) <= new Date(endDate))
     }
 
+    // 4. Custom sorting
+    if (sortConfig) {
+      filtered.sort((a, b) => {
+        let valA = a[sortConfig.key];
+        let valB = b[sortConfig.key];
+        if (typeof valA === 'string') valA = valA.toLowerCase();
+        if (typeof valB === 'string') valB = valB.toLowerCase();
+        
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      // Priority sort
+      const statusPriority: Record<string, number> = {
+        [BOOKING_STATUS.PENDING]: 1,
+        [BOOKING_STATUS.CONFIRMED]: 2,
+        [BOOKING_STATUS.ONGOING]: 3,
+        [BOOKING_STATUS.COMPLETED]: 4,
+        [BOOKING_STATUS.CANCELLED]: 5
+      };
+      filtered.sort((a, b) => {
+        const pA = statusPriority[a.bookingStatus] || 99;
+        const pB = statusPriority[b.bookingStatus] || 99;
+        if (pA !== pB) return pA - pB;
+        return new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime();
+      });
+    }
+
     setBookings(filtered)
-  }, [searchTerm, statusFilter, startDate, endDate, allBookings])
+    setCurrentPage(1)
+  }, [searchTerm, statusFilter, startDate, endDate, allBookings, sortConfig])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -269,7 +304,21 @@ export default function BookingsPage() {
     }
   }
 
-  const SortIcon = () => <ArrowUpDown className="w-3.5 h-3.5 text-slate-600 inline-block ml-1 opacity-50 group-hover:opacity-100 transition-opacity" />
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  }
+
+  const SortIcon = ({ sortKey }: { sortKey: string }) => (
+    <ArrowUpDown className={`w-3.5 h-3.5 inline-block ml-1 transition-opacity ${sortConfig?.key === sortKey ? 'text-blue-400 opacity-100' : 'text-slate-600 opacity-50 group-hover:opacity-100'}`} />
+  )
+
+  const pendingCount = allBookings.filter(b => b.bookingStatus === BOOKING_STATUS.PENDING).length;
+  const totalPages = Math.ceil(bookings.length / pageSize) || 1;
+  const paginatedBookings = bookings.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const exportColumns = ['Mã đơn', 'Mã Tour', 'Tên Tour', 'Khách hàng', 'SĐT', 'Email', 'Ngày đặt', 'Người lớn', 'Trẻ em', 'Tổng tiền', 'Thanh toán', 'Trạng thái'];
 
@@ -429,14 +478,21 @@ export default function BookingsPage() {
             </div>
 
             <div className="flex items-center gap-2 text-sm text-slate-400">
-              Show
-              <select className="bg-slate-800 border border-slate-700 text-white px-2 py-1 rounded-md focus:outline-none focus:border-blue-500">
+              Hiển thị
+              <select 
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+                className="bg-slate-800 border border-slate-700 text-white px-2 py-1 rounded-md focus:outline-none focus:border-blue-500"
+              >
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
               </select>
-              entries
+              đơn mỗi trang
             </div>
           </div>
 
@@ -461,6 +517,14 @@ export default function BookingsPage() {
                 title="Đến ngày"
               />
             </div>
+
+            {/* Quick Filter */}
+            <button 
+              onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border shadow-inner whitespace-nowrap ${statusFilter === 'pending' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-[#0f172a] text-slate-300 border-slate-700 hover:border-slate-500'}`}
+            >
+              Cần xử lý ({pendingCount})
+            </button>
 
             {/* Filter Status */}
             <div className="relative w-full sm:w-auto min-w-[140px]">
@@ -499,19 +563,19 @@ export default function BookingsPage() {
           <table className="w-full text-sm text-left text-slate-300 border-collapse">
             <thead className="text-[11px] text-slate-400 uppercase bg-[#0f172a] border-b border-slate-800">
               <tr>
-                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[100px]">Mã đơn <SortIcon /></th>
-                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[200px]">Tên Tours <SortIcon /></th>
-                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[200px]">Khách hàng <SortIcon /></th>
-                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50">Ngày đặt <SortIcon /></th>
-                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Số lượng <SortIcon /></th>
-                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-right">Tổng tiền <SortIcon /></th>
-                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Thanh toán <SortIcon /></th>
-                <th className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Trạng thái <SortIcon /></th>
+                <th onClick={() => handleSort('id')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[100px]">Mã đơn <SortIcon sortKey="id" /></th>
+                <th onClick={() => handleSort('tourName')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[200px]">Tên Tours <SortIcon sortKey="tourName" /></th>
+                <th onClick={() => handleSort('customerName')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 min-w-[200px]">Khách hàng <SortIcon sortKey="customerName" /></th>
+                <th onClick={() => handleSort('rawDate')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50">Ngày đặt <SortIcon sortKey="rawDate" /></th>
+                <th onClick={() => handleSort('adults')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Số lượng <SortIcon sortKey="adults" /></th>
+                <th onClick={() => handleSort('totalPrice')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-right">Tổng tiền <SortIcon sortKey="totalPrice" /></th>
+                <th onClick={() => handleSort('paymentStatus')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Thanh toán <SortIcon sortKey="paymentStatus" /></th>
+                <th onClick={() => handleSort('bookingStatus')} className="px-2 py-3 font-semibold cursor-pointer group hover:text-white transition-colors border-r border-slate-800/50 text-center">Trạng thái <SortIcon sortKey="bookingStatus" /></th>
                 <th className="px-2 py-3 font-semibold text-center sticky right-0 bg-[#0f172a] shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.3)] z-20">Hành động</th>
               </tr>
             </thead>
             <tbody>
-              {bookings.map((booking, index) => {
+              {paginatedBookings.map((booking, index) => {
                 const isEven = index % 2 === 0;
                 return (
                   <tr
@@ -625,11 +689,44 @@ export default function BookingsPage() {
 
         {/* Pagination Info */}
         <div className="p-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-slate-400">
-          <div>Showing 1 to {bookings.length} of {bookings.length} entries</div>
-          <div className="flex gap-1 shadow-sm">
-            <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-l-md hover:bg-slate-700 transition-colors disabled:opacity-50">Previous</button>
-            <button className="px-4 py-1.5 bg-blue-600 text-white border border-blue-600">1</button>
-            <button className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-r-md hover:bg-slate-700 transition-colors disabled:opacity-50">Next</button>
+          <div>
+            Hiển thị {bookings.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, bookings.length)} trong tổng số {bookings.length} đơn
+          </div>
+          <div className="flex gap-1 shadow-sm overflow-x-auto max-w-full">
+            <button 
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-l-md hover:bg-slate-700 transition-colors disabled:opacity-50"
+            >Trước</button>
+            
+            {[...Array(totalPages)].map((_, i) => {
+              const pageNum = i + 1;
+              if (
+                pageNum === 1 || 
+                pageNum === totalPages || 
+                (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+              ) {
+                return (
+                  <button 
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1.5 border ${currentPage === pageNum ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              }
+              if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
+                return <span key={pageNum} className="px-2 py-1.5 text-slate-500">...</span>
+              }
+              return null;
+            })}
+            
+            <button 
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-r-md hover:bg-slate-700 transition-colors disabled:opacity-50"
+            >Tiếp</button>
           </div>
         </div>
 
